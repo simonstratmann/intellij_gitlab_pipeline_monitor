@@ -109,7 +109,7 @@ public class GitlabToolWindow {
      */
     private List<PipelineJobStatus> getStatusesToShow(List<PipelineJobStatus> statuses) {
         List<PipelineJobStatus> newRows = new ArrayList<>();
-        statuses = new ArrayList<>(statuses);
+        statuses = new ArrayList<>(StatusFilter.filterForGuiDisplay(statuses));
         statuses.sort(Comparator.comparing(x -> ((PipelineJobStatus) x).creationTime).reversed());
         Map<String, List<PipelineJobStatus>> branchesToStatuses = statuses.stream().collect(Collectors.groupingBy(x -> x.branchName));
         for (Map.Entry<String, List<PipelineJobStatus>> entry : branchesToStatuses.entrySet()) {
