@@ -1,0 +1,39 @@
+plugins {
+    id 'java'
+    id 'org.jetbrains.intellij' version '0.4.16'
+}
+
+group 'de.sist'
+version '1.2'
+
+sourceCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+    compile group: 'com.squareup.okhttp3', name: 'okhttp', version: '4.3.1'
+    compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.10.2'
+
+}
+
+// See https://github.com/JetBrains/gradle-intellij-plugin/
+intellij {
+    version '2019.3.3'
+    setPlugins("git4idea")
+}
+patchPluginXml {
+    changeNotes """
+      Initial test release.
+
+      Retrieves the last 100 pipelines from GitlabCI and shows the latest pipeline result for locally tracked git branches.
+
+      Beta release
+      """
+}
+
+publishPlugin {
+    token intellijPublishToken
+}
