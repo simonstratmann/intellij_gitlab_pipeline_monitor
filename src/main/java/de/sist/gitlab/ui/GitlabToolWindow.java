@@ -33,11 +33,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.Optional;
 import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @SuppressWarnings({"ConstantConditions", "Convert2Lambda"})
 public class GitlabToolWindow {
@@ -91,25 +92,41 @@ public class GitlabToolWindow {
         tableScrollPane.setVisible(true);
         errorScrollPane.setVisible(false);
 
-        Set<String> shownBranches = new HashSet<>();
-        List<PipelineJobStatus> newRows = new ArrayList<>();
-        statuses = new ArrayList<>(statuses);
-        statuses.sort(Comparator.comparing(x -> ((PipelineJobStatus) x).creationTime).reversed());
-        for (PipelineJobStatus status : statuses) {
-            //Only show one pipeline (the newest) for each branch
-            if (shownBranches.contains(status.branchName)) {
-                continue;
-            }
-            newRows.add(status);
-            shownBranches.add(status.branchName);
-        }
-        tableModel.rows = newRows;
+        tableModel.rows = getStatusesToShow(statuses);
 
         if (initialLoad) {
-            //Prevent resetting the sorting selected by the user
+            //Prevent resetting the sorting selected by the user on next update
             sortTableByUpdatedTime();
             initialLoad = false;
         }
+    }
+
+    /**
+     * Returns a list of statuses containing for each branch either all statuses up to the last final run (failed or successful) if such a run exists or otherwise just the latest run.
+     *
+     * @param statuses List of statuses to filter.
+     * @return List of filtered statuses.
+     */
+    private List<PipelineJobStatus> getStatusesToShow(List<PipelineJobStatus> statuses) {
+        List<PipelineJobStatus> newRows = new ArrayList<>();
+        statuses = new ArrayList<>(statuses);
+        statuses.sort(Comparator.comparing(x -> ((PipelineJobStatus) x).creationTime).reversed());
+        Map<String, List<PipelineJobStatus>> branchesToStatuses = statuses.stream().collect(Collectors.groupingBy(x -> x.branchName));
+        for (Map.Entry<String, List<PipelineJobStatus>> entry : branchesToStatuses.entrySet()) {
+            Optional<PipelineJobStatus> firstFinalStatus = entry.getValue().stream().filter(this::isFinalStatus).findFirst();
+            if (firstFinalStatus.isPresent()) {
+                int indexOfFirstFinalStatus = entry.getValue().indexOf(firstFinalStatus.get());
+                newRows.addAll(entry.getValue().subList(0, indexOfFirstFinalStatus + 1));
+            } else {
+                newRows.add(entry.getValue().get(0));
+            }
+        }
+        newRows.sort(Comparator.comparing(x -> ((PipelineJobStatus) x).creationTime).reversed());
+        return newRows;
+    }
+
+    private boolean isFinalStatus(PipelineJobStatus status) {
+        return Stream.of("failed", "success").anyMatch(x -> x.equals(status.result));
     }
 
     private void sortTableByUpdatedTime() {

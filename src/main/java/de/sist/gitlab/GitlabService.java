@@ -69,7 +69,13 @@ public class GitlabService {
     }
 
     public List<PipelineTo> getPipelines() throws IOException {
-        Call call = httpClient.getClient().newCall(new Request.Builder().url(PIPELINE_URL).build());
+        List<PipelineTo> pipelines = makeUrlCall(PIPELINE_URL);
+        pipelines.addAll(makeUrlCall(PIPELINE_URL + "&page=2"));
+        return pipelines;
+    }
+
+    private List<PipelineTo> makeUrlCall(String pipelineUrl) throws IOException {
+        Call call = httpClient.getClient().newCall(new Request.Builder().url(pipelineUrl).build());
         Response response = call.execute();
         if (!response.isSuccessful()) {
             logger.error("Error contacting gitlab: " + response);
@@ -84,7 +90,6 @@ public class GitlabService {
             return Jackson.OBJECT_MAPPER.readValue(json, new TypeReference<List<PipelineTo>>() {
             });
         }
-
     }
 
 }
