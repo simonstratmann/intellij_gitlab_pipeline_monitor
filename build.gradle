@@ -4,7 +4,7 @@ plugins {
 }
 
 group 'de.sist'
-version '1.2'
+version '1.3'
 
 sourceCompatibility = 1.8
 
@@ -28,7 +28,7 @@ patchPluginXml {
     changeNotes """
       Initial test release.
 
-      Retrieves the last 100 pipelines from GitlabCI and shows the latest pipeline result for locally tracked git branches.
+      Retrieves the last 200 pipelines from GitlabCI and shows the latest pipeline result for locally tracked git branches.
 
       Beta release
       """
