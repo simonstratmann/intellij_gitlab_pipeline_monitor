@@ -15,6 +15,7 @@ import de.sist.gitlab.DateTime;
 import de.sist.gitlab.GitlabService;
 import de.sist.gitlab.PipelineJobStatus;
 import de.sist.gitlab.ReloadListener;
+import de.sist.gitlab.StatusFilter;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
@@ -57,11 +58,13 @@ public class GitlabToolWindow {
     private final GitlabService gitlabService;
     private final BackgroundUpdateService backgroundUpdateService;
     private final MessageBus messageBus;
+    private final StatusFilter statusFilter;
 
     public GitlabToolWindow(Project project) {
         gitlabService = project.getService(GitlabService.class);
         backgroundUpdateService = project.getService(BackgroundUpdateService.class);
         messageBus = project.getMessageBus();
+        statusFilter = project.getService(StatusFilter.class);
 
         messageBus.connect().subscribe(ReloadListener.RELOAD, this::showPipelines);
 
@@ -92,7 +95,9 @@ public class GitlabToolWindow {
         tableScrollPane.setVisible(true);
         errorScrollPane.setVisible(false);
 
-        tableModel.rows = getStatusesToShow(statuses);
+        tableModel.rows.clear();
+        tableModel.rows.addAll(getStatusesToShow(statuses));
+        tableModel.fireTableDataChanged();
 
         if (initialLoad) {
             //Prevent resetting the sorting selected by the user on next update
@@ -109,7 +114,7 @@ public class GitlabToolWindow {
      */
     private List<PipelineJobStatus> getStatusesToShow(List<PipelineJobStatus> statuses) {
         List<PipelineJobStatus> newRows = new ArrayList<>();
-        statuses = new ArrayList<>(StatusFilter.filterForGuiDisplay(statuses));
+        statuses = new ArrayList<>(statusFilter.filterPipelines(statuses));
         statuses.sort(Comparator.comparing(x -> ((PipelineJobStatus) x).creationTime).reversed());
         Map<String, List<PipelineJobStatus>> branchesToStatuses = statuses.stream().collect(Collectors.groupingBy(x -> x.branchName));
         for (Map.Entry<String, List<PipelineJobStatus>> entry : branchesToStatuses.entrySet()) {

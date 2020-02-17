@@ -1,8 +1,13 @@
 package de.sist.gitlab;
 
+import com.intellij.notification.NotificationDisplayType;
+import com.intellij.notification.NotificationGroup;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.ui.MessageType;
+import com.intellij.openapi.util.IconLoader;
 import com.intellij.util.concurrency.AppExecutorUtil;
+import de.sist.gitlab.config.PipelineViewerConfig;
 
 import java.io.IOException;
 import java.util.List;
@@ -16,10 +21,19 @@ public class BackgroundUpdateService {
     Logger logger = Logger.getInstance(BackgroundUpdateService.class);
 
     private boolean isRunning = false;
-    private final Runnable backgroundTask;
+    private Runnable backgroundTask;
     private ScheduledFuture<?> scheduledFuture;
 
     public BackgroundUpdateService(Project project) {
+        PipelineViewerConfig config = PipelineViewerConfig.getInstance(project);
+        if (config.getGitlabProjectId() == null || config.getGitlabProjectId() == 0) {
+            NotificationGroup notificationGroup = new NotificationGroup("Gitlab Pipeline Viewer - Error", NotificationDisplayType.BALLOON, true,
+                    "Gitlab pipeline viewer", IconLoader.getIcon("/toolWindow/gitlab-icon.png"));
+            notificationGroup.createNotification("No gitlab project ID set", MessageType.ERROR);
+            logger.error("Configuration incomplete - no gitlab project ID set");
+            return;
+        }
+
         GitlabService gitlabService = project.getService(GitlabService.class);
         backgroundTask = () -> {
             try {

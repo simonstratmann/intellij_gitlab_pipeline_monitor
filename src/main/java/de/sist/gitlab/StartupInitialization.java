@@ -3,6 +3,7 @@ package de.sist.gitlab;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.startup.StartupActivity;
+import de.sist.gitlab.config.PipelineViewerConfig;
 import de.sist.gitlab.ui.NotifierService;
 import git4idea.branch.GitBranchUtil;
 import git4idea.repo.GitRepository;
@@ -28,7 +29,11 @@ public class StartupInitialization implements StartupActivity {
             return;
         }
 
+        PipelineViewerConfig config = PipelineViewerConfig.getInstance(project);
+        config.initIfNeeded();
+
         project.getService(GitlabService.class).setCurrentRepository(currentRepository);
         project.getService(BackgroundUpdateService.class).startBackgroundTask();
+
     }
 }

@@ -22,7 +22,6 @@ public class GitlabConfigurable implements Configurable {
         return "Gitlab Pipeline Viewer";
     }
 
-
     @Nullable
     @Override
     public JComponent createComponent() {
