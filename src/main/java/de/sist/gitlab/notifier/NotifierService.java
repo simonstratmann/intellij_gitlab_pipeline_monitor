@@ -34,6 +34,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class NotifierService {
@@ -58,6 +59,7 @@ public class NotifierService {
 
         project.getMessageBus().connect().subscribe(ReloadListener.RELOAD, this::showStatusNotifications);
         project.getMessageBus().connect().subscribe(IncompleteConfigListener.CONFIG_INCOMPLETE, this::showIncompleteConfigNotification);
+
     }
 
     private void showStatusNotifications(List<PipelineJobStatus> statuses) {
@@ -67,39 +69,46 @@ public class NotifierService {
             return;
         }
 
-        statusFilter.filterPipelines(statuses)
+        List<PipelineJobStatus> filteredStatuses = statusFilter.filterPipelines(statuses)
                 .stream().filter(x ->
-                !shownNotifications.contains(x)
-        ).forEach(status -> {
-            NotificationGroup notificationGroup = statusesToNotificationGroups.get(status.result);
+                        !shownNotifications.contains(x)
+                ).collect(Collectors.toList());
+        //Don't spam the GUI, never show more than the newest 3
+        List<PipelineJobStatus> statusesToShow = filteredStatuses.subList(Math.max(0, filteredStatuses.size() - 3), filteredStatuses.size());
+        for (int i = 0; i < statusesToShow.size(); i++) {
+            PipelineJobStatus status = filteredStatuses.get(i);
+            showBalloonForStatus(status, i);
+        }
+    }
 
-            NotificationType notificationType;
-            String content;
-            if (Stream.of("failed", "canceled", "skipped").anyMatch(s -> status.result.equals(s))) {
-                notificationType = NotificationType.ERROR;
-            } else {
-                notificationType = NotificationType.INFORMATION;
+    private void showBalloonForStatus(PipelineJobStatus status, int index) {
+        NotificationGroup notificationGroup = statusesToNotificationGroups.computeIfAbsent(status.result, this::createNotificationGroup);
+
+        NotificationType notificationType;
+        String content;
+        if (Stream.of("failed", "canceled", "skipped").anyMatch(s -> status.result.equals(s))) {
+            notificationType = NotificationType.ERROR;
+        } else {
+            notificationType = NotificationType.INFORMATION;
+        }
+        content = status.branchName + ": <span style=\"color:" + getColorForStatus(status.result) + "\">" + status.result + "</span>"
+                + "<br>Created: " + DateTime.formatDateTime(status.creationTime)
+                + "<br>Last update: " + DateTime.formatDateTime(status.updateTime);
+
+        Notification notification = notificationGroup.createNotification("Gitlab branch status", null, content, notificationType);
+
+
+        notification.addAction(new NotificationAction("Open in Browser") {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e, @NotNull Notification notification) {
+                com.intellij.ide.BrowserUtil.browse(status.pipelineLink);
+                notification.expire();
             }
-            content = status.branchName + ": <span style=\"color:" + getColorForStatus(status.result) + "\">" + status.result + "</span>"
-                    + "<br>Created: " + DateTime.formatDateTime(status.creationTime)
-                    + "<br>Last update: " + DateTime.formatDateTime(status.updateTime);
-
-            Notification notification = notificationGroup.createNotification("Gitlab branch status", null, content, notificationType);
-
-
-            notification.addAction(new NotificationAction("Open in Browser") {
-                @Override
-                public void actionPerformed(@NotNull AnActionEvent e, @NotNull Notification notification) {
-                    com.intellij.ide.BrowserUtil.browse(status.pipelineLink);
-                    notification.expire();
-                }
-            });
-
-            logger.debug("Showing notification for status " + status);
-            showBalloon(notification);
-            shownNotifications.add(status);
-
         });
+
+        logger.debug("Showing notification for status " + status);
+        showBalloon(notification, index);
+        shownNotifications.add(status);
     }
 
     private void showIncompleteConfigNotification(String message) {
@@ -114,16 +123,21 @@ public class NotifierService {
         Notifications.Bus.notify(notification, project);
     }
 
-    private void showBalloon(Notification notification) {
+    private void showBalloon(Notification notification, int index) {
         IdeFrame ideFrame = WindowManager.getInstance().getIdeFrame(project);
         if (ideFrame == null) {
             logger.error("ideFrame is null");
         } else {
             Rectangle bounds = ideFrame.getComponent().getBounds();
             Balloon balloon = NotificationsManagerImpl.createBalloon(ideFrame, notification, false, true, BalloonLayoutData.fullContent(), project);
-            Dimension preferredSize = new Dimension(350, 100);
+            Dimension preferredSize = new Dimension(450, 100);
             ((BalloonImpl) balloon).getContent().setPreferredSize(preferredSize);
-            Point pointForRelativePosition = new Point(bounds.x + bounds.width - 209, bounds.y + bounds.height - 111);
+
+            //Show each balloon above the previous one and keep a bit of space between
+            int lowerYBound = bounds.y + bounds.height - 111;
+            lowerYBound -= (index * 100 + 75);
+
+            Point pointForRelativePosition = new Point(bounds.x + bounds.width - 259, lowerYBound);
             balloon.show(new RelativePoint(ideFrame.getComponent(), pointForRelativePosition), Balloon.Position.above);
         }
     }
