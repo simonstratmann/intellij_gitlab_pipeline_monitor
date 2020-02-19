@@ -1,11 +1,13 @@
 package de.sist.gitlab.config;
 
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.ui.CollectionListModel;
 import com.intellij.ui.IdeBorderFactory;
 import com.intellij.ui.ToolbarDecorator;
 import com.intellij.ui.components.JBList;
+import de.sist.gitlab.BackgroundUpdateService;
 
 import javax.swing.*;
 import java.util.ArrayList;
@@ -15,7 +17,8 @@ import java.util.Objects;
 
 @SuppressWarnings("unused")
 public class ConfigForm {
-    PipelineViewerConfig config;
+    private PipelineViewerConfig config;
+    private Project project;
 
     private boolean modified = false;
 
@@ -34,7 +37,7 @@ public class ConfigForm {
     private JCheckBox showStatusFailedCheckbox;
     private JCheckBox showStatusSuccessCheckbox;
     private JPanel projectIdPanel;
-    private JPanel branchesToWatchPanel2;
+    private JTextField gitlabUrlField;
     private JList<String> branchesToWatchList;
     private JPanel statesToNotify2;
 
@@ -47,15 +50,17 @@ public class ConfigForm {
 
         statesToNotifyPanel.setBorder(IdeBorderFactory.createTitledBorder("Statuses to notify"));
 
-        projectIdPanel.setBorder(IdeBorderFactory.createTitledBorder("Gitlab project ID"));
+        projectIdPanel.setBorder(IdeBorderFactory.createTitledBorder("Gitlab settings"));
     }
 
     public void init(Project project) {
+        this.project = project;
         config = PipelineViewerConfig.getInstance(project);
         loadSettings();
     }
 
     public void apply() {
+        config.setGitlabUrl(gitlabUrlField.getText());
         config.setGitlabProjectId((Integer) projectIdSpinner.getValue());
         config.setBranchesToIgnore(branchesToIgnoreListModel.toList());
         config.setBranchesToWatch(branchesToWatchListModel.toList());
@@ -80,11 +85,11 @@ public class ConfigForm {
         }
         config.setStatusesToWatch(statusesToWatch);
 
-//        project.getService(HttpClientService.class).reload();
-//        project.getMessageBus().syncPublisher(ReloadListener.RELOAD).reload(config);
+        ApplicationManager.getApplication().invokeLater(() -> project.getService(BackgroundUpdateService.class).restartBackgroundTask());
     }
 
     public void loadSettings() {
+        gitlabUrlField.setText(config.getGitlabUrl());
         if (config.getGitlabProjectId() != null) {
             projectIdSpinner.setValue(config.getGitlabProjectId());
         }
@@ -100,17 +105,17 @@ public class ConfigForm {
     }
 
     public boolean isModified() {
-        //todo
-        return !Objects.equals(config.getGitlabProjectId(), projectIdSpinner.getValue())
-                || new HashSet<>(branchesToWatchListModel.getItems()).equals(new HashSet<>(config.getBranchesToWatch()))
-                || new HashSet<>(branchesToIgnoreListModel.getItems()).equals(new HashSet<>(config.getBranchesToIgnore()))
-                || showStatusCanceledCheckbox.isSelected() != config.getStatusesToWatch().contains("canceled")
-                || showStatusFailedCheckbox.isSelected() != config.getStatusesToWatch().contains("failed")
-                || showStatusPendingCheckbox.isSelected() != config.getStatusesToWatch().contains("pending")
-                || showStatusRunningCheckbox.isSelected() != config.getStatusesToWatch().contains("running")
-                || showStatusSkippedCheckbox.isSelected() != config.getStatusesToWatch().contains("skipped")
-                || showStatusSuccessCheckbox.isSelected() != config.getStatusesToWatch().contains("success")
-
+        return
+                Objects.equals(gitlabUrlField.getText(), config.getGitlabUrl())
+                        || !Objects.equals(config.getGitlabProjectId(), projectIdSpinner.getValue())
+                        || new HashSet<>(branchesToWatchListModel.getItems()).equals(new HashSet<>(config.getBranchesToWatch()))
+                        || new HashSet<>(branchesToIgnoreListModel.getItems()).equals(new HashSet<>(config.getBranchesToIgnore()))
+                        || showStatusCanceledCheckbox.isSelected() != config.getStatusesToWatch().contains("canceled")
+                        || showStatusFailedCheckbox.isSelected() != config.getStatusesToWatch().contains("failed")
+                        || showStatusPendingCheckbox.isSelected() != config.getStatusesToWatch().contains("pending")
+                        || showStatusRunningCheckbox.isSelected() != config.getStatusesToWatch().contains("running")
+                        || showStatusSkippedCheckbox.isSelected() != config.getStatusesToWatch().contains("skipped")
+                        || showStatusSuccessCheckbox.isSelected() != config.getStatusesToWatch().contains("success")
                 ;
     }
 

@@ -18,13 +18,18 @@ public class PipelineViewerConfig implements PersistentStateComponent<PipelineVi
 
     private static final Logger log = Logger.getInstance(PipelineViewerConfig.class);
 
+    private String gitlabUrl;
     private Integer gitlabProjectId;
     private List<String> branchesToIgnore = new ArrayList<>();
     private List<String> branchesToWatch = new ArrayList<>();
     private List<String> statusesToWatch = new ArrayList<>();
 
-    public PipelineViewerConfig() {
-        System.out.println();
+    public String getGitlabUrl() {
+        return gitlabUrl;
+    }
+
+    public void setGitlabUrl(String gitlabUrl) {
+        this.gitlabUrl = gitlabUrl;
     }
 
     public Integer getGitlabProjectId() {

@@ -103,7 +103,7 @@ public class NotifierService {
     }
 
     private void showIncompleteConfigNotification(String message) {
-        Notification notification = errorNotificationGroup.createNotification(message, NotificationType.ERROR);
+        Notification notification = errorNotificationGroup.createNotification("Gitlab pipeline viewer", message, NotificationType.ERROR, null);
         notification.addAction(new NotificationAction("Open Settings") {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e, @NotNull Notification notification) {

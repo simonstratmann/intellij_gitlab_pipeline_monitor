@@ -10,8 +10,11 @@ import okhttp3.Call;
 import okhttp3.Request;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
+import org.apache.http.client.utils.URIBuilder;
 
 import java.io.IOException;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -22,7 +25,7 @@ import java.util.stream.Collectors;
 public class GitlabService {
 
     Logger logger = Logger.getInstance(GitlabService.class);
-    private static final String PIPELINE_URL = "https://172.29.151.142/api/v4/projects/%d/pipelines?per_page=100";
+    private static final String PIPELINE_SUFFIX = "/api/v4/projects/%d/pipelines";
     private final HttpClientService httpClient;
     private final PipelineViewerConfig config;
     private final Project project;
@@ -51,19 +54,29 @@ public class GitlabService {
     }
 
     public List<PipelineTo> getPipelines() throws IOException {
-        Integer gitlabProjectId = PipelineViewerConfig.getInstance(project).getGitlabProjectId();
-        if (gitlabProjectId == null) {
-            project.getMessageBus().syncPublisher(IncompleteConfigListener.CONFIG_INCOMPLETE).handleIncompleteConfig("Incomplete config - project ID not set");
-            logger.info("Gitlab project ID not set");
+        PipelineViewerConfig config = PipelineViewerConfig.getInstance(project);
+        if (config.getGitlabProjectId() == null || config.getGitlabUrl() == null) {
+            project.getMessageBus().syncPublisher(IncompleteConfigListener.CONFIG_INCOMPLETE).handleIncompleteConfig("Incomplete config");
+            logger.info("Gitlab project ID and/or URL not set");
         }
-        String url = String.format(PIPELINE_URL, gitlabProjectId);
-        List<PipelineTo> pipelines = makeUrlCall(url);
-        pipelines.addAll(makeUrlCall(url + "&page=2"));
+        List<PipelineTo> pipelines = makeUrlCall(1);
+        pipelines.addAll(makeUrlCall(2));
         return pipelines;
     }
 
-    private List<PipelineTo> makeUrlCall(String pipelineUrl) throws IOException {
-        Call call = httpClient.getClient().newCall(new Request.Builder().url(pipelineUrl).build());
+    private List<PipelineTo> makeUrlCall(int page) throws IOException {
+        URL url;
+        try {
+            url = new URIBuilder(config.getGitlabUrl())
+                    .setPath(String.format(PIPELINE_SUFFIX, config.getGitlabProjectId()))
+                    .addParameter("page", String.valueOf(page))
+                    .addParameter("per_page", "100")
+                    .build().toURL();
+        } catch (URISyntaxException e) {
+            throw new RuntimeException(e);
+        }
+
+        Call call = httpClient.getClient().newCall(new Request.Builder().url(url).build());
         Response response = call.execute();
         if (!response.isSuccessful()) {
             logger.error("Error contacting gitlab: " + response);

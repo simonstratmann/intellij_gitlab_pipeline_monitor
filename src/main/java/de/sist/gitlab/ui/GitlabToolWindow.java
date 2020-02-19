@@ -1,5 +1,6 @@
 package de.sist.gitlab.ui;
 
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressManager;
@@ -66,7 +67,10 @@ public class GitlabToolWindow {
         messageBus = project.getMessageBus();
         statusFilter = project.getService(StatusFilter.class);
 
-        messageBus.connect().subscribe(ReloadListener.RELOAD, this::showPipelines);
+        messageBus.connect().subscribe(ReloadListener.RELOAD, statuses -> {
+            ApplicationManager.getApplication().invokeLater(() ->
+                    showPipelines(statuses));
+        });
 
         refreshToolWindowButton.addActionListener(e -> {
             Task.Backgroundable task = new Task.Backgroundable(project, "Loading Gitlab Pipelines") {

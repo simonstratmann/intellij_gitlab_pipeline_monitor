@@ -16,7 +16,7 @@ import java.util.concurrent.TimeUnit;
 
 public class BackgroundUpdateService {
 
-    private static final int INITIAL_DELAY = 5;
+    private static final int INITIAL_DELAY = 10;
     private static final int UPDATE_DELAY = 30;
     Logger logger = Logger.getInstance(BackgroundUpdateService.class);
 
@@ -61,6 +61,16 @@ public class BackgroundUpdateService {
         boolean cancelled = scheduledFuture.cancel(false);
         isRunning = !cancelled;
         logger.debug("Background task cancelled: " + cancelled);
+    }
+
+    public synchronized void restartBackgroundTask() {
+        if (isRunning) {
+            boolean cancelled = scheduledFuture.cancel(false);
+            isRunning = !cancelled;
+            logger.debug("Background task cancelled: " + cancelled);
+        }
+        scheduledFuture = AppExecutorUtil.getAppScheduledExecutorService().scheduleWithFixedDelay(backgroundTask, 0, UPDATE_DELAY, TimeUnit.SECONDS);
+        isRunning = true;
     }
 
 }
