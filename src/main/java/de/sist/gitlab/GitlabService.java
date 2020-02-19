@@ -37,16 +37,8 @@ public class GitlabService {
     }
 
     public List<PipelineJobStatus> getStatuses() throws IOException {
-        List<PipelineTo> pipelines;
-        try {
-            pipelines = getPipelines();
-        } catch (IOException e) {
-            logger.error("Unable to connect to gitlab", e);
-            throw e;
-        }
-
         Set<PipelineJobStatus> statuses = new HashSet<>();
-        for (PipelineTo pipeline : pipelines.stream().sorted(Comparator.comparing(PipelineTo::getUpdatedAt).reversed()).collect(Collectors.toList())) {
+        for (PipelineTo pipeline : getPipelines().stream().sorted(Comparator.comparing(PipelineTo::getUpdatedAt).reversed()).collect(Collectors.toList())) {
             statuses.add(new PipelineJobStatus(pipeline.getRef(), pipeline.getCreatedAt(), pipeline.getUpdatedAt(), pipeline.getStatus(), pipeline.getWebUrl()));
         }
 

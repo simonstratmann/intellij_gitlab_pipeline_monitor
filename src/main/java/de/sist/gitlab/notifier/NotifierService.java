@@ -59,7 +59,11 @@ public class NotifierService {
 
         project.getMessageBus().connect().subscribe(ReloadListener.RELOAD, this::showStatusNotifications);
         project.getMessageBus().connect().subscribe(IncompleteConfigListener.CONFIG_INCOMPLETE, this::showIncompleteConfigNotification);
+    }
 
+    public void showError(String error) {
+        Notification notification = errorNotificationGroup.createNotification(error, NotificationType.ERROR);
+        Notifications.Bus.notify(notification, project);
     }
 
     private void showStatusNotifications(List<PipelineJobStatus> statuses) {

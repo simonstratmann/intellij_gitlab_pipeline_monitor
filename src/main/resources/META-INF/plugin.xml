@@ -19,6 +19,7 @@
         <projectConfigurable instance="de.sist.gitlab.config.GitlabConfigurable" id="de.sist.gitlab.configurable" displayName="Gitlab pipeline viewer"/>
         <projectService serviceImplementation="de.sist.gitlab.config.PipelineViewerConfig"/>
         <projectService serviceImplementation="de.sist.gitlab.StatusFilter"/>
+        <projectService serviceImplementation="de.sist.gitlab.git.GitService"/>
         <projectService serviceImplementation="de.sist.gitlab.GitlabService"/>
         <projectService serviceImplementation="de.sist.gitlab.HttpClientService"/>
         <projectService serviceImplementation="de.sist.gitlab.notifier.NotifierService"/>

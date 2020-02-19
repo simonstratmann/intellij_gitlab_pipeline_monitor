@@ -8,6 +8,8 @@ import com.intellij.openapi.ui.MessageType;
 import com.intellij.openapi.util.IconLoader;
 import com.intellij.util.concurrency.AppExecutorUtil;
 import de.sist.gitlab.config.PipelineViewerConfig;
+import de.sist.gitlab.git.GitInitListener;
+import de.sist.gitlab.notifier.NotifierService;
 
 import java.io.IOException;
 import java.util.List;
@@ -16,7 +18,7 @@ import java.util.concurrent.TimeUnit;
 
 public class BackgroundUpdateService {
 
-    private static final int INITIAL_DELAY = 10;
+    private static final int INITIAL_DELAY = 0;
     private static final int UPDATE_DELAY = 30;
     Logger logger = Logger.getInstance(BackgroundUpdateService.class);
 
@@ -25,14 +27,13 @@ public class BackgroundUpdateService {
     private ScheduledFuture<?> scheduledFuture;
 
     public BackgroundUpdateService(Project project) {
-
         GitlabService gitlabService = project.getService(GitlabService.class);
         backgroundTask = () -> {
             try {
                 List<PipelineJobStatus> statuses = gitlabService.getStatuses();
                 project.getMessageBus().syncPublisher(ReloadListener.RELOAD).reload(statuses);
             } catch (IOException e) {
-                stopBackgroundTask();
+                project.getService(NotifierService.class).showError("Unable to connect got gitlab: " + e);
             }
         };
         PipelineViewerConfig config = PipelineViewerConfig.getInstance(project);
@@ -40,7 +41,10 @@ public class BackgroundUpdateService {
             NotificationGroup notificationGroup = new NotificationGroup("Gitlab Pipeline Viewer - Error", NotificationDisplayType.BALLOON, true,
                     "Gitlab pipeline viewer", IconLoader.getIcon("/toolWindow/gitlab-icon.png"));
             notificationGroup.createNotification("No gitlab project ID set", MessageType.ERROR);
+            return;
         }
+
+        project.getMessageBus().connect().subscribe(GitInitListener.GIT_INITIALIZED, gitRepository -> startBackgroundTask());
     }
 
     public synchronized void startBackgroundTask() {
