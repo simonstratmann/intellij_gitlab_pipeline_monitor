@@ -21,6 +21,7 @@ import com.intellij.ui.awt.RelativePoint;
 import de.sist.gitlab.DateTime;
 import de.sist.gitlab.PipelineJobStatus;
 import de.sist.gitlab.ReloadListener;
+import de.sist.gitlab.StatusFilter;
 import de.sist.gitlab.config.GitlabConfigurable;
 import org.jetbrains.annotations.NotNull;
 
@@ -40,7 +41,7 @@ public class NotifierService {
     private static final Logger logger = Logger.getInstance(NotifierService.class);
 
     private static final List<String> KNOWN_STATUSES = Arrays.asList("pending", "running", "canceled", "failed", "success", "skipped");
-
+    private final StatusFilter statusFilter;
     private final Project project;
 
     private Set<PipelineJobStatus> shownNotifications;
@@ -51,6 +52,7 @@ public class NotifierService {
 
     public NotifierService(Project project) {
         this.project = project;
+        statusFilter = project.getService(StatusFilter.class);
 
         KNOWN_STATUSES.forEach(x -> statusesToNotificationGroups.put(x, createNotificationGroup(x)));
 
@@ -62,44 +64,42 @@ public class NotifierService {
         if (shownNotifications == null) {
             //Don't show notifications for pipeline statuses from before the program was started
             shownNotifications = new HashSet<>(statuses);
-
             return;
         }
 
-        statuses.stream().filter(x ->
+        statusFilter.filterPipelines(statuses)
+                .stream().filter(x ->
                 !shownNotifications.contains(x)
-        )
-                .forEach(status -> {
+        ).forEach(status -> {
+            NotificationGroup notificationGroup = statusesToNotificationGroups.get(status.result);
 
-                    NotificationGroup notificationGroup = statusesToNotificationGroups.get(status.result);
+            NotificationType notificationType;
+            String content;
+            if (Stream.of("failed", "canceled", "skipped").anyMatch(s -> status.result.equals(s))) {
+                notificationType = NotificationType.ERROR;
+            } else {
+                notificationType = NotificationType.INFORMATION;
+            }
+            content = status.branchName + ": <span style=\"color:" + getColorForStatus(status.result) + "\">" + status.result + "</span>"
+                    + "<br>Created: " + DateTime.formatDateTime(status.creationTime)
+                    + "<br>Last update: " + DateTime.formatDateTime(status.updateTime);
 
-                    NotificationType notificationType;
-                    String content;
-                    if (Stream.of("failed", "canceled", "skipped").anyMatch(s -> status.result.equals(s))) {
-                        notificationType = NotificationType.ERROR;
-                    } else {
-                        notificationType = NotificationType.INFORMATION;
-                    }
-                    content = status.branchName + ": <span style=\"color:" + getColorForStatus(status.result) + "\">" + status.result + "</span>"
-                            + "<br>Created: " + DateTime.formatDateTime(status.creationTime)
-                            + "<br>Last update: " + DateTime.formatDateTime(status.updateTime);
-
-                    Notification notification = notificationGroup.createNotification("Gitlab branch status", null, content, notificationType);
+            Notification notification = notificationGroup.createNotification("Gitlab branch status", null, content, notificationType);
 
 
-                    notification.addAction(new NotificationAction("Open in Browser") {
-                        @Override
-                        public void actionPerformed(@NotNull AnActionEvent e, @NotNull Notification notification) {
-                            com.intellij.ide.BrowserUtil.browse(status.pipelineLink);
-                            notification.expire();
-                        }
-                    });
+            notification.addAction(new NotificationAction("Open in Browser") {
+                @Override
+                public void actionPerformed(@NotNull AnActionEvent e, @NotNull Notification notification) {
+                    com.intellij.ide.BrowserUtil.browse(status.pipelineLink);
+                    notification.expire();
+                }
+            });
 
-                    logger.debug("Showing notification for status " + status);
-                    showBalloon(notification);
-                    shownNotifications.add(status);
+            logger.debug("Showing notification for status " + status);
+            showBalloon(notification);
+            shownNotifications.add(status);
 
-                });
+        });
     }
 
     private void showIncompleteConfigNotification(String message) {
