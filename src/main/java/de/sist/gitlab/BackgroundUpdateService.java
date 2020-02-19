@@ -16,7 +16,7 @@ import java.util.concurrent.TimeUnit;
 
 public class BackgroundUpdateService {
 
-    private static final int INITIAL_DELAY = 0;
+    private static final int INITIAL_DELAY = 5;
     private static final int UPDATE_DELAY = 30;
     Logger logger = Logger.getInstance(BackgroundUpdateService.class);
 
@@ -25,14 +25,6 @@ public class BackgroundUpdateService {
     private ScheduledFuture<?> scheduledFuture;
 
     public BackgroundUpdateService(Project project) {
-        PipelineViewerConfig config = PipelineViewerConfig.getInstance(project);
-        if (config.getGitlabProjectId() == null || config.getGitlabProjectId() == 0) {
-            NotificationGroup notificationGroup = new NotificationGroup("Gitlab Pipeline Viewer - Error", NotificationDisplayType.BALLOON, true,
-                    "Gitlab pipeline viewer", IconLoader.getIcon("/toolWindow/gitlab-icon.png"));
-            notificationGroup.createNotification("No gitlab project ID set", MessageType.ERROR);
-            logger.error("Configuration incomplete - no gitlab project ID set");
-            return;
-        }
 
         GitlabService gitlabService = project.getService(GitlabService.class);
         backgroundTask = () -> {
@@ -42,8 +34,13 @@ public class BackgroundUpdateService {
             } catch (IOException e) {
                 stopBackgroundTask();
             }
-
         };
+        PipelineViewerConfig config = PipelineViewerConfig.getInstance(project);
+        if (config.getGitlabProjectId() == null || config.getGitlabProjectId() == 0) {
+            NotificationGroup notificationGroup = new NotificationGroup("Gitlab Pipeline Viewer - Error", NotificationDisplayType.BALLOON, true,
+                    "Gitlab pipeline viewer", IconLoader.getIcon("/toolWindow/gitlab-icon.png"));
+            notificationGroup.createNotification("No gitlab project ID set", MessageType.ERROR);
+        }
     }
 
     public synchronized void startBackgroundTask() {

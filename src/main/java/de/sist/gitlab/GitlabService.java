@@ -5,7 +5,7 @@ import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import de.sist.gitlab.config.PipelineViewerConfig;
-import git4idea.repo.GitRepository;
+import de.sist.gitlab.notifier.IncompleteConfigListener;
 import okhttp3.Call;
 import okhttp3.Request;
 import okhttp3.Response;
@@ -13,7 +13,6 @@ import okhttp3.ResponseBody;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
@@ -27,7 +26,6 @@ public class GitlabService {
     private final HttpClientService httpClient;
     private final PipelineViewerConfig config;
     private final Project project;
-    private GitRepository currentRepository;
 
     public GitlabService(Project project) {
         this.project = project;
@@ -35,22 +33,7 @@ public class GitlabService {
         config = project.getService(PipelineViewerConfig.class);
     }
 
-    public void setCurrentRepository(GitRepository currentRepository) {
-        //Must be set initially because reading it prevents the background process from working
-        this.currentRepository = currentRepository;
-    }
-
-    public GitRepository getCurrentRepository() {
-        return currentRepository;
-    }
-
     public List<PipelineJobStatus> getStatuses() throws IOException {
-        if (currentRepository == null) {
-            //Should've been caught before and we never should've landed here
-            logger.error("No current git repository found");
-            return Collections.emptyList();
-        }
-
         List<PipelineTo> pipelines;
         try {
             pipelines = getPipelines();
@@ -68,7 +51,12 @@ public class GitlabService {
     }
 
     public List<PipelineTo> getPipelines() throws IOException {
-        String url = String.format(PIPELINE_URL, PipelineViewerConfig.getInstance(project).getGitlabProjectId());
+        Integer gitlabProjectId = PipelineViewerConfig.getInstance(project).getGitlabProjectId();
+        if (gitlabProjectId == null) {
+            project.getMessageBus().syncPublisher(IncompleteConfigListener.CONFIG_INCOMPLETE).handleIncompleteConfig("Incomplete config - project ID not set");
+            logger.info("Gitlab project ID not set");
+        }
+        String url = String.format(PIPELINE_URL, gitlabProjectId);
         List<PipelineTo> pipelines = makeUrlCall(url);
         pipelines.addAll(makeUrlCall(url + "&page=2"));
         return pipelines;

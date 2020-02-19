@@ -4,9 +4,7 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.startup.StartupActivity;
 import de.sist.gitlab.config.PipelineViewerConfig;
-import de.sist.gitlab.ui.NotifierService;
-import git4idea.branch.GitBranchUtil;
-import git4idea.repo.GitRepository;
+import de.sist.gitlab.notifier.NotifierService;
 import org.jetbrains.annotations.NotNull;
 
 public class StartupInitialization implements StartupActivity {
@@ -18,21 +16,9 @@ public class StartupInitialization implements StartupActivity {
         //Get service so it's initialized
         project.getService(NotifierService.class);
 
-        GitRepository currentRepository = GitBranchUtil.getCurrentRepository(project);
-        logger.debug("Determined current repository: " + currentRepository);
-        if (currentRepository == null) {
-            logger.error("Unable to find current repository");
-            return;
-        }
-        if (currentRepository.getRemotes().stream().noneMatch(x -> x.getUrls().stream().anyMatch(y -> y.contains("clearing/phmaven")))) {
-            logger.error("Current repository doesn't seem to be for phmaven. Found remotes: " + currentRepository.getRemotes());
-            return;
-        }
-
         PipelineViewerConfig config = PipelineViewerConfig.getInstance(project);
         config.initIfNeeded();
 
-        project.getService(GitlabService.class).setCurrentRepository(currentRepository);
         project.getService(BackgroundUpdateService.class).startBackgroundTask();
 
     }

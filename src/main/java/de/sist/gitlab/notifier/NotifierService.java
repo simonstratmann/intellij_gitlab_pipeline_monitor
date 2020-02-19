@@ -1,13 +1,15 @@
-package de.sist.gitlab.ui;
+package de.sist.gitlab.notifier;
 
 import com.intellij.notification.Notification;
 import com.intellij.notification.NotificationAction;
 import com.intellij.notification.NotificationDisplayType;
 import com.intellij.notification.NotificationGroup;
 import com.intellij.notification.NotificationType;
+import com.intellij.notification.Notifications;
 import com.intellij.notification.impl.NotificationsManagerImpl;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.options.ShowSettingsUtil;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.Balloon;
 import com.intellij.openapi.util.IconLoader;
@@ -19,6 +21,7 @@ import com.intellij.ui.awt.RelativePoint;
 import de.sist.gitlab.DateTime;
 import de.sist.gitlab.PipelineJobStatus;
 import de.sist.gitlab.ReloadListener;
+import de.sist.gitlab.config.GitlabConfigurable;
 import org.jetbrains.annotations.NotNull;
 
 import java.awt.Dimension;
@@ -51,14 +54,14 @@ public class NotifierService {
 
         KNOWN_STATUSES.forEach(x -> statusesToNotificationGroups.put(x, createNotificationGroup(x)));
 
-        project.getMessageBus().connect().subscribe(ReloadListener.RELOAD, this::showNotifications);
+        project.getMessageBus().connect().subscribe(ReloadListener.RELOAD, this::showStatusNotifications);
+        project.getMessageBus().connect().subscribe(IncompleteConfigListener.CONFIG_INCOMPLETE, this::showIncompleteConfigNotification);
     }
 
-    private void showNotifications(List<PipelineJobStatus> statuses) {
+    private void showStatusNotifications(List<PipelineJobStatus> statuses) {
         if (shownNotifications == null) {
             //Don't show notifications for pipeline statuses from before the program was started
             shownNotifications = new HashSet<>(statuses);
-
 
             return;
         }
@@ -97,6 +100,18 @@ public class NotifierService {
                     shownNotifications.add(status);
 
                 });
+    }
+
+    private void showIncompleteConfigNotification(String message) {
+        Notification notification = errorNotificationGroup.createNotification(message, NotificationType.ERROR);
+        notification.addAction(new NotificationAction("Open Settings") {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e, @NotNull Notification notification) {
+                notification.hideBalloon();
+                ShowSettingsUtil.getInstance().showSettingsDialog(project, GitlabConfigurable.class);
+            }
+        });
+        Notifications.Bus.notify(notification, project);
     }
 
     private void showBalloon(Notification notification) {
