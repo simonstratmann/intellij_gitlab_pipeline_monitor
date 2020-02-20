@@ -4,7 +4,13 @@
     <vendor email="stratmann.simon@gmail.com">Simon Stratmann</vendor>
 
     <description><![CDATA[
-    Display gitlab pipelines for currently checked out branches
+    Monitor your GitLab CI pipelines in IntelliJ<br/>
+    <br>
+    <ul>
+        <li>Display gitlab pipeline statuses for currently checked out branches</li>
+        <li>Show notifications for new statuses</li>
+    </ul>
+
     ]]></description>
 
     <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/plugin_compatibility.html
