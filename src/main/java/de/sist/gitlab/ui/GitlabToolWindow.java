@@ -51,7 +51,6 @@ public class GitlabToolWindow {
     private JPanel toolWindowContent;
     private JTable pipelineTable;
     private JScrollPane tableScrollPane;
-    private JScrollPane errorScrollPane;
     private boolean initialLoad = true;
 
     private PipelineTableModel tableModel;
@@ -83,6 +82,7 @@ public class GitlabToolWindow {
         });
     }
 
+
     private void loadPipelines() {
         List<PipelineJobStatus> statuses;
         try {
@@ -96,8 +96,8 @@ public class GitlabToolWindow {
 
     public void showPipelines(List<PipelineJobStatus> statuses) {
         logger.debug("Showing " + statuses.size() + " statuses in table");
-        tableScrollPane.setVisible(true);
-        errorScrollPane.setVisible(false);
+        tableScrollPane.setEnabled(true);
+        refreshToolWindowButton.setEnabled(true);
 
         tableModel.rows.clear();
         tableModel.rows.addAll(getStatusesToShow(statuses));

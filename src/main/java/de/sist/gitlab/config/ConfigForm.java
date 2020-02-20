@@ -2,14 +2,20 @@ package de.sist.gitlab.config;
 
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.ui.ComponentValidator;
 import com.intellij.openapi.ui.Messages;
+import com.intellij.openapi.ui.ValidationInfo;
 import com.intellij.ui.CollectionListModel;
+import com.intellij.ui.DocumentAdapter;
 import com.intellij.ui.IdeBorderFactory;
 import com.intellij.ui.ToolbarDecorator;
 import com.intellij.ui.components.JBList;
 import de.sist.gitlab.BackgroundUpdateService;
+import org.apache.commons.validator.routines.UrlValidator;
+import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
+import javax.swing.event.DocumentEvent;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -17,6 +23,7 @@ import java.util.Objects;
 
 @SuppressWarnings("unused")
 public class ConfigForm {
+
     private PipelineViewerConfig config;
     private Project project;
 
@@ -49,14 +56,28 @@ public class ConfigForm {
         createBranchesToWatchPanel();
 
         statesToNotifyPanel.setBorder(IdeBorderFactory.createTitledBorder("Statuses to notify"));
-
         projectIdPanel.setBorder(IdeBorderFactory.createTitledBorder("Gitlab settings"));
     }
+
 
     public void init(Project project) {
         this.project = project;
         config = PipelineViewerConfig.getInstance(project);
         loadSettings();
+
+        new ComponentValidator(project).withValidator(() -> {
+            boolean valid = UrlValidator.getInstance().isValid(gitlabUrlField.getText());
+            if (!valid) {
+                return new ValidationInfo("The gitlab URL is not valid", gitlabUrlField);
+            }
+            return null;
+        }).installOn(gitlabUrlField);
+        gitlabUrlField.getDocument().addDocumentListener(new DocumentAdapter() {
+            @Override
+            protected void textChanged(@NotNull DocumentEvent e) {
+                ComponentValidator.getInstance(gitlabUrlField).ifPresent(ComponentValidator::revalidate);
+            }
+        });
     }
 
     public void apply() {
