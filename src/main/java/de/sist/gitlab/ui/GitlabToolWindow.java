@@ -1,5 +1,11 @@
 package de.sist.gitlab.ui;
 
+import com.intellij.icons.AllIcons;
+import com.intellij.openapi.actionSystem.ActionManager;
+import com.intellij.openapi.actionSystem.ActionPlaces;
+import com.intellij.openapi.actionSystem.ActionToolbar;
+import com.intellij.openapi.actionSystem.AnActionEvent;
+import com.intellij.openapi.actionSystem.DefaultActionGroup;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProgressIndicator;
@@ -7,8 +13,12 @@ import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.progress.impl.BackgroundableProcessIndicator;
 import com.intellij.openapi.project.Project;
+import com.intellij.ui.AnActionButton;
+import com.intellij.ui.DocumentAdapter;
 import com.intellij.ui.JBColor;
+import com.intellij.ui.SearchTextField;
 import com.intellij.ui.components.JBLabel;
+import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.table.JBTable;
 import com.intellij.util.messages.MessageBus;
 import de.sist.gitlab.BackgroundUpdateService;
@@ -17,13 +27,17 @@ import de.sist.gitlab.GitlabService;
 import de.sist.gitlab.PipelineJobStatus;
 import de.sist.gitlab.ReloadListener;
 import de.sist.gitlab.StatusFilter;
+import net.miginfocom.swing.MigLayout;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
+import javax.swing.event.DocumentEvent;
 import javax.swing.table.AbstractTableModel;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumn;
 import javax.swing.table.TableRowSorter;
+import javax.swing.text.BadLocationException;
+import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.Cursor;
 import java.awt.event.MouseAdapter;
@@ -47,10 +61,10 @@ public class GitlabToolWindow {
 
     Logger logger = Logger.getInstance(GitlabToolWindow.class);
 
-    private JButton refreshToolWindowButton;
     private JPanel toolWindowContent;
     private JTable pipelineTable;
     private JScrollPane tableScrollPane;
+    private JPanel tablePanel;
     private boolean initialLoad = true;
 
     private PipelineTableModel tableModel;
@@ -59,6 +73,7 @@ public class GitlabToolWindow {
     private final BackgroundUpdateService backgroundUpdateService;
     private final MessageBus messageBus;
     private final StatusFilter statusFilter;
+    private TableRowSorter<PipelineTableModel> tableSorter;
 
     public GitlabToolWindow(Project project) {
         gitlabService = project.getService(GitlabService.class);
@@ -71,15 +86,105 @@ public class GitlabToolWindow {
                     showPipelines(statuses));
         });
 
-        refreshToolWindowButton.addActionListener(e -> {
-            Task.Backgroundable task = new Task.Backgroundable(project, "Loading Gitlab Pipelines") {
-                @Override
-                public void run(@NotNull ProgressIndicator indicator) {
-                    loadPipelines();
+        tableModel = new PipelineTableModel();
+        pipelineTable = new JBTable(tableModel) {
+            @Override
+            public TableCellRenderer getCellRenderer(int row, int column) {
+                TableCellRenderer cellRenderer = super.getCellRenderer(row, column);
+                if (column == 1) {
+                    return getStatusCellRenderer();
                 }
-            };
-            ProgressManager.getInstance().runProcessWithProgressAsynchronously(task, new BackgroundableProcessIndicator(task));
+                if (column == 2) {
+                    return getDateCellRenderer();
+                }
+                if (column == 3) {
+                    return getLinkCellRenderer();
+                }
+                return cellRenderer;
+            }
+
+            @NotNull
+            @Override
+            public Component prepareRenderer(@NotNull TableCellRenderer renderer, int rowIndex, int columnIndex) {
+                Component component = super.prepareRenderer(renderer, rowIndex, columnIndex);
+                int rendererWidth = component.getPreferredSize().width;
+                TableColumn column = getColumnModel().getColumn(columnIndex);
+                column.setPreferredWidth(Math.max(rendererWidth + getIntercellSpacing().width, column.getPreferredWidth()));
+
+                return component;
+            }
+        };
+        pipelineTable.setAutoCreateRowSorter(true);
+        pipelineTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+        pipelineTable.setUpdateSelectionOnSort(true);
+
+        MouseAdapter urlMouseAdapter = getUrlMouseAdapter();
+        pipelineTable.addMouseListener(urlMouseAdapter);
+        pipelineTable.addMouseMotionListener(urlMouseAdapter);
+
+        pipelineTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        pipelineTable.setCellSelectionEnabled(true);
+
+        createTablePanel(project);
+    }
+
+    private void createTablePanel(Project project) {
+        AnActionButton refreshActionButton = new AnActionButton("Refresh", AllIcons.Actions.Refresh) {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                runLoadPipelinesTask(project);
+            }
+
+            @Override
+            public JComponent getContextComponent() {
+                return pipelineTable;
+            }
+
+        };
+        DefaultActionGroup actionGroup = new DefaultActionGroup(refreshActionButton);
+
+        ActionToolbar actionToolbar = ActionManager.getInstance().createActionToolbar(ActionPlaces.TOOLBAR, actionGroup, true);
+
+        JPanel panel = new JPanel(new MigLayout("ins 0, fill", "[left]0[left, fill]push[right]", "center"));
+        panel.add(actionToolbar.getComponent());
+        SearchTextField filterField = new SearchTextField(false, null);
+        filterField.getTextEditor().setToolTipText("Filter by substrings of branch names");
+
+        filterField.addDocumentListener(new DocumentAdapter() {
+            @Override
+            protected void textChanged(@NotNull DocumentEvent e) {
+                try {
+                    String text = e.getDocument().getText(0, e.getDocument().getLength());
+                    if (text == null || text.isEmpty()) {
+                        tableSorter.setRowFilter(null);
+                    } else {
+                        RowFilter<PipelineTableModel, Integer> filter = new RowFilter<PipelineTableModel, Integer>() {
+                            @Override
+                            public boolean include(Entry<? extends PipelineTableModel, ? extends Integer> entry) {
+                                return entry.getModel().rows.get(entry.getIdentifier()).branchName.toLowerCase().contains(text.toLowerCase());
+                            }
+                        };
+                        tableSorter.setRowFilter(filter);
+                    }
+                } catch (BadLocationException ex) {
+                    logger.error(e);
+                }
+            }
         });
+        panel.add(filterField);
+
+        tablePanel.add(panel, BorderLayout.NORTH, 0);
+        tablePanel.add(new JBScrollPane(pipelineTable), BorderLayout.CENTER, 1);
+    }
+
+    private void runLoadPipelinesTask(Project project) {
+        Task.Backgroundable task = new Task.Backgroundable(project, "Loading Gitlab Pipelines") {
+            @Override
+            public void run(@NotNull ProgressIndicator indicator) {
+                loadPipelines();
+            }
+        };
+        ProgressManager.getInstance().runProcessWithProgressAsynchronously(task, new BackgroundableProcessIndicator(task));
     }
 
 
@@ -97,7 +202,6 @@ public class GitlabToolWindow {
     public void showPipelines(List<PipelineJobStatus> statuses) {
         logger.debug("Showing " + statuses.size() + " statuses in table");
         tableScrollPane.setEnabled(true);
-        refreshToolWindowButton.setEnabled(true);
 
         tableModel.rows.clear();
         tableModel.rows.addAll(getStatusesToShow(statuses));
@@ -139,12 +243,12 @@ public class GitlabToolWindow {
     }
 
     private void sortTableByUpdatedTime() {
-        TableRowSorter<PipelineTableModel> sorter = new TableRowSorter<>(tableModel);
-        pipelineTable.setRowSorter(sorter);
+        tableSorter = new TableRowSorter<>(tableModel);
+        pipelineTable.setRowSorter(tableSorter);
         List<RowSorter.SortKey> sortKeys = new ArrayList<>();
         sortKeys.add(new RowSorter.SortKey(2, SortOrder.DESCENDING));
-        sorter.setSortKeys(sortKeys);
-        sorter.sort();
+        tableSorter.setSortKeys(sortKeys);
+        tableSorter.sort();
     }
 
     public JPanel getContent() {
@@ -152,43 +256,6 @@ public class GitlabToolWindow {
     }
 
     private void createUIComponents() {
-        tableModel = new PipelineTableModel();
-        pipelineTable = new JBTable(tableModel) {
-            @Override
-            public TableCellRenderer getCellRenderer(int row, int column) {
-                TableCellRenderer cellRenderer = super.getCellRenderer(row, column);
-                if (column == 1) {
-                    return getStatusCellRenderer();
-                }
-                if (column == 2) {
-                    return getDateCellRenderer();
-                }
-                if (column == 3) {
-                    return getLinkCellRenderer();
-                }
-                return cellRenderer;
-            }
-
-            @NotNull
-            @Override
-            public Component prepareRenderer(@NotNull TableCellRenderer renderer, int rowIndex, int columnIndex) {
-                Component component = super.prepareRenderer(renderer, rowIndex, columnIndex);
-                int rendererWidth = component.getPreferredSize().width;
-                TableColumn column = getColumnModel().getColumn(columnIndex);
-                column.setPreferredWidth(Math.max(rendererWidth + getIntercellSpacing().width, column.getPreferredWidth()));
-
-                return component;
-            }
-        };
-        pipelineTable.setAutoCreateRowSorter(true);
-
-        MouseAdapter urlMouseAdapter = getUrlMouseAdapter();
-        pipelineTable.addMouseListener(urlMouseAdapter);
-        pipelineTable.addMouseMotionListener(urlMouseAdapter);
-
-        pipelineTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        pipelineTable.setCellSelectionEnabled(true);
-
     }
 
     @NotNull
