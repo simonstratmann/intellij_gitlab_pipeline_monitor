@@ -49,7 +49,7 @@ public class GitlabService {
         PipelineViewerConfig config = PipelineViewerConfig.getInstance(project);
         if (config.getGitlabProjectId() == null || config.getGitlabUrl() == null) {
             project.getMessageBus().syncPublisher(IncompleteConfigListener.CONFIG_INCOMPLETE).handleIncompleteConfig("Incomplete config");
-            logger.info("Gitlab project ID and/or URL not set");
+            logger.info("GitLab project ID and/or URL not set");
         }
         List<PipelineTo> pipelines = makeUrlCall(1);
         pipelines.addAll(makeUrlCall(2));

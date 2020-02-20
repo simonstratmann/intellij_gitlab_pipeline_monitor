@@ -48,8 +48,8 @@ public class NotifierService {
     private Set<PipelineJobStatus> shownNotifications;
 
     private final Map<String, NotificationGroup> statusesToNotificationGroups = new HashMap<>();
-    private final NotificationGroup errorNotificationGroup = new NotificationGroup("Gitlab Pipeline Viewer - Error", NotificationDisplayType.BALLOON, true,
-            "Gitlab pipeline viewer", IconLoader.getIcon("/toolWindow/gitlab-icon.png"));
+    private final NotificationGroup errorNotificationGroup = new NotificationGroup("GitLab Pipeline Viewer - Error", NotificationDisplayType.BALLOON, true,
+            "GitLab pipeline viewer", IconLoader.getIcon("/toolWindow/gitlab-icon.png"));
 
     public NotifierService(Project project) {
         this.project = project;
@@ -99,7 +99,7 @@ public class NotifierService {
                 + "<br>Created: " + DateTime.formatDateTime(status.creationTime)
                 + "<br>Last update: " + DateTime.formatDateTime(status.updateTime);
 
-        Notification notification = notificationGroup.createNotification("Gitlab branch status", null, content, notificationType);
+        Notification notification = notificationGroup.createNotification("GitLab branch status", null, content, notificationType);
 
 
         notification.addAction(new NotificationAction("Open in Browser") {
@@ -116,7 +116,7 @@ public class NotifierService {
     }
 
     private void showIncompleteConfigNotification(String message) {
-        Notification notification = errorNotificationGroup.createNotification("Gitlab pipeline viewer", message, NotificationType.ERROR, null);
+        Notification notification = errorNotificationGroup.createNotification("GitLab pipeline viewer", message, NotificationType.ERROR, null);
         notification.addAction(new NotificationAction("Open Settings") {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e, @NotNull Notification notification) {
@@ -166,7 +166,7 @@ public class NotifierService {
 
     @NotNull
     private NotificationGroup createNotificationGroup(String status) {
-        return new NotificationGroup("Gitlab Pipeline Viewer - status " + status, NotificationDisplayType.BALLOON, true, "Gitlab pipeline viewer", IconLoader.getIcon("/toolWindow/gitlab-icon.png"));
+        return new NotificationGroup("GitLab Pipeline Viewer - status " + status, NotificationDisplayType.BALLOON, true, "GitLab pipeline viewer", IconLoader.getIcon("/toolWindow/gitlab-icon.png"));
     }
 
 

@@ -37,14 +37,18 @@ patchPluginXml {
         <li>Properly initialize repository on startup</li>
         <li>Show notifications for errors instead of writing to error log</li>
         <li>Show max. 3 notifications for new pipeline statuses</li>
-        <li>Add support for Gitlab private access token</li>
+        <li>Add support for GitLab private access token</li>
     </ul>
+
     <br/>
+
     <p>1.5</p>
     <ul>
         <li>Actually filter notifications</li>
     </ul>
+
     <br/>
+
     <p>1.5</p>
     <ul>
         <li>Support for custom gitlab instances</li>

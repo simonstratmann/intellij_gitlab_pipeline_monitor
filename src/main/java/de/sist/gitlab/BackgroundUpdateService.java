@@ -38,8 +38,8 @@ public class BackgroundUpdateService {
         };
         PipelineViewerConfig config = PipelineViewerConfig.getInstance(project);
         if (config.getGitlabProjectId() == null || config.getGitlabProjectId() == 0) {
-            NotificationGroup notificationGroup = new NotificationGroup("Gitlab Pipeline Viewer - Error", NotificationDisplayType.BALLOON, true,
-                    "Gitlab pipeline viewer", IconLoader.getIcon("/toolWindow/gitlab-icon.png"));
+            NotificationGroup notificationGroup = new NotificationGroup("GitLab Pipeline Viewer - Error", NotificationDisplayType.BALLOON, true,
+                    "GitLab pipeline viewer", IconLoader.getIcon("/toolWindow/gitlab-icon.png"));
             notificationGroup.createNotification("No gitlab project ID set", MessageType.ERROR);
             return;
         }

@@ -178,7 +178,7 @@ public class GitlabToolWindow {
     }
 
     private void runLoadPipelinesTask(Project project) {
-        Task.Backgroundable task = new Task.Backgroundable(project, "Loading Gitlab Pipelines") {
+        Task.Backgroundable task = new Task.Backgroundable(project, "Loading GitLab Pipelines") {
             @Override
             public void run(@NotNull ProgressIndicator indicator) {
                 loadPipelines();

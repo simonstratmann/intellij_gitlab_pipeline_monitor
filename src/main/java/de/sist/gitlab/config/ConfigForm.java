@@ -57,7 +57,7 @@ public class ConfigForm {
         createBranchesToWatchPanel();
 
         statesToNotifyPanel.setBorder(IdeBorderFactory.createTitledBorder("Statuses to notify"));
-        projectIdPanel.setBorder(IdeBorderFactory.createTitledBorder("Gitlab settings"));
+        projectIdPanel.setBorder(IdeBorderFactory.createTitledBorder("GitLab settings"));
     }
 
 

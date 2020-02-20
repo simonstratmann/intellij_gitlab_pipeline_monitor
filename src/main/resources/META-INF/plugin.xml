@@ -1,6 +1,6 @@
 <idea-plugin>
     <id>de.sist.gitlab</id>
-    <name>IntelliJ Gitlab Pipeline Viewer</name>
+    <name>IntelliJ GitLab Pipeline Viewer</name>
     <vendor email="stratmann.simon@gmail.com">Simon Stratmann</vendor>
 
     <description><![CDATA[
@@ -16,7 +16,7 @@
     <extensions defaultExtensionNs="com.intellij">
         <toolWindow id="Gitlab pipeline viewer" secondary="true" icon="/toolWindow/gitlab-icon.png" anchor="bottom" factoryClass="de.sist.gitlab.ui.GitlabToolWindowFactory"/>
 
-        <projectConfigurable instance="de.sist.gitlab.config.GitlabConfigurable" id="de.sist.gitlab.configurable" displayName="Gitlab pipeline viewer"/>
+        <projectConfigurable instance="de.sist.gitlab.config.GitlabConfigurable" id="de.sist.gitlab.configurable" displayName="GitLab pipeline viewer"/>
         <projectService serviceImplementation="de.sist.gitlab.config.PipelineViewerConfig"/>
         <projectService serviceImplementation="de.sist.gitlab.StatusFilter"/>
         <projectService serviceImplementation="de.sist.gitlab.git.GitService"/>

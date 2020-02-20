@@ -19,7 +19,7 @@ public class GitlabConfigurable implements Configurable {
 
     @Override
     public String getDisplayName() {
-        return "Gitlab Pipeline Viewer";
+        return "GitLab Pipeline Viewer";
     }
 
     @Nullable
