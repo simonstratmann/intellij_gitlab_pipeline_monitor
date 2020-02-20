@@ -68,7 +68,11 @@ public class GitlabService {
             throw new RuntimeException(e);
         }
 
-        Call call = httpClient.getClient().newCall(new Request.Builder().url(url).build());
+        Request.Builder requestBuilder = new Request.Builder().url(url);
+        if (config.getGitlabAuthToken() != null) {
+            requestBuilder.addHeader("Private-Token", config.getGitlabAuthToken());
+        }
+        Call call = httpClient.getClient().newCall(requestBuilder.build());
         Response response = call.execute();
         if (!response.isSuccessful()) {
             logger.error("Error contacting gitlab: " + response);

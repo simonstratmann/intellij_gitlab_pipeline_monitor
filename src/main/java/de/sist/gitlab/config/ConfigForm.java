@@ -45,6 +45,7 @@ public class ConfigForm {
     private JCheckBox showStatusSuccessCheckbox;
     private JPanel projectIdPanel;
     private JTextField gitlabUrlField;
+    private JTextField authTokenField;
     private JList<String> branchesToWatchList;
     private JPanel statesToNotify2;
 
@@ -82,6 +83,7 @@ public class ConfigForm {
 
     public void apply() {
         config.setGitlabUrl(gitlabUrlField.getText());
+        config.setGitlabAuthToken(authTokenField.getText());
         config.setGitlabProjectId((Integer) projectIdSpinner.getValue());
         config.setBranchesToIgnore(branchesToIgnoreListModel.toList());
         config.setBranchesToWatch(branchesToWatchListModel.toList());
@@ -111,6 +113,7 @@ public class ConfigForm {
 
     public void loadSettings() {
         gitlabUrlField.setText(config.getGitlabUrl());
+        authTokenField.setText(config.getGitlabAuthToken());
         if (config.getGitlabProjectId() != null) {
             projectIdSpinner.setValue(config.getGitlabProjectId());
         }
@@ -122,13 +125,13 @@ public class ConfigForm {
         showStatusRunningCheckbox.setSelected(config.getStatusesToWatch().contains("running"));
         showStatusSkippedCheckbox.setSelected(config.getStatusesToWatch().contains("skipped"));
         showStatusSuccessCheckbox.setSelected(config.getStatusesToWatch().contains("success"));
-
     }
 
     public boolean isModified() {
         return
                 Objects.equals(gitlabUrlField.getText(), config.getGitlabUrl())
                         || !Objects.equals(config.getGitlabProjectId(), projectIdSpinner.getValue())
+                        || !Objects.equals(config.getGitlabAuthToken(), authTokenField.getText())
                         || new HashSet<>(branchesToWatchListModel.getItems()).equals(new HashSet<>(config.getBranchesToWatch()))
                         || new HashSet<>(branchesToIgnoreListModel.getItems()).equals(new HashSet<>(config.getBranchesToIgnore()))
                         || showStatusCanceledCheckbox.isSelected() != config.getStatusesToWatch().contains("canceled")
@@ -136,8 +139,7 @@ public class ConfigForm {
                         || showStatusPendingCheckbox.isSelected() != config.getStatusesToWatch().contains("pending")
                         || showStatusRunningCheckbox.isSelected() != config.getStatusesToWatch().contains("running")
                         || showStatusSkippedCheckbox.isSelected() != config.getStatusesToWatch().contains("skipped")
-                        || showStatusSuccessCheckbox.isSelected() != config.getStatusesToWatch().contains("success")
-                ;
+                        || showStatusSuccessCheckbox.isSelected() != config.getStatusesToWatch().contains("success");
     }
 
     public JPanel getMainPanel() {

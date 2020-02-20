@@ -4,7 +4,6 @@ import com.intellij.openapi.components.PersistentStateComponent;
 import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.components.State;
 import com.intellij.openapi.components.Storage;
-import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.util.xmlb.XmlSerializerUtil;
 import org.jetbrains.annotations.NotNull;
@@ -16,9 +15,8 @@ import java.util.List;
 @State(name = "PipelineViewerConfig", storages = {@Storage("PipelineViewerConfig.xml")})
 public class PipelineViewerConfig implements PersistentStateComponent<PipelineViewerConfig> {
 
-    private static final Logger log = Logger.getInstance(PipelineViewerConfig.class);
-
     private String gitlabUrl;
+    private String gitlabAuthToken;
     private Integer gitlabProjectId;
     private List<String> branchesToIgnore = new ArrayList<>();
     private List<String> branchesToWatch = new ArrayList<>();
@@ -30,6 +28,14 @@ public class PipelineViewerConfig implements PersistentStateComponent<PipelineVi
 
     public void setGitlabUrl(String gitlabUrl) {
         this.gitlabUrl = gitlabUrl;
+    }
+
+    public String getGitlabAuthToken() {
+        return gitlabAuthToken;
+    }
+
+    public void setGitlabAuthToken(String gitlabAuthToken) {
+        this.gitlabAuthToken = gitlabAuthToken;
     }
 
     public Integer getGitlabProjectId() {

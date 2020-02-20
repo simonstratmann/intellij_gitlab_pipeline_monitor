@@ -4,7 +4,7 @@ plugins {
 }
 
 group 'de.sist'
-version '1.5'
+version '1.6'
 
 sourceCompatibility = 1.8
 
@@ -28,10 +28,27 @@ intellij {
 }
 patchPluginXml {
     changeNotes """
-      1.5 --- Actually filter notifications.
-
-      1.4 --- Support for custom gitlab instances.
-
+    <p>1.6</p>
+    <ul>
+        <li>Move refresh button to toolbar</li>
+        <li>Allow filtering by branch names</li>
+        <li>Validate URL of gitlab in config</li>
+        <li>Add tooltip where to find the project ID</li>
+        <li>Properly initialize repository on startup</li>
+        <li>Show notifications for errors instead of writing to error log</li>
+        <li>Show max. 3 notifications for new pipeline statuses</li>
+        <li>Add support for Gitlab private access token</li>
+    </ul>
+    <br/>
+    <p>1.5</p>
+    <ul>
+        <li>Actually filter notifications</li>
+    </ul>
+    <br/>
+    <p>1.5</p>
+    <ul>
+        <li>Support for custom gitlab instances</li>
+    </ul>
       """
 }
 
