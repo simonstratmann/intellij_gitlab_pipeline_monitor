@@ -129,11 +129,11 @@ public class ConfigForm {
 
     public boolean isModified() {
         return
-                Objects.equals(gitlabUrlField.getText(), config.getGitlabUrl())
+                !Objects.equals(gitlabUrlField.getText(), config.getGitlabUrl())
                         || !Objects.equals(config.getGitlabProjectId(), projectIdSpinner.getValue())
                         || !Objects.equals(config.getGitlabAuthToken(), authTokenField.getText())
-                        || new HashSet<>(branchesToWatchListModel.getItems()).equals(new HashSet<>(config.getBranchesToWatch()))
-                        || new HashSet<>(branchesToIgnoreListModel.getItems()).equals(new HashSet<>(config.getBranchesToIgnore()))
+                        || !new HashSet<>(branchesToWatchListModel.getItems()).equals(new HashSet<>(config.getBranchesToWatch()))
+                        || !new HashSet<>(branchesToIgnoreListModel.getItems()).equals(new HashSet<>(config.getBranchesToIgnore()))
                         || showStatusCanceledCheckbox.isSelected() != config.getStatusesToWatch().contains("canceled")
                         || showStatusFailedCheckbox.isSelected() != config.getStatusesToWatch().contains("failed")
                         || showStatusPendingCheckbox.isSelected() != config.getStatusesToWatch().contains("pending")
