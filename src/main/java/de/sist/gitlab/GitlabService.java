@@ -4,12 +4,10 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
+import com.intellij.util.io.HttpRequests;
 import de.sist.gitlab.config.PipelineViewerConfig;
 import de.sist.gitlab.notifier.IncompleteConfigListener;
-import okhttp3.Call;
 import okhttp3.Request;
-import okhttp3.Response;
-import okhttp3.ResponseBody;
 import org.apache.http.client.utils.URIBuilder;
 
 import java.io.IOException;
@@ -59,10 +57,14 @@ public class GitlabService {
     private List<PipelineTo> makeUrlCall(int page) throws IOException {
         URL url;
         try {
-            url = new URIBuilder(config.getGitlabUrl())
+            URIBuilder uriBuilder = new URIBuilder(config.getGitlabUrl())
                     .setPath(String.format(PIPELINE_SUFFIX, config.getGitlabProjectId()))
                     .addParameter("page", String.valueOf(page))
-                    .addParameter("per_page", "100")
+                    .addParameter("per_page", "100");
+            if (config.getGitlabAuthToken() != null) {
+                uriBuilder.addParameter("private_token", config.getGitlabAuthToken());
+            }
+            url = uriBuilder
                     .build().toURL();
         } catch (URISyntaxException e) {
             throw new RuntimeException(e);
@@ -72,21 +74,11 @@ public class GitlabService {
         if (config.getGitlabAuthToken() != null) {
             requestBuilder.addHeader("Private-Token", config.getGitlabAuthToken());
         }
-        Call call = httpClient.getClient().newCall(requestBuilder.build());
-        Response response = call.execute();
-        if (!response.isSuccessful()) {
-            logger.error("Error contacting gitlab: " + response);
-            throw new IOException("Error loading pipelines: " + response);
-        }
-        try (ResponseBody body = response.body()) {
-            if (body == null) {
-                throw new IOException("Empty body: " + response);
-            }
-            String json = body.string();
 
-            return Jackson.OBJECT_MAPPER.readValue(json, new TypeReference<List<PipelineTo>>() {
-            });
-        }
+        String json = HttpRequests.request(url.toString()).readString();
+
+        return Jackson.OBJECT_MAPPER.readValue(json, new TypeReference<List<PipelineTo>>() {
+        });
     }
 
 }

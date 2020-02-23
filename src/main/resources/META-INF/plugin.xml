@@ -27,7 +27,6 @@
         <projectService serviceImplementation="de.sist.gitlab.StatusFilter"/>
         <projectService serviceImplementation="de.sist.gitlab.git.GitService"/>
         <projectService serviceImplementation="de.sist.gitlab.GitlabService"/>
-        <projectService serviceImplementation="de.sist.gitlab.HttpClientService"/>
         <projectService serviceImplementation="de.sist.gitlab.notifier.NotifierService"/>
         <!-- Define after NotifierService so events are only fired when it has already registered       -->
         <projectService serviceImplementation="de.sist.gitlab.BackgroundUpdateService"/>

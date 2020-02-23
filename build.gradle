@@ -4,7 +4,7 @@ plugins {
 }
 
 group 'de.sist'
-version '1.6'
+version '1.7'
 
 sourceCompatibility = 1.8
 
@@ -28,6 +28,13 @@ intellij {
 }
 patchPluginXml {
     changeNotes """
+    <p>1.7</p>
+    <ul>
+        <li>Use IntelliJ's HTTP library to connect to GitLab</li>
+    </ul>
+
+    <br/>
+
     <p>1.6</p>
     <ul>
         <li>Move refresh button to toolbar</li>
@@ -45,12 +52,6 @@ patchPluginXml {
     <p>1.5</p>
     <ul>
         <li>Actually filter notifications</li>
-    </ul>
-
-    <br/>
-
-    <p>1.5</p>
-    <ul>
         <li>Support for custom gitlab instances</li>
     </ul>
       """
