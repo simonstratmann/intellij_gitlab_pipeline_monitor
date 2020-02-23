@@ -1,7 +1,6 @@
 package de.sist.gitlab;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.util.io.HttpRequests;
@@ -24,13 +23,11 @@ public class GitlabService {
 
     Logger logger = Logger.getInstance(GitlabService.class);
     private static final String PIPELINE_SUFFIX = "/api/v4/projects/%d/pipelines";
-    private final HttpClientService httpClient;
     private final PipelineViewerConfig config;
     private final Project project;
 
     public GitlabService(Project project) {
         this.project = project;
-        httpClient = ServiceManager.getService(project, HttpClientService.class);
         config = project.getService(PipelineViewerConfig.class);
     }
 
