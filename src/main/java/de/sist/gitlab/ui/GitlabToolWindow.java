@@ -209,7 +209,7 @@ public class GitlabToolWindow {
 
         if (initialLoad) {
             //Prevent resetting the sorting selected by the user on next update
-            sortTableByUpdatedTime();
+            sortTableByBranchName();
             initialLoad = false;
         }
     }
@@ -242,11 +242,11 @@ public class GitlabToolWindow {
         return Stream.of("failed", "success").anyMatch(x -> x.equals(status.result));
     }
 
-    private void sortTableByUpdatedTime() {
+    private void sortTableByBranchName() {
         tableSorter = new TableRowSorter<>(tableModel);
         pipelineTable.setRowSorter(tableSorter);
         List<RowSorter.SortKey> sortKeys = new ArrayList<>();
-        sortKeys.add(new RowSorter.SortKey(2, SortOrder.DESCENDING));
+        sortKeys.add(new RowSorter.SortKey(0, SortOrder.ASCENDING));
         tableSorter.setSortKeys(sortKeys);
         tableSorter.sort();
     }
