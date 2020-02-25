@@ -247,6 +247,7 @@ public class GitlabToolWindow {
         pipelineTable.setRowSorter(tableSorter);
         List<RowSorter.SortKey> sortKeys = new ArrayList<>();
         sortKeys.add(new RowSorter.SortKey(0, SortOrder.ASCENDING));
+        sortKeys.add(new RowSorter.SortKey(3, SortOrder.DESCENDING));
         tableSorter.setSortKeys(sortKeys);
         tableSorter.sort();
     }
