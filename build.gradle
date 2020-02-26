@@ -31,6 +31,7 @@ patchPluginXml {
     <p>1.9</p>
     <ul>
         <li>Support for USB lights (https://www.cleware-shop.de/)</li>
+        <li>Add context menu to pipeline table</li>
     </ul>
 
     <br/>

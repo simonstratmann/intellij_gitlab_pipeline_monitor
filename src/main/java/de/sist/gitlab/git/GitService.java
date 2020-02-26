@@ -23,14 +23,12 @@ public class GitService {
         project.getMessageBus().connect().subscribe(VcsRepositoryManager.VCS_REPOSITORY_MAPPING_UPDATED, new VcsRepositoryMappingListener() {
             @Override
             public void mappingChanged() {
-                System.out.println();
                 project.getMessageBus().syncPublisher(GitInitListener.GIT_INITIALIZED).handle(GitUtil.getRepositoryManager(project).getRepositories().get(0));
             }
         });
         project.getMessageBus().connect().subscribe(GitRepository.GIT_REPO_CHANGE, new GitRepositoryChangeListener() {
             @Override
             public void repositoryChanged(@NotNull GitRepository repository) {
-                System.out.println(repository);
                 project.getMessageBus().syncPublisher(GitInitListener.GIT_INITIALIZED).handle(GitUtil.getRepositoryManager(project).getRepositories().get(0));
             }
         });

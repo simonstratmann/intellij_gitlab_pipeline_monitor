@@ -13,6 +13,8 @@ import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.progress.impl.BackgroundableProcessIndicator;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.ui.JBPopupMenu;
+import com.intellij.openapi.util.IconLoader;
 import com.intellij.ui.AnActionButton;
 import com.intellij.ui.DocumentAdapter;
 import com.intellij.ui.JBColor;
@@ -27,6 +29,7 @@ import de.sist.gitlab.GitlabService;
 import de.sist.gitlab.PipelineJobStatus;
 import de.sist.gitlab.ReloadListener;
 import de.sist.gitlab.StatusFilter;
+import de.sist.gitlab.config.PipelineViewerConfig;
 import net.miginfocom.swing.MigLayout;
 import org.jetbrains.annotations.NotNull;
 
@@ -40,6 +43,8 @@ import javax.swing.text.BadLocationException;
 import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.Cursor;
+import java.awt.Point;
+import java.awt.event.ActionEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.font.TextAttribute;
@@ -51,6 +56,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -74,8 +80,11 @@ public class GitlabToolWindow {
     private final MessageBus messageBus;
     private final StatusFilter statusFilter;
     private TableRowSorter<PipelineTableModel> tableSorter;
+    private Project project;
+
 
     public GitlabToolWindow(Project project) {
+        this.project = project;
         gitlabService = project.getService(GitlabService.class);
         backgroundUpdateService = project.getService(BackgroundUpdateService.class);
         messageBus = project.getMessageBus();
@@ -91,6 +100,9 @@ public class GitlabToolWindow {
             @Override
             public TableCellRenderer getCellRenderer(int row, int column) {
                 TableCellRenderer cellRenderer = super.getCellRenderer(row, column);
+                if (column == 0) {
+                    return getBranchCellRenderer();
+                }
                 if (column == 1) {
                     return getStatusCellRenderer();
                 }
@@ -118,7 +130,7 @@ public class GitlabToolWindow {
         pipelineTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
         pipelineTable.setUpdateSelectionOnSort(true);
 
-        MouseAdapter urlMouseAdapter = getUrlMouseAdapter();
+        MouseAdapter urlMouseAdapter = getBranchTableMouseAdapter();
         pipelineTable.addMouseListener(urlMouseAdapter);
         pipelineTable.addMouseMotionListener(urlMouseAdapter);
 
@@ -126,6 +138,57 @@ public class GitlabToolWindow {
         pipelineTable.setCellSelectionEnabled(true);
 
         createTablePanel(project);
+    }
+
+    private JBPopupMenu getBranchPopupMenu(Point pointClicked) {
+        JBPopupMenu branchPopupMenu = new JBPopupMenu();
+        final PipelineViewerConfig config = PipelineViewerConfig.getInstance(project);
+        branchPopupMenu.add(new AbstractAction("Show traffic lights for this branch") {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                SelectedCell cell = getSelectedTableCell(pointClicked);
+                if (cell.columnIndex != 0 || cell.rowIndex == -1) {
+                    return;
+                }
+
+                String branchName = (String) cell.cellContent;
+                config.setShowLightsForBranch(branchName);
+                runLoadPipelinesTask(project);
+            }
+        });
+        branchPopupMenu.add(new AbstractAction("Never show results for this branch") {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                SelectedCell cell = getSelectedTableCell(pointClicked);
+                if (cell.columnIndex != 0 || cell.rowIndex == -1) {
+                    return;
+                }
+                String branchName = (String) cell.cellContent;
+                config.getBranchesToIgnore().add(branchName);
+                runLoadPipelinesTask(project);
+            }
+        });
+        branchPopupMenu.add(new AbstractAction("Always show results for this branch") {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                SelectedCell cell = getSelectedTableCell(pointClicked);
+                if (cell.columnIndex != 0 || cell.rowIndex == -1) {
+                    return;
+                }
+                String branchName = (String) cell.cellContent;
+                config.getBranchesToWatch().add(branchName);
+                runLoadPipelinesTask(project);
+            }
+        });
+        return branchPopupMenu;
+    }
+
+    private SelectedCell getSelectedTableCell(Point pointClicked) {
+        int viewRow = pipelineTable.getSelectedRow();
+        int selectedColumn = pipelineTable.columnAtPoint(pointClicked);
+        int modelRow = pipelineTable.convertRowIndexToModel(viewRow);
+
+        return new SelectedCell(modelRow, selectedColumn, tableModel.getValueAt(modelRow, selectedColumn));
     }
 
     private void createTablePanel(Project project) {
@@ -260,27 +323,35 @@ public class GitlabToolWindow {
     }
 
     @NotNull
-    private MouseAdapter getUrlMouseAdapter() {
+    private MouseAdapter getBranchTableMouseAdapter() {
         return new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                if (e.getButton() != MouseEvent.BUTTON1) {
-                    return;
-                }
-                int viewRow = pipelineTable.getSelectedRow();
-                if (viewRow == -1) {
-                    return;
-                }
-
-                int selectedColumn = pipelineTable.columnAtPoint(e.getPoint());
-                if (selectedColumn != 3) {
-                    return;
+                if (e.getButton() == MouseEvent.BUTTON3) {
+                    int selectedColumn = pipelineTable.columnAtPoint(e.getPoint());
+                    if (selectedColumn != 0) {
+                        return;
+                    }
+                    getBranchPopupMenu(e.getPoint()).show(e.getComponent(), e.getX(), e.getY());
                 }
 
-                int modelRow = pipelineTable.convertRowIndexToModel(viewRow);
-                String url = (String) tableModel.getValueAt(modelRow, selectedColumn);
+                if (e.getButton() == MouseEvent.BUTTON1) {
 
-                com.intellij.ide.BrowserUtil.browse(url);
+                    int viewRow = pipelineTable.getSelectedRow();
+                    if (viewRow == -1) {
+                        return;
+                    }
+
+                    int selectedColumn = pipelineTable.columnAtPoint(e.getPoint());
+                    if (selectedColumn != 3) {
+                        return;
+                    }
+
+                    int modelRow = pipelineTable.convertRowIndexToModel(viewRow);
+                    String url = (String) tableModel.getValueAt(modelRow, selectedColumn);
+
+                    com.intellij.ide.BrowserUtil.browse(url);
+                }
             }
 
             @Override
@@ -317,6 +388,24 @@ public class GitlabToolWindow {
             public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
                 LocalDateTime dateTime = (LocalDateTime) value;
                 return new JLabel(DateTime.formatDateTime(dateTime));
+            }
+        };
+    }
+
+    private TableCellRenderer getBranchCellRenderer() {
+        return new TableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+                String branchName = (String) value;
+                JLabel jLabel = new JLabel(branchName);
+
+                if (Objects.equals(PipelineViewerConfig.getInstance(project).getShowLightsForBranch(), branchName)) {
+                    jLabel.setIcon(IconLoader.getIcon("/trafficLights.png"));
+                } else if (PipelineViewerConfig.getInstance(project).getBranchesToWatch().contains(branchName)) {
+                    jLabel.setIcon(AllIcons.General.InspectionsEye);
+                }
+
+                return jLabel;
             }
         };
     }
@@ -391,6 +480,18 @@ public class GitlabToolWindow {
         public TableRowDefinition(String title, Function<PipelineJobStatus, Object> tableModelRowFunction) {
             this.title = title;
             this.tableModelRowFunction = tableModelRowFunction;
+        }
+    }
+
+    private static class SelectedCell {
+        private final int rowIndex;
+        private final int columnIndex;
+        private final Object cellContent;
+
+        public SelectedCell(int rowIndex, int columnIndex, Object cellContent) {
+            this.rowIndex = rowIndex;
+            this.columnIndex = columnIndex;
+            this.cellContent = cellContent;
         }
     }
 }

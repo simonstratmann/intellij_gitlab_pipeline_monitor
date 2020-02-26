@@ -59,6 +59,7 @@ public class LightControl {
     public void showState(List<PipelineJobStatus> statuses) {
         String lightsForBranch = PipelineViewerConfig.getInstance(project).getShowLightsForBranch();
         if (lightsForBranch == null) {
+            logger.debug("No branch to watch lights for set");
             return;
         }
 
@@ -67,22 +68,27 @@ public class LightControl {
         if (status.isPresent()) {
             //Don't enable any lights twice so that when the user turned the light off it doesn't get turned on again for the same run
             if (handledRuns.contains(status.get())) {
+                logger.debug("Already shown light for " + status.get());
                 return;
             }
             String result = status.get().result;
             switch (result) {
                 case "running":
+                    logger.debug("Showing yellow light for running pipeline " + status.get());
                     lightsApi.showColor(lightsPointer, LightsApi.Light.YELLOW);
                     break;
                 case "failed":
+                    logger.debug("Showing red light for failed pipeline " + status.get());
                     lightsApi.showColor(lightsPointer, LightsApi.Light.RED);
                     break;
                 case "success":
+                    logger.debug("Showing green light for successful pipeline " + status.get());
                     lightsApi.showColor(lightsPointer, LightsApi.Light.GREEN);
                     break;
             }
             handledRuns.add(status.get());
         } else {
+            logger.debug("No pipeline found for " + lightsForBranch);
             lightsApi.turnOff(lightsPointer);
         }
 
