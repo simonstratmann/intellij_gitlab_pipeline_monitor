@@ -12,6 +12,8 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.options.ShowSettingsUtil;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.Balloon;
+import com.intellij.openapi.ui.popup.JBPopupListener;
+import com.intellij.openapi.ui.popup.LightweightWindowEvent;
 import com.intellij.openapi.util.IconLoader;
 import com.intellij.openapi.wm.IdeFrame;
 import com.intellij.openapi.wm.WindowManager;
@@ -28,6 +30,7 @@ import org.jetbrains.annotations.NotNull;
 import java.awt.Dimension;
 import java.awt.Point;
 import java.awt.Rectangle;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -44,6 +47,8 @@ public class NotifierService {
     private static final List<String> KNOWN_STATUSES = Arrays.asList("pending", "running", "canceled", "failed", "success", "skipped");
     private final StatusFilter statusFilter;
     private final Project project;
+
+    private List<Balloon> openBalloons = new ArrayList<>();
 
     private Set<PipelineJobStatus> shownNotifications;
 
@@ -70,6 +75,7 @@ public class NotifierService {
         if (shownNotifications == null) {
             //Don't show notifications for pipeline statuses from before the program was started
             shownNotifications = new HashSet<>(statuses);
+            shownNotifications = new HashSet<>();
             return;
         }
 
@@ -80,6 +86,11 @@ public class NotifierService {
         //Don't spam the GUI, never show more than the newest 3
         List<PipelineJobStatus> statusesToShow = filteredStatuses.subList(Math.max(0, filteredStatuses.size() - 3), filteredStatuses.size());
         for (int i = 0; i < statusesToShow.size(); i++) {
+            if (openBalloons.size() >= 3) {
+                logger.debug("Hiding old balloon to show a newer one");
+                openBalloons.get(0).hide();
+            }
+
             PipelineJobStatus status = filteredStatuses.get(i);
             showBalloonForStatus(status, i);
         }
@@ -101,7 +112,6 @@ public class NotifierService {
 
         Notification notification = notificationGroup.createNotification("GitLab branch status", null, content, notificationType);
 
-
         notification.addAction(new NotificationAction("Open in Browser") {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e, @NotNull Notification notification) {
@@ -109,6 +119,7 @@ public class NotifierService {
                 notification.expire();
             }
         });
+
 
         logger.debug("Showing notification for status " + status);
         showBalloon(notification, index);
@@ -139,10 +150,18 @@ public class NotifierService {
 
             //Show each balloon above the previous one and keep a bit of space between
             int lowerYBound = bounds.y + bounds.height - 111;
-            lowerYBound -= (index * 100 + 75);
+            lowerYBound -= index * 110;
 
             Point pointForRelativePosition = new Point(bounds.x + bounds.width - 259, lowerYBound);
+            balloon.addListener(new JBPopupListener() {
+                @Override
+                public void onClosed(@NotNull LightweightWindowEvent event) {
+                    openBalloons.remove(balloon);
+                }
+            });
             balloon.show(new RelativePoint(ideFrame.getComponent(), pointForRelativePosition), Balloon.Position.above);
+            openBalloons.add(balloon);
+
         }
     }
 
