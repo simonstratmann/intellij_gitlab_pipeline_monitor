@@ -21,6 +21,7 @@ public class PipelineViewerConfig implements PersistentStateComponent<PipelineVi
     private List<String> branchesToIgnore = new ArrayList<>();
     private List<String> branchesToWatch = new ArrayList<>();
     private List<String> statusesToWatch = new ArrayList<>();
+    private String showLightsForBranch;
 
     public String getGitlabUrl() {
         return gitlabUrl;
@@ -46,7 +47,6 @@ public class PipelineViewerConfig implements PersistentStateComponent<PipelineVi
         this.gitlabProjectId = gitlabProjectId;
     }
 
-    @NotNull
     public List<String> getBranchesToIgnore() {
         return branchesToIgnore;
     }
@@ -64,13 +64,20 @@ public class PipelineViewerConfig implements PersistentStateComponent<PipelineVi
         this.branchesToWatch = branchesToWatch;
     }
 
-    @NotNull
     public List<String> getStatusesToWatch() {
         return statusesToWatch;
     }
 
     public void setStatusesToWatch(List<String> statusesToWatch) {
         this.statusesToWatch = statusesToWatch;
+    }
+
+    public String getShowLightsForBranch() {
+        return showLightsForBranch;
+    }
+
+    public void setShowLightsForBranch(String showLightsForBranch) {
+        this.showLightsForBranch = showLightsForBranch;
     }
 
     public void initIfNeeded() {

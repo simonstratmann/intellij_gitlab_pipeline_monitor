@@ -36,6 +36,26 @@ public class PipelineJobStatus {
                 Objects.equal(pipelineLink, that.pipelineLink);
     }
 
+    public String getBranchName() {
+        return branchName;
+    }
+
+    public LocalDateTime getCreationTime() {
+        return creationTime;
+    }
+
+    public LocalDateTime getUpdateTime() {
+        return updateTime;
+    }
+
+    public String getResult() {
+        return result;
+    }
+
+    public String getPipelineLink() {
+        return pipelineLink;
+    }
+
     @Override
     public int hashCode() {
         return Objects.hashCode(branchName, creationTime, result, pipelineLink);

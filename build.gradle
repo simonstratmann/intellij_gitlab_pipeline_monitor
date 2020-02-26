@@ -4,7 +4,7 @@ plugins {
 }
 
 group 'de.sist'
-version '1.7'
+version '1.9'
 
 sourceCompatibility = 1.8
 
@@ -28,6 +28,20 @@ intellij {
 }
 patchPluginXml {
     changeNotes """
+    <p>1.9</p>
+    <ul>
+        <li>Support for USB lights (https://www.cleware-shop.de/)</li>
+    </ul>
+
+    <br/>
+
+    <p>1.8</p>
+    <ul>
+        <li>Sort by branch name, then by time by default</li>
+    </ul>
+
+    <br/>
+
     <p>1.7</p>
     <ul>
         <li>Use IntelliJ's HTTP library to connect to GitLab</li>

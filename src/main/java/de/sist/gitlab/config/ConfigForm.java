@@ -11,6 +11,7 @@ import com.intellij.ui.IdeBorderFactory;
 import com.intellij.ui.ToolbarDecorator;
 import com.intellij.ui.components.JBList;
 import de.sist.gitlab.BackgroundUpdateService;
+import de.sist.gitlab.lights.LightControl;
 import org.apache.commons.validator.routines.UrlValidator;
 import org.jetbrains.annotations.NotNull;
 
@@ -46,6 +47,8 @@ public class ConfigForm {
     private JPanel projectIdPanel;
     private JTextField gitlabUrlField;
     private JTextField authTokenField;
+    private JLabel lightsLabel;
+    private JTextField lightsBranch;
     private JList<String> branchesToWatchList;
     private JPanel statesToNotify2;
 
@@ -73,13 +76,16 @@ public class ConfigForm {
             }
             return null;
         }).installOn(gitlabUrlField);
+
         gitlabUrlField.getDocument().addDocumentListener(new DocumentAdapter() {
             @Override
             protected void textChanged(@NotNull DocumentEvent e) {
                 ComponentValidator.getInstance(gitlabUrlField).ifPresent(ComponentValidator::revalidate);
             }
         });
+
     }
+
 
     public void apply() {
         config.setGitlabUrl(gitlabUrlField.getText());
@@ -107,8 +113,12 @@ public class ConfigForm {
             statusesToWatch.add("success");
         }
         config.setStatusesToWatch(statusesToWatch);
+        config.setShowLightsForBranch(lightsBranch.getText());
 
-        ApplicationManager.getApplication().invokeLater(() -> project.getService(BackgroundUpdateService.class).restartBackgroundTask());
+        ApplicationManager.getApplication().invokeLater(() -> {
+            project.getService(BackgroundUpdateService.class).restartBackgroundTask();
+            project.getService(LightControl.class).initialize(project);
+        });
     }
 
     public void loadSettings() {
@@ -125,6 +135,7 @@ public class ConfigForm {
         showStatusRunningCheckbox.setSelected(config.getStatusesToWatch().contains("running"));
         showStatusSkippedCheckbox.setSelected(config.getStatusesToWatch().contains("skipped"));
         showStatusSuccessCheckbox.setSelected(config.getStatusesToWatch().contains("success"));
+        lightsBranch.setText(config.getShowLightsForBranch());
     }
 
     public boolean isModified() {
@@ -132,6 +143,7 @@ public class ConfigForm {
                 !Objects.equals(gitlabUrlField.getText(), config.getGitlabUrl())
                         || !Objects.equals(config.getGitlabProjectId(), projectIdSpinner.getValue())
                         || !Objects.equals(config.getGitlabAuthToken(), authTokenField.getText())
+                        || !Objects.equals(config.getShowLightsForBranch(), lightsBranch.getText())
                         || !new HashSet<>(branchesToWatchListModel.getItems()).equals(new HashSet<>(config.getBranchesToWatch()))
                         || !new HashSet<>(branchesToIgnoreListModel.getItems()).equals(new HashSet<>(config.getBranchesToIgnore()))
                         || showStatusCanceledCheckbox.isSelected() != config.getStatusesToWatch().contains("canceled")
@@ -139,7 +151,9 @@ public class ConfigForm {
                         || showStatusPendingCheckbox.isSelected() != config.getStatusesToWatch().contains("pending")
                         || showStatusRunningCheckbox.isSelected() != config.getStatusesToWatch().contains("running")
                         || showStatusSkippedCheckbox.isSelected() != config.getStatusesToWatch().contains("skipped")
-                        || showStatusSuccessCheckbox.isSelected() != config.getStatusesToWatch().contains("success");
+                        || showStatusSuccessCheckbox.isSelected() != config.getStatusesToWatch().contains("success")
+
+                ;
     }
 
     public JPanel getMainPanel() {

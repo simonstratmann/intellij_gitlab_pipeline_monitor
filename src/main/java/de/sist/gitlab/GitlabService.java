@@ -12,7 +12,6 @@ import org.apache.http.client.utils.URIBuilder;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
@@ -33,11 +32,11 @@ public class GitlabService {
 
     public List<PipelineJobStatus> getStatuses() throws IOException {
         Set<PipelineJobStatus> statuses = new HashSet<>();
-        for (PipelineTo pipeline : getPipelines().stream().sorted(Comparator.comparing(PipelineTo::getUpdatedAt).reversed()).collect(Collectors.toList())) {
+        for (PipelineTo pipeline : getPipelines()) {
             statuses.add(new PipelineJobStatus(pipeline.getRef(), pipeline.getCreatedAt(), pipeline.getUpdatedAt(), pipeline.getStatus(), pipeline.getWebUrl()));
         }
 
-        return new ArrayList<>(statuses);
+        return statuses.stream().sorted(Comparator.comparing(PipelineJobStatus::getUpdateTime).reversed()).collect(Collectors.toList());
     }
 
     public List<PipelineTo> getPipelines() throws IOException {
