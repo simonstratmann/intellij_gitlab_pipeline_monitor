@@ -4,7 +4,7 @@ plugins {
 }
 
 group 'de.sist'
-version '1.9'
+version '1.10'
 
 sourceCompatibility = 1.8
 
@@ -28,7 +28,15 @@ intellij {
 }
 patchPluginXml {
     changeNotes """
-    <p>1.9</p>
+    <p>1.10</p>
+    <ul>
+        <li>Keep red or green light on when showing yellow light</li>
+        <li>Add button to turn off all lights</li>
+    </ul>
+
+    <br/>
+
+    <<p>1.9</p>
     <ul>
         <li>Support for USB lights (https://www.cleware-shop.de/)</li>
         <li>Add context menu to pipeline table</li>

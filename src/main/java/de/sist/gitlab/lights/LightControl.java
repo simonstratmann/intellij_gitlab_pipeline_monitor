@@ -21,11 +21,11 @@ import java.util.Set;
 public class LightControl {
 
     private final Logger logger = Logger.getInstance(LightControl.class);
-    private Pointer lightsPointer;
+    private static Pointer lightsPointer;
+    private static LightsApi lightsApi;
+
     private final Project project;
     private final Set<PipelineJobStatus> handledRuns = new HashSet<>();
-
-    private LightsApi lightsApi;
 
 
     public LightControl(Project project) {
@@ -71,27 +71,37 @@ public class LightControl {
                 logger.debug("Already shown light for " + status.get());
                 return;
             }
+
+            //When showing yellow don't turn off red or green so that the info is still kept visible even after a new run has started
+
             String result = status.get().result;
             switch (result) {
                 case "running":
                     logger.debug("Showing yellow light for running pipeline " + status.get());
-                    lightsApi.showColor(lightsPointer, LightsApi.Light.YELLOW);
+                    lightsApi.turnOnColor(lightsPointer, LightsApi.Light.YELLOW, false);
                     break;
                 case "failed":
                     logger.debug("Showing red light for failed pipeline " + status.get());
-                    lightsApi.showColor(lightsPointer, LightsApi.Light.RED);
+                    lightsApi.turnOnColor(lightsPointer, LightsApi.Light.RED, false);
+                    lightsApi.turnOffColor(lightsPointer, LightsApi.Light.GREEN);
                     break;
                 case "success":
                     logger.debug("Showing green light for successful pipeline " + status.get());
-                    lightsApi.showColor(lightsPointer, LightsApi.Light.GREEN);
+                    lightsApi.turnOnColor(lightsPointer, LightsApi.Light.GREEN, false);
+                    lightsApi.turnOffColor(lightsPointer, LightsApi.Light.RED);
                     break;
             }
             handledRuns.add(status.get());
         } else {
             logger.debug("No pipeline found for " + lightsForBranch);
-            lightsApi.turnOff(lightsPointer);
+            lightsApi.turnAllOff(lightsPointer);
         }
+    }
 
+    public static void turnOffAllLights() {
+        lightsApi.turnOffColor(lightsPointer, LightsApi.Light.RED);
+        lightsApi.turnOffColor(lightsPointer, LightsApi.Light.YELLOW);
+        lightsApi.turnOffColor(lightsPointer, LightsApi.Light.GREEN);
     }
 
 }

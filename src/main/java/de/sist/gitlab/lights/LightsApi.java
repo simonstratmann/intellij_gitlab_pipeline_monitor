@@ -34,14 +34,20 @@ public interface LightsApi extends Library {
         FCWSetSwitch(cw, 0, light.index, state ? 1 : 0);
     }
 
-    default void showColor(Pointer cw, Light light) {
+    default void turnOnColor(Pointer cw, Light light, boolean turnOthersOff) {
         FCWSetSwitch(cw, 0, light.index, 1);
-        Arrays.stream(Light.values()).filter(x -> x != light).forEach(x -> {
-            FCWSetSwitch(cw, 0, x.index, 0);
-        });
+        if (turnOthersOff) {
+            Arrays.stream(Light.values()).filter(x -> x != light).forEach(x -> {
+                FCWSetSwitch(cw, 0, x.index, 0);
+            });
+        }
     }
 
-    default void turnOff(Pointer cw) {
+    default void turnOffColor(Pointer cw, Light light) {
+        FCWSetSwitch(cw, 0, light.index, 0);
+    }
+
+    default void turnAllOff(Pointer cw) {
         Arrays.stream(Light.values()).forEach(x -> {
             FCWSetSwitch(cw, 0, x.index, 0);
         });
