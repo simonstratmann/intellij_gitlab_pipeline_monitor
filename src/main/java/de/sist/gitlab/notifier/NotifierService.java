@@ -75,7 +75,6 @@ public class NotifierService {
         if (shownNotifications == null) {
             //Don't show notifications for pipeline statuses from before the program was started
             shownNotifications = new HashSet<>(statuses);
-            shownNotifications = new HashSet<>();
             return;
         }
 
