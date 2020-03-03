@@ -4,7 +4,7 @@ plugins {
 }
 
 group 'de.sist'
-version '1.10'
+version '1.11'
 
 sourceCompatibility = 1.8
 
@@ -28,6 +28,13 @@ intellij {
 }
 patchPluginXml {
     changeNotes """
+    <p>1.11</p>
+    <ul>
+        <li>Don't spam notifications</li>
+    </ul>
+
+    <br/>
+
     <p>1.10</p>
     <ul>
         <li>Keep red or green light on when showing yellow light</li>
