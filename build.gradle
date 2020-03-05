@@ -4,7 +4,7 @@ plugins {
 }
 
 group 'de.sist'
-version '1.11'
+version '1.12'
 
 sourceCompatibility = 1.8
 
@@ -28,6 +28,15 @@ intellij {
 }
 patchPluginXml {
     changeNotes """
+    <p>1.12</p>
+    <ul>
+        <li>Don't crash when trying to load traffic lights DLL (on linux)</li>
+        <li>Expire notifications after 15 seconds</li>
+        <li>Remove separate configuration of statuses for which to create notifications. Follow generic notifications config</li>
+    </ul>
+
+    <br/>
+
     <p>1.11</p>
     <ul>
         <li>Don't spam notifications</li>

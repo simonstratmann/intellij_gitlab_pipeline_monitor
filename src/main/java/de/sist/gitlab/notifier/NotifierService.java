@@ -6,6 +6,8 @@ import com.intellij.notification.NotificationDisplayType;
 import com.intellij.notification.NotificationGroup;
 import com.intellij.notification.NotificationType;
 import com.intellij.notification.Notifications;
+import com.intellij.notification.impl.NotificationSettings;
+import com.intellij.notification.impl.NotificationsConfigurationImpl;
 import com.intellij.notification.impl.NotificationsManagerImpl;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.diagnostic.Logger;
@@ -52,15 +54,18 @@ public class NotifierService {
 
     private Set<PipelineJobStatus> shownNotifications;
 
-    private final Map<String, NotificationGroup> statusesToNotificationGroups = new HashMap<>();
-    private final NotificationGroup errorNotificationGroup = new NotificationGroup("GitLab Pipeline Viewer - Error", NotificationDisplayType.BALLOON, true,
-            "GitLab pipeline viewer", IconLoader.getIcon("/toolWindow/gitlab-icon.png"));
+    private final Map<String, String> statusesToNotificationGroupIds = new HashMap<>();
+    private final NotificationGroup errorNotificationGroup;
 
     public NotifierService(Project project) {
         this.project = project;
         statusFilter = project.getService(StatusFilter.class);
 
-        KNOWN_STATUSES.forEach(x -> statusesToNotificationGroups.put(x, createNotificationGroup(x)));
+        KNOWN_STATUSES.forEach(x -> {
+            statusesToNotificationGroupIds.put(x, createNotificationGroupForStatus(x).getDisplayId());
+        });
+
+        errorNotificationGroup = createNotificationGroup("GitLab Pipeline Viewer - Error", NotificationDisplayType.STICKY_BALLOON);
 
         project.getMessageBus().connect().subscribe(ReloadListener.RELOAD, this::showStatusNotifications);
         project.getMessageBus().connect().subscribe(IncompleteConfigListener.CONFIG_INCOMPLETE, this::showIncompleteConfigNotification);
@@ -79,9 +84,10 @@ public class NotifierService {
             return;
         }
 
-        List<PipelineJobStatus> filteredStatuses = statusFilter.filterPipelines(statuses, true)
+        List<PipelineJobStatus> filteredStatuses = statusFilter.filterPipelines(statuses)
                 .stream().filter(x ->
                         !shownNotifications.contains(x)
+                                && getDisplayTypeForStatus(x.result) != NotificationDisplayType.NONE
                 ).collect(Collectors.toList());
         //Don't spam the GUI, never show more than the newest 3
         List<PipelineJobStatus> statusesToShow = filteredStatuses.subList(Math.max(0, filteredStatuses.size() - 3), filteredStatuses.size());
@@ -104,7 +110,7 @@ public class NotifierService {
     }
 
     private void showBalloonForStatus(PipelineJobStatus status, int index) {
-        NotificationGroup notificationGroup = statusesToNotificationGroups.computeIfAbsent(status.result, this::createNotificationGroup);
+        NotificationGroup notificationGroup = getNotificationGroupForStatus(status);
 
         NotificationType notificationType;
         String content;
@@ -113,11 +119,17 @@ public class NotifierService {
         } else {
             notificationType = NotificationType.INFORMATION;
         }
+
+        if (getDisplayTypeForStatus(status.result) == NotificationDisplayType.TOOL_WINDOW) {
+            Notifications.Bus.notify(notificationGroup.createNotification(status.branchName + ": " + status.result, notificationType));
+            return;
+        }
         content = status.branchName + ": <span style=\"color:" + getColorForStatus(status.result) + "\">" + status.result + "</span>"
                 + "<br>Created: " + DateTime.formatDateTime(status.creationTime)
                 + "<br>Last update: " + DateTime.formatDateTime(status.updateTime);
 
         Notification notification = notificationGroup.createNotification("GitLab branch status", null, content, notificationType);
+
 
         notification.addAction(new NotificationAction("Open in Browser") {
             @Override
@@ -128,8 +140,22 @@ public class NotifierService {
         });
 
         logger.debug("Showing notification for status " + status);
-        showBalloon(notification, index);
+        showBalloon(notification, getDisplayTypeForStatus(status.result), index);
         shownNotifications.add(status);
+    }
+
+    private NotificationGroup getNotificationGroupForStatus(PipelineJobStatus status) {
+        if (!statusesToNotificationGroupIds.containsKey(status.result)) {
+            statusesToNotificationGroupIds.put(status.result, createNotificationGroupForStatus(status.result).getDisplayId());
+        }
+
+        NotificationGroup notificationGroup = NotificationGroup.findRegisteredGroup(statusesToNotificationGroupIds.get(status.result));
+        if (notificationGroup == null) {
+            String message = "Unable to find registered notification group for status " + status.result;
+            logger.error(message);
+            throw new RuntimeException(message);
+        }
+        return notificationGroup;
     }
 
     private void showIncompleteConfigNotification(String message) {
@@ -145,13 +171,15 @@ public class NotifierService {
         Notifications.Bus.notify(notification, project);
     }
 
-    private void showBalloon(Notification notification, int index) {
+    private void showBalloon(Notification notification, NotificationDisplayType displayType, int index) {
         IdeFrame ideFrame = WindowManager.getInstance().getIdeFrame(project);
         if (ideFrame == null) {
             logger.error("ideFrame is null");
         } else {
             Rectangle bounds = ideFrame.getComponent().getBounds();
-            Balloon balloon = NotificationsManagerImpl.createBalloon(ideFrame, notification, false, true, BalloonLayoutData.fullContent(), project);
+
+            boolean hideOnClickOutside = displayType != NotificationDisplayType.STICKY_BALLOON;
+            Balloon balloon = NotificationsManagerImpl.createBalloon(ideFrame, notification, false, hideOnClickOutside, BalloonLayoutData.fullContent(), project);
             Dimension preferredSize = new Dimension(450, 100);
             ((BalloonImpl) balloon).getContent().setPreferredSize(preferredSize);
 
@@ -191,8 +219,33 @@ public class NotifierService {
     }
 
     @NotNull
-    private NotificationGroup createNotificationGroup(String status) {
-        return new NotificationGroup("GitLab Pipeline Viewer - status " + status, NotificationDisplayType.BALLOON, true, "GitLab pipeline viewer", IconLoader.getIcon("/toolWindow/gitlab-icon.png"));
+    private NotificationGroup createNotificationGroupForStatus(String status) {
+        String displayId = getDisplayIdForStatus(status);
+        return createNotificationGroup(displayId, NotificationDisplayType.BALLOON);
+    }
+
+    @NotNull
+    private String getDisplayIdForStatus(String status) {
+        return "GitLab Pipeline Viewer - status " + status;
+    }
+
+    private NotificationGroup createNotificationGroup(String displayId, NotificationDisplayType defaultDisplayType) {
+        NotificationDisplayType displayType;
+        boolean shouldLog;
+        if (NotificationsConfigurationImpl.getInstanceImpl().isRegistered(displayId)) {
+            NotificationSettings notificationSettings = NotificationsConfigurationImpl.getSettings(displayId);
+            shouldLog = notificationSettings.isShouldLog();
+            displayType = notificationSettings.getDisplayType();
+        } else {
+            displayType = defaultDisplayType;
+            shouldLog = true;
+        }
+        return new NotificationGroup(displayId, displayType, shouldLog,
+                "GitLab pipeline viewer", IconLoader.getIcon("/toolWindow/gitlab-icon.png"));
+    }
+
+    private NotificationDisplayType getDisplayTypeForStatus(String status) {
+        return NotificationsConfigurationImpl.getSettings(getDisplayIdForStatus(status)).getDisplayType();
     }
 
 

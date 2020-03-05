@@ -81,7 +81,7 @@
               </grid>
             </constraints>
             <properties>
-              <toolTipText value="Show USB lights for pipeline statuses for this branch (need to have a USB light by https://www.cleware-shop.de/ connected)."/>
+              <toolTipText value="Show USB lights for pipeline statuses for this branch (need to have a USB light by https://www.cleware-shop.de/ connected, Windows only)."/>
             </properties>
           </component>
         </children>
@@ -119,83 +119,7 @@
         </constraints>
         <properties/>
         <border type="none"/>
-        <children>
-          <grid id="7cf" binding="statesToNotifyPanel" layout-manager="FormLayout">
-            <rowspec value="center:d:noGrow"/>
-            <rowspec value="top:4dlu:noGrow"/>
-            <rowspec value="center:max(d;4px):noGrow"/>
-            <rowspec value="top:4dlu:noGrow"/>
-            <rowspec value="center:max(d;4px):noGrow"/>
-            <rowspec value="top:4dlu:noGrow"/>
-            <rowspec value="center:max(d;4px):noGrow"/>
-            <rowspec value="top:4dlu:noGrow"/>
-            <rowspec value="center:max(d;4px):noGrow"/>
-            <rowspec value="top:4dlu:noGrow"/>
-            <rowspec value="center:max(d;4px):noGrow"/>
-            <colspec value="fill:d:noGrow"/>
-            <constraints>
-              <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="7" hsize-policy="7" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
-            </constraints>
-            <properties/>
-            <border type="none"/>
-            <children>
-              <component id="8ad48" class="javax.swing.JCheckBox" binding="showStatusCanceledCheckbox">
-                <constraints>
-                  <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
-                  <forms/>
-                </constraints>
-                <properties>
-                  <text value="Canceled"/>
-                </properties>
-              </component>
-              <component id="28a18" class="javax.swing.JCheckBox" binding="showStatusFailedCheckbox">
-                <constraints>
-                  <grid row="2" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
-                  <forms/>
-                </constraints>
-                <properties>
-                  <text value="Failed"/>
-                </properties>
-              </component>
-              <component id="85208" class="javax.swing.JCheckBox" binding="showStatusPendingCheckbox">
-                <constraints>
-                  <grid row="4" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
-                  <forms/>
-                </constraints>
-                <properties>
-                  <text value="Pending"/>
-                </properties>
-              </component>
-              <component id="7282" class="javax.swing.JCheckBox" binding="showStatusRunningCheckbox">
-                <constraints>
-                  <grid row="6" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
-                  <forms/>
-                </constraints>
-                <properties>
-                  <text value="Running"/>
-                </properties>
-              </component>
-              <component id="57600" class="javax.swing.JCheckBox" binding="showStatusSkippedCheckbox">
-                <constraints>
-                  <grid row="8" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
-                  <forms/>
-                </constraints>
-                <properties>
-                  <text value="Skipped"/>
-                </properties>
-              </component>
-              <component id="31f66" class="javax.swing.JCheckBox" binding="showStatusSuccessCheckbox">
-                <constraints>
-                  <grid row="10" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
-                  <forms/>
-                </constraints>
-                <properties>
-                  <text value="Success"/>
-                </properties>
-              </component>
-            </children>
-          </grid>
-        </children>
+        <children/>
       </grid>
     </children>
   </grid>

@@ -37,13 +37,6 @@ public class ConfigForm {
 
     private JList<String> branchesToIgnoreList;
 
-    private JPanel statesToNotifyPanel;
-    private JCheckBox showStatusPendingCheckbox;
-    private JCheckBox showStatusCanceledCheckbox;
-    private JCheckBox showStatusRunningCheckbox;
-    private JCheckBox showStatusSkippedCheckbox;
-    private JCheckBox showStatusFailedCheckbox;
-    private JCheckBox showStatusSuccessCheckbox;
     private JPanel projectIdPanel;
     private JTextField gitlabUrlField;
     private JTextField authTokenField;
@@ -60,14 +53,13 @@ public class ConfigForm {
         createBranchesToIgnorePanel();
         createBranchesToWatchPanel();
 
-        statesToNotifyPanel.setBorder(IdeBorderFactory.createTitledBorder("Statuses to notify"));
         projectIdPanel.setBorder(IdeBorderFactory.createTitledBorder("GitLab settings"));
     }
-
 
     public void init(Project project) {
         this.project = project;
         config = PipelineViewerConfig.getInstance(project);
+        config.initIfNeeded();
         loadSettings();
 
         new ComponentValidator(project).withValidator(() -> {
@@ -95,24 +87,7 @@ public class ConfigForm {
         config.setBranchesToIgnore(branchesToIgnoreListModel.toList());
         config.setBranchesToWatch(branchesToWatchListModel.toList());
         List<String> statusesToWatch = new ArrayList<>();
-        if (showStatusCanceledCheckbox.isSelected()) {
-            statusesToWatch.add("canceled");
-        }
-        if (showStatusFailedCheckbox.isSelected()) {
-            statusesToWatch.add("failed");
-        }
-        if (showStatusPendingCheckbox.isSelected()) {
-            statusesToWatch.add("pending");
-        }
-        if (showStatusRunningCheckbox.isSelected()) {
-            statusesToWatch.add("running");
-        }
-        if (showStatusSkippedCheckbox.isSelected()) {
-            statusesToWatch.add("skipped");
-        }
-        if (showStatusSuccessCheckbox.isSelected()) {
-            statusesToWatch.add("success");
-        }
+
         config.setStatusesToWatch(statusesToWatch);
         config.setShowLightsForBranch(lightsBranch.getText());
 
@@ -130,12 +105,7 @@ public class ConfigForm {
         }
         branchesToWatchListModel.replaceAll(config.getBranchesToWatch());
         branchesToIgnoreListModel.replaceAll(config.getBranchesToIgnore());
-        showStatusCanceledCheckbox.setSelected(config.getStatusesToWatch().contains("canceled"));
-        showStatusFailedCheckbox.setSelected(config.getStatusesToWatch().contains("failed"));
-        showStatusPendingCheckbox.setSelected(config.getStatusesToWatch().contains("pending"));
-        showStatusRunningCheckbox.setSelected(config.getStatusesToWatch().contains("running"));
-        showStatusSkippedCheckbox.setSelected(config.getStatusesToWatch().contains("skipped"));
-        showStatusSuccessCheckbox.setSelected(config.getStatusesToWatch().contains("success"));
+
         lightsBranch.setText(config.getShowLightsForBranch());
     }
 
@@ -147,13 +117,6 @@ public class ConfigForm {
                         || !Objects.equals(config.getShowLightsForBranch(), lightsBranch.getText())
                         || !new HashSet<>(branchesToWatchListModel.getItems()).equals(new HashSet<>(config.getBranchesToWatch()))
                         || !new HashSet<>(branchesToIgnoreListModel.getItems()).equals(new HashSet<>(config.getBranchesToIgnore()))
-                        || showStatusCanceledCheckbox.isSelected() != config.getStatusesToWatch().contains("canceled")
-                        || showStatusFailedCheckbox.isSelected() != config.getStatusesToWatch().contains("failed")
-                        || showStatusPendingCheckbox.isSelected() != config.getStatusesToWatch().contains("pending")
-                        || showStatusRunningCheckbox.isSelected() != config.getStatusesToWatch().contains("running")
-                        || showStatusSkippedCheckbox.isSelected() != config.getStatusesToWatch().contains("skipped")
-                        || showStatusSuccessCheckbox.isSelected() != config.getStatusesToWatch().contains("success")
-
                 ;
     }
 

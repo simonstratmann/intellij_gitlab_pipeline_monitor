@@ -17,7 +17,9 @@ public class StartupInitialization implements StartupActivity {
         project.getService(LightControl.class);
 
         PipelineViewerConfig config = PipelineViewerConfig.getInstance(project);
-        config.initIfNeeded();
+        if (config != null) {
+            config.initIfNeeded();
+        }
         project.getService(GitService.class);
     }
 }
