@@ -49,6 +49,7 @@ public class ConfigForm {
     private JTextField authTokenField;
     private JLabel lightsLabel;
     private JTextField lightsBranch;
+    private JPanel statesToShow;
     private JList<String> branchesToWatchList;
     private JPanel statesToNotify2;
 

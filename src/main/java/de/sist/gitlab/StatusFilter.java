@@ -22,17 +22,17 @@ public class StatusFilter {
         project.getMessageBus().connect().subscribe(GitInitListener.GIT_INITIALIZED, gitRepository -> this.gitRepository = gitRepository);
     }
 
-    public List<PipelineJobStatus> filterPipelines(List<PipelineJobStatus> toFilter) {
+    public List<PipelineJobStatus> filterPipelines(List<PipelineJobStatus> toFilter, boolean filterForStatus) {
         GitBranchesCollection branches = gitRepository.getBranches();
         Set<String> trackedBranches = branches.getLocalBranches().stream().filter(x -> branches.getRemoteBranches().stream().anyMatch(remote -> remote.getNameForRemoteOperations().equals(x.getName()))).map(GitReference::getName).collect(Collectors.toSet());
 
         return toFilter.stream().filter(x -> {
-                    if (!config.getStatusesToWatch().contains(x.result)) {
-                        return false;
-                    }
-                    if (config.getBranchesToIgnore().contains(x.branchName)) {
-                        return false;
-                    }
+            if (filterForStatus && !config.getStatusesToWatch().contains(x.result)) {
+                return false;
+            }
+            if (config.getBranchesToIgnore().contains(x.branchName)) {
+                return false;
+            }
                     if (trackedBranches.contains(x.branchName)) {
                         return true;
                     }

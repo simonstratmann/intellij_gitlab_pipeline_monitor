@@ -79,7 +79,7 @@ public class NotifierService {
             return;
         }
 
-        List<PipelineJobStatus> filteredStatuses = statusFilter.filterPipelines(statuses)
+        List<PipelineJobStatus> filteredStatuses = statusFilter.filterPipelines(statuses, true)
                 .stream().filter(x ->
                         !shownNotifications.contains(x)
                 ).collect(Collectors.toList());
