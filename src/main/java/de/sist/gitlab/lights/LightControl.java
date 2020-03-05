@@ -12,7 +12,6 @@ import org.apache.commons.io.FileUtils;
 import org.assertj.core.util.Files;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -45,13 +44,12 @@ public class LightControl {
             System.setProperty("jna.library.path", temporaryFolder.getAbsolutePath());
             dllFile.deleteOnExit();
             lightsApi = Native.load(dllFile.getAbsolutePath(), LightsApi.class);
-        } catch (IOException e) {
+            lightsPointer = lightsApi.FCWInitObject();
+            lightsApi.FCWOpenCleware(lightsPointer);
+        } catch (Exception e) {
             logger.error(e);
             return;
         }
-
-        lightsPointer = lightsApi.FCWInitObject();
-        lightsApi.FCWOpenCleware(lightsPointer);
 
         project.getMessageBus().connect().subscribe(ReloadListener.RELOAD, statuses -> ApplicationManager.getApplication().invokeLater(() -> showState(statuses)));
     }
