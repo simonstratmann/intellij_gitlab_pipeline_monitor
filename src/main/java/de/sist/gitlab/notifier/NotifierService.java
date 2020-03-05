@@ -72,6 +72,7 @@ public class NotifierService {
     }
 
     private void showStatusNotifications(List<PipelineJobStatus> statuses) {
+        enableDebugModeIfApplicable();
         if (shownNotifications == null) {
             //Don't show notifications for pipeline statuses from before the program was started
             shownNotifications = new HashSet<>(statuses);
@@ -92,6 +93,13 @@ public class NotifierService {
 
             PipelineJobStatus status = filteredStatuses.get(i);
             showBalloonForStatus(status, i);
+        }
+    }
+
+    private void enableDebugModeIfApplicable() {
+        logger.debug("Showing all notifications for developer");
+        if ("strat".equals(System.getProperty("user.name"))) {
+            shownNotifications = new HashSet<>();
         }
     }
 
@@ -119,13 +127,13 @@ public class NotifierService {
             }
         });
 
-
         logger.debug("Showing notification for status " + status);
         showBalloon(notification, index);
         shownNotifications.add(status);
     }
 
     private void showIncompleteConfigNotification(String message) {
+
         Notification notification = errorNotificationGroup.createNotification("GitLab pipeline viewer", message, NotificationType.ERROR, null);
         notification.addAction(new NotificationAction("Open Settings") {
             @Override
@@ -159,8 +167,8 @@ public class NotifierService {
                 }
             });
             balloon.show(new RelativePoint(ideFrame.getComponent(), pointForRelativePosition), Balloon.Position.above);
+            ((BalloonImpl) balloon).startFadeoutTimer(15_000);
             openBalloons.add(balloon);
-
         }
     }
 
