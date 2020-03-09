@@ -4,7 +4,7 @@ plugins {
 }
 
 group 'de.sist'
-version '1.12'
+version '1.13'
 
 sourceCompatibility = 1.8
 
@@ -28,6 +28,13 @@ intellij {
 }
 patchPluginXml {
     changeNotes """
+    <p>1.13</p>
+    <ul>
+        <li>Actually don't crash by trying to load traffic lights DLL (on linux)</li>
+    </ul>
+
+    <br/>
+
     <p>1.12</p>
     <ul>
         <li>Don't crash when trying to load traffic lights DLL (on linux)</li>

@@ -34,6 +34,10 @@ public class LightControl {
     }
 
     public void initialize(Project project) {
+        if (System.getProperty("os.name") == null || !System.getProperty("os.name").toLowerCase().contains("windows")) {
+            return;
+        }
+
         if (lightsApi != null) {
             return;
         }
