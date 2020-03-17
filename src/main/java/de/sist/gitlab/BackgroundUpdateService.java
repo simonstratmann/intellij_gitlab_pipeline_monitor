@@ -61,6 +61,10 @@ public class BackgroundUpdateService {
         if (!isRunning) {
             logger.debug("Background task already stopped");
         }
+        if (scheduledFuture == null) {
+            //Should not happen but can happen... (don't know when)
+            return;
+        }
         logger.debug("Stopping background task");
         boolean cancelled = scheduledFuture.cancel(false);
         isRunning = !cancelled;

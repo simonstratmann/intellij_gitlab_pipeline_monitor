@@ -101,6 +101,9 @@ public class LightControl {
     }
 
     public static void turnOffAllLights() {
+        if (lightsApi == null) {
+            return;
+        }
         lightsApi.turnOffColor(lightsPointer, LightsApi.Light.RED);
         lightsApi.turnOffColor(lightsPointer, LightsApi.Light.YELLOW);
         lightsApi.turnOffColor(lightsPointer, LightsApi.Light.GREEN);

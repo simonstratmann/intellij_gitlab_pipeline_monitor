@@ -12,6 +12,7 @@ import org.apache.http.client.utils.URIBuilder;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
@@ -44,6 +45,7 @@ public class GitlabService {
         if (config == null || config.getGitlabProjectId() == null || config.getGitlabUrl() == null) {
             project.getMessageBus().syncPublisher(IncompleteConfigListener.CONFIG_INCOMPLETE).handleIncompleteConfig("Incomplete config");
             logger.info("GitLab project ID and/or URL not set");
+            return Collections.emptyList();
         }
         List<PipelineTo> pipelines = makeUrlCall(1);
         pipelines.addAll(makeUrlCall(2));
