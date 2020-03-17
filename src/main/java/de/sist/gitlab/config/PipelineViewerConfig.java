@@ -22,6 +22,7 @@ public class PipelineViewerConfig implements PersistentStateComponent<PipelineVi
     private List<String> branchesToWatch = new ArrayList<>();
     private List<String> statusesToWatch = new ArrayList<>();
     private String showLightsForBranch;
+    private String mergeRequestTargetBranch = "master";
 
     public String getGitlabUrl() {
         return gitlabUrl;
@@ -78,6 +79,14 @@ public class PipelineViewerConfig implements PersistentStateComponent<PipelineVi
 
     public void setShowLightsForBranch(String showLightsForBranch) {
         this.showLightsForBranch = showLightsForBranch;
+    }
+
+    public String getMergeRequestTargetBranch() {
+        return mergeRequestTargetBranch;
+    }
+
+    public void setMergeRequestTargetBranch(String mergeRequestTargetBranch) {
+        this.mergeRequestTargetBranch = mergeRequestTargetBranch;
     }
 
     public void initIfNeeded() {

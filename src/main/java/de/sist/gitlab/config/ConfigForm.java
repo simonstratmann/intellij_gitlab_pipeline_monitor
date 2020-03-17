@@ -42,6 +42,7 @@ public class ConfigForm {
     private JTextField authTokenField;
     private JLabel lightsLabel;
     private JTextField lightsBranch;
+    private JTextField mergeRequestTargetBranch;
     private JPanel statesToShow;
     private JList<String> branchesToWatchList;
     private JPanel statesToNotify2;
@@ -86,6 +87,7 @@ public class ConfigForm {
         config.setGitlabProjectId((Integer) projectIdSpinner.getValue());
         config.setBranchesToIgnore(branchesToIgnoreListModel.toList());
         config.setBranchesToWatch(branchesToWatchListModel.toList());
+        config.setMergeRequestTargetBranch(mergeRequestTargetBranch.getText());
         List<String> statusesToWatch = new ArrayList<>();
 
         config.setStatusesToWatch(statusesToWatch);
@@ -107,6 +109,7 @@ public class ConfigForm {
         branchesToIgnoreListModel.replaceAll(config.getBranchesToIgnore());
 
         lightsBranch.setText(config.getShowLightsForBranch());
+        mergeRequestTargetBranch.setText(config.getMergeRequestTargetBranch());
     }
 
     public boolean isModified() {
@@ -115,6 +118,7 @@ public class ConfigForm {
                         || !Objects.equals(config.getGitlabProjectId(), projectIdSpinner.getValue())
                         || !Objects.equals(config.getGitlabAuthToken(), authTokenField.getText())
                         || !Objects.equals(config.getShowLightsForBranch(), lightsBranch.getText())
+                        || !Objects.equals(config.getMergeRequestTargetBranch(), mergeRequestTargetBranch.getText())
                         || !new HashSet<>(branchesToWatchListModel.getItems()).equals(new HashSet<>(config.getBranchesToWatch()))
                         || !new HashSet<>(branchesToIgnoreListModel.getItems()).equals(new HashSet<>(config.getBranchesToIgnore()))
                 ;

@@ -30,6 +30,7 @@ patchPluginXml {
     changeNotes """
     <p>1.14</p>
     <ul>
+        <li>Add context menu entry for branches to open new merge request in browser</li>
         <li>Fix three NullPointerExceptions</li>
     </ul>
 

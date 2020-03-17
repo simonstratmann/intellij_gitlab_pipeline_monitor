@@ -16,7 +16,6 @@ public class GitlabConfigurable implements Configurable {
         this.project = project;
     }
 
-
     @Override
     public String getDisplayName() {
         return "GitLab Pipeline Viewer";
