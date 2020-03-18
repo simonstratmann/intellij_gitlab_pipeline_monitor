@@ -44,6 +44,7 @@ import javax.swing.text.BadLocationException;
 import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.Cursor;
+import java.awt.Dimension;
 import java.awt.Point;
 import java.awt.event.ActionEvent;
 import java.awt.event.MouseAdapter;
@@ -128,7 +129,6 @@ public class GitlabToolWindow {
                 int rendererWidth = component.getPreferredSize().width;
                 TableColumn column = getColumnModel().getColumn(columnIndex);
                 column.setPreferredWidth(Math.max(rendererWidth + getIntercellSpacing().width, column.getPreferredWidth()));
-
                 return component;
             }
         };
@@ -142,6 +142,8 @@ public class GitlabToolWindow {
 
         pipelineTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         pipelineTable.setCellSelectionEnabled(true);
+
+        pipelineTable.setIntercellSpacing(new Dimension(5, 0));
 
         createTablePanel(project);
     }

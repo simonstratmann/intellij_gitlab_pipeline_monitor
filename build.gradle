@@ -4,7 +4,7 @@ plugins {
 }
 
 group 'de.sist'
-version '1.14'
+version '1.15'
 
 sourceCompatibility = 1.8
 
@@ -28,6 +28,11 @@ intellij {
 }
 patchPluginXml {
     changeNotes """
+    <p>1.15</p>
+    <ul>
+        <Support for USB lights on Linux</li>
+    </ul>
+
     <p>1.14</p>
     <ul>
         <li>Add context menu entry for branches to open new merge request in browser</li>
