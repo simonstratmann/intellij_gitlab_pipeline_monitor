@@ -20,6 +20,7 @@ public class BackgroundUpdateService {
 
     private static final int INITIAL_DELAY = 0;
     private static final int UPDATE_DELAY = 30;
+    private static final String DISPLAY_ID = "GitLab Pipeline Viewer - Error";
     Logger logger = Logger.getInstance(BackgroundUpdateService.class);
 
     private boolean isRunning = false;
@@ -38,8 +39,11 @@ public class BackgroundUpdateService {
         };
         PipelineViewerConfig config = PipelineViewerConfig.getInstance(project);
         if (config.getGitlabProjectId() == null || config.getGitlabProjectId() == 0) {
-            NotificationGroup notificationGroup = new NotificationGroup("GitLab Pipeline Viewer - Error", NotificationDisplayType.BALLOON, true,
-                    "GitLab pipeline viewer", IconLoader.getIcon("/toolWindow/gitlab-icon.png"));
+            NotificationGroup notificationGroup = NotificationGroup.findRegisteredGroup(DISPLAY_ID);
+            if (notificationGroup == null) {
+                notificationGroup = new NotificationGroup(DISPLAY_ID, NotificationDisplayType.BALLOON, true,
+                        "GitLab pipeline viewer", IconLoader.getIcon("/toolWindow/gitlab-icon.png"));
+            }
             notificationGroup.createNotification("No gitlab project ID set", MessageType.ERROR);
             return;
         }

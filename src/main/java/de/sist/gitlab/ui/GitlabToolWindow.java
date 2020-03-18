@@ -361,7 +361,14 @@ public class GitlabToolWindow {
                     if (selectedColumn != 0) {
                         return;
                     }
-                    String branchName = getSelectedBranch(e.getPoint());
+                    String branchName;
+                    try {
+                        branchName = getSelectedBranch(e.getPoint());
+                    } catch (Exception ex) {
+                        //Can happen in some (unknown) cases, probably when the table is updated while the mouse is clicked
+                        logger.debug(ex);
+                        return;
+                    }
                     if (branchName == null) {
                         return;
                     }

@@ -10,6 +10,7 @@ import org.jetbrains.annotations.NotNull;
 
 public class StartupInitialization implements StartupActivity {
 
+
     @Override
     public void runActivity(@NotNull Project project) {
         //Get service so it's initialized

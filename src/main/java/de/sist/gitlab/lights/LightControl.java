@@ -7,6 +7,7 @@ import com.intellij.openapi.project.Project;
 import de.sist.gitlab.PipelineJobStatus;
 import de.sist.gitlab.ReloadListener;
 import de.sist.gitlab.config.PipelineViewerConfig;
+import jdk.internal.joptsimple.internal.Strings;
 import org.apache.commons.io.FileUtils;
 
 import java.io.File;
@@ -43,14 +44,20 @@ public class LightControl {
             lightsApi = project.getService(LightsLinux.class);
         } else {
             logger.error("Unable to determine OS from property " + osName);
+            return;
         }
 
-        project.getMessageBus().connect().subscribe(ReloadListener.RELOAD, statuses -> ApplicationManager.getApplication().invokeLater(() -> showState(statuses)));
+        String lightsForBranch = PipelineViewerConfig.getInstance(project).getShowLightsForBranch();
+        if (!Strings.isNullOrEmpty(lightsForBranch)) {
+            //Only subscribe if a branch should be watched
+            project.getMessageBus().connect().subscribe(ReloadListener.RELOAD, statuses -> ApplicationManager.getApplication().invokeLater(() -> showState(statuses)));
+        }
     }
 
     public void showState(List<PipelineJobStatus> statuses) {
         String lightsForBranch = PipelineViewerConfig.getInstance(project).getShowLightsForBranch();
-        if (lightsForBranch == null) {
+        if (Strings.isNullOrEmpty(lightsForBranch)) {
+            //IntelliJ doesn't seem to allow to unsubscribe from an event, so if the user changed the config not to watch a branch this will still be called
             logger.debug("No branch to watch lights for set");
             return;
         }
@@ -58,7 +65,9 @@ public class LightControl {
             return;
         }
 
-        Optional<PipelineJobStatus> status = statuses.stream().filter(x -> x.branchName.equals(lightsForBranch)).findFirst();
+        Optional<PipelineJobStatus> status = statuses.stream()
+                .filter(x -> x.branchName.equals(lightsForBranch))
+                .findFirst();
 
         if (status.isPresent()) {
             //Don't enable any lights twice so that when the user turned the light off it doesn't get turned on again for the same run

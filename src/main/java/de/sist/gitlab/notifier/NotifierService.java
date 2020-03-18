@@ -240,6 +240,10 @@ public class NotifierService {
             displayType = defaultDisplayType;
             shouldLog = true;
         }
+        NotificationGroup registeredGroup = NotificationGroup.findRegisteredGroup(displayId);
+        if (registeredGroup != null) {
+            return registeredGroup;
+        }
         return new NotificationGroup(displayId, displayType, shouldLog,
                 "GitLab pipeline viewer", IconLoader.getIcon("/toolWindow/gitlab-icon.png"));
     }

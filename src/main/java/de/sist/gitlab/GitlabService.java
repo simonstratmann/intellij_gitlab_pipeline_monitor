@@ -1,7 +1,6 @@
 package de.sist.gitlab;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.google.common.base.Strings;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.util.io.HttpRequests;
@@ -27,6 +26,7 @@ public class GitlabService {
     private final PipelineViewerConfig config;
     private final Project project;
     private String gitlabHtmlBaseUrl;
+    private boolean incompleteConfigNotificationShown = false;
 
     public GitlabService(Project project) {
         this.project = project;
@@ -44,9 +44,11 @@ public class GitlabService {
 
     public List<PipelineTo> getPipelines() throws IOException {
         PipelineViewerConfig config = PipelineViewerConfig.getInstance(project);
-        if (config == null || config.getGitlabProjectId() == null || Strings.isNullOrEmpty(config.getGitlabUrl())) {
+        boolean configIncomplete = config == null || config.getGitlabProjectId() == null || config.getGitlabUrl() == null;
+        if (configIncomplete & !incompleteConfigNotificationShown) {
             project.getMessageBus().syncPublisher(IncompleteConfigListener.CONFIG_INCOMPLETE).handleIncompleteConfig("Incomplete config");
             logger.info("GitLab project ID and/or URL not set");
+            incompleteConfigNotificationShown = true;
             return Collections.emptyList();
         }
         List<PipelineTo> pipelines = makePipelinesUrlCall(1);
