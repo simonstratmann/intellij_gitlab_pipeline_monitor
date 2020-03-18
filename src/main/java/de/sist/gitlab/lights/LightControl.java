@@ -1,5 +1,6 @@
 package de.sist.gitlab.lights;
 
+import com.google.common.base.Strings;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.application.PathManager;
 import com.intellij.openapi.diagnostic.Logger;
@@ -7,7 +8,6 @@ import com.intellij.openapi.project.Project;
 import de.sist.gitlab.PipelineJobStatus;
 import de.sist.gitlab.ReloadListener;
 import de.sist.gitlab.config.PipelineViewerConfig;
-import jdk.internal.joptsimple.internal.Strings;
 import org.apache.commons.io.FileUtils;
 
 import java.io.File;
