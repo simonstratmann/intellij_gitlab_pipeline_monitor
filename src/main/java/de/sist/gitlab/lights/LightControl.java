@@ -1,17 +1,16 @@
 package de.sist.gitlab.lights;
 
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.application.PathManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
-import com.sun.jna.Native;
-import com.sun.jna.Pointer;
 import de.sist.gitlab.PipelineJobStatus;
 import de.sist.gitlab.ReloadListener;
 import de.sist.gitlab.config.PipelineViewerConfig;
 import org.apache.commons.io.FileUtils;
-import org.assertj.core.util.Files;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -19,8 +18,7 @@ import java.util.Set;
 
 public class LightControl {
 
-    private final Logger logger = Logger.getInstance(LightControl.class);
-    private static Pointer lightsPointer;
+    private static final Logger logger = Logger.getInstance(LightControl.class);
     private static LightsApi lightsApi;
 
     private final Project project;
@@ -34,25 +32,17 @@ public class LightControl {
     }
 
     public void initialize(Project project) {
-        if (System.getProperty("os.name") == null || !System.getProperty("os.name").toLowerCase().contains("windows")) {
+        String osName = System.getProperty("os.name");
+        if (osName == null) {
+            logger.error("Unable to determine OS from empty os.name property");
             return;
         }
-
-        if (lightsApi != null) {
-            return;
-        }
-        File temporaryFolder = Files.newTemporaryFolder();
-        try {
-            File dllFile = new File(temporaryFolder, "USBaccess.dll");
-            FileUtils.copyInputStreamToFile(LightsApi.class.getResourceAsStream("/USBaccess.dll"), dllFile);
-            System.setProperty("jna.library.path", temporaryFolder.getAbsolutePath());
-            dllFile.deleteOnExit();
-            lightsApi = Native.load(dllFile.getAbsolutePath(), LightsApi.class);
-            lightsPointer = lightsApi.FCWInitObject();
-            lightsApi.FCWOpenCleware(lightsPointer);
-        } catch (Exception e) {
-            logger.error(e);
-            return;
+        if (osName.toLowerCase().contains("windows")) {
+            lightsApi = project.getService(LightsWindows.class);
+        } else if (osName.toLowerCase().contains("nux")) {
+            lightsApi = project.getService(LightsLinux.class);
+        } else {
+            logger.error("Unable to determine OS from property " + osName);
         }
 
         project.getMessageBus().connect().subscribe(ReloadListener.RELOAD, statuses -> ApplicationManager.getApplication().invokeLater(() -> showState(statuses)));
@@ -62,6 +52,9 @@ public class LightControl {
         String lightsForBranch = PipelineViewerConfig.getInstance(project).getShowLightsForBranch();
         if (lightsForBranch == null) {
             logger.debug("No branch to watch lights for set");
+            return;
+        }
+        if (lightsApi == null) {
             return;
         }
 
@@ -75,28 +68,27 @@ public class LightControl {
             }
 
             //When showing yellow don't turn off red or green so that the info is still kept visible even after a new run has started
-
             String result = status.get().result;
             switch (result) {
                 case "running":
                     logger.debug("Showing yellow light for running pipeline " + status.get());
-                    lightsApi.turnOnColor(lightsPointer, LightsApi.Light.YELLOW, false);
+                    lightsApi.turnOnColor(LightsWindowsLibrary.Light.YELLOW, false);
                     break;
                 case "failed":
                     logger.debug("Showing red light for failed pipeline " + status.get());
-                    lightsApi.turnOnColor(lightsPointer, LightsApi.Light.RED, false);
-                    lightsApi.turnOffColor(lightsPointer, LightsApi.Light.GREEN);
+                    lightsApi.turnOnColor(LightsWindowsLibrary.Light.RED, false);
+                    lightsApi.turnOffColor(LightsWindowsLibrary.Light.GREEN);
                     break;
                 case "success":
                     logger.debug("Showing green light for successful pipeline " + status.get());
-                    lightsApi.turnOnColor(lightsPointer, LightsApi.Light.GREEN, false);
-                    lightsApi.turnOffColor(lightsPointer, LightsApi.Light.RED);
+                    lightsApi.turnOnColor(LightsWindowsLibrary.Light.GREEN, false);
+                    lightsApi.turnOffColor(LightsWindowsLibrary.Light.RED);
                     break;
             }
             handledRuns.add(status.get());
         } else {
             logger.debug("No pipeline found for " + lightsForBranch);
-            lightsApi.turnAllOff(lightsPointer);
+            lightsApi.turnAllOff();
         }
     }
 
@@ -104,9 +96,35 @@ public class LightControl {
         if (lightsApi == null) {
             return;
         }
-        lightsApi.turnOffColor(lightsPointer, LightsApi.Light.RED);
-        lightsApi.turnOffColor(lightsPointer, LightsApi.Light.YELLOW);
-        lightsApi.turnOffColor(lightsPointer, LightsApi.Light.GREEN);
+        lightsApi.turnOffColor(LightsWindowsLibrary.Light.RED);
+        lightsApi.turnOffColor(LightsWindowsLibrary.Light.YELLOW);
+        lightsApi.turnOffColor(LightsWindowsLibrary.Light.GREEN);
+    }
+
+    public static File loadResource(String resourceName) {
+        File pluginPath = getPluginPath();
+        if (!pluginPath.exists()) {
+            boolean folderCreated = pluginPath.mkdir();
+            if (!folderCreated) {
+                logger.error("Unable to create folder " + pluginPath);
+                return null;
+            }
+        }
+        File file = new File(pluginPath, resourceName);
+        if (!file.exists()) {
+            try {
+                FileUtils.copyInputStreamToFile(LightsWindowsLibrary.class.getResourceAsStream("/" + resourceName), file);
+            } catch (IOException e) {
+                logger.error(e);
+                return null;
+            }
+        }
+        return file;
+    }
+
+    public static File getPluginPath() {
+        File systemPath = new File(PathManager.getSystemPath());
+        return new File(systemPath, "gitlabPipelineViewer");
     }
 
 }

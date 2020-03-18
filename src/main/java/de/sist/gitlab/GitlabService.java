@@ -21,7 +21,7 @@ import java.util.stream.Collectors;
 
 public class GitlabService {
 
-    Logger logger = Logger.getInstance(GitlabService.class);
+    private static final Logger logger = Logger.getInstance(GitlabService.class);
     private static final String PROJECTS_SUFFIX = "/api/v4/projects/%d/";
     private static final String PIPELINES_SUFFIX = "pipelines/";
     private final PipelineViewerConfig config;

@@ -30,7 +30,7 @@ patchPluginXml {
     changeNotes """
     <p>1.15</p>
     <ul>
-        <Support for USB lights on Linux</li>
+        <li>Add support for USB lights on Linux</li>
     </ul>
 
     <p>1.14</p>
