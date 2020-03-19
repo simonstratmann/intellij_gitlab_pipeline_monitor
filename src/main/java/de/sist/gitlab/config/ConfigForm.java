@@ -11,7 +11,7 @@ import com.intellij.ui.IdeBorderFactory;
 import com.intellij.ui.ToolbarDecorator;
 import com.intellij.ui.components.JBList;
 import de.sist.gitlab.BackgroundUpdateService;
-import de.sist.gitlab.lights.LightControl;
+import de.sist.gitlab.lights.LightsControl;
 import org.apache.commons.validator.routines.UrlValidator;
 import org.jetbrains.annotations.NotNull;
 
@@ -95,7 +95,7 @@ public class ConfigForm {
 
         ApplicationManager.getApplication().invokeLater(() -> {
             project.getService(BackgroundUpdateService.class).restartBackgroundTask();
-            project.getService(LightControl.class).initialize(project);
+            project.getService(LightsControl.class).initialize(project);
         });
     }
 

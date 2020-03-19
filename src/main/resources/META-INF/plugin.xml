@@ -26,7 +26,7 @@
         <projectService serviceImplementation="de.sist.gitlab.config.PipelineViewerConfig"/>
         <projectService serviceImplementation="de.sist.gitlab.lights.LightsLinux"/>
         <projectService serviceImplementation="de.sist.gitlab.lights.LightsWindows"/>
-        <projectService serviceImplementation="de.sist.gitlab.lights.LightControl"/>
+        <projectService serviceImplementation="de.sist.gitlab.lights.LightsControl"/>
         <projectService serviceImplementation="de.sist.gitlab.StatusFilter"/>
         <projectService serviceImplementation="de.sist.gitlab.git.GitService"/>
         <projectService serviceImplementation="de.sist.gitlab.GitlabService"/>

@@ -28,10 +28,18 @@ intellij {
 }
 patchPluginXml {
     changeNotes """
+    <p>1.16</p>
+    <ul>
+        <li>Turn off lights when opening pipeline from notification</li>
+    </ul>
+
     <p>1.15</p>
     <ul>
-        <li>Add support for USB lights on Linux</li>
+        <li>Add support for USB lights on Linux (thanks to Florian Micheler)</li>
+        <li>Fix some exceptions</li>
     </ul>
+
+    <br/>
 
     <p>1.14</p>
     <ul>

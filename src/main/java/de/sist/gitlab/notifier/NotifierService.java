@@ -27,6 +27,7 @@ import de.sist.gitlab.PipelineJobStatus;
 import de.sist.gitlab.ReloadListener;
 import de.sist.gitlab.StatusFilter;
 import de.sist.gitlab.config.GitlabConfigurable;
+import de.sist.gitlab.lights.LightsControl;
 import org.jetbrains.annotations.NotNull;
 
 import java.awt.Dimension;
@@ -136,6 +137,7 @@ public class NotifierService {
             public void actionPerformed(@NotNull AnActionEvent e, @NotNull Notification notification) {
                 com.intellij.ide.BrowserUtil.browse(status.pipelineLink);
                 notification.expire();
+                LightsControl.turnOffAllLights();
             }
         });
 

@@ -30,7 +30,7 @@ import de.sist.gitlab.PipelineJobStatus;
 import de.sist.gitlab.ReloadListener;
 import de.sist.gitlab.StatusFilter;
 import de.sist.gitlab.config.PipelineViewerConfig;
-import de.sist.gitlab.lights.LightControl;
+import de.sist.gitlab.lights.LightsControl;
 import net.miginfocom.swing.MigLayout;
 import org.jetbrains.annotations.NotNull;
 
@@ -224,7 +224,7 @@ public class GitlabToolWindow {
         AnActionButton turnOffLightsAction = new AnActionButton("Turn Off Lights", IconLoader.getIcon("/trafficLightsOff.png")) {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
-                LightControl.turnOffAllLights();
+                LightsControl.turnOffAllLights();
             }
 
             @Override

@@ -20,12 +20,12 @@ public class LightsWindows implements LightsApi {
         if (lightsApi != null) {
             return;
         }
-        File file = LightControl.loadResource("USBaccess.dll");
+        File file = LightsControl.loadResource("USBaccess.dll");
         if (file == null) {
             return;
         }
         try {
-            System.setProperty("jna.library.path", LightControl.getPluginPath().getAbsolutePath());
+            System.setProperty("jna.library.path", LightsControl.getPluginPath().getAbsolutePath());
             lightsApi = Native.load(file.getAbsolutePath(), LightsWindowsLibrary.class);
             lightsPointer = lightsApi.FCWInitObject();
             lightsApi.FCWOpenCleware(lightsPointer);

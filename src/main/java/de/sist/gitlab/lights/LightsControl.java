@@ -17,16 +17,16 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
-public class LightControl {
+public class LightsControl {
 
-    private static final Logger logger = Logger.getInstance(LightControl.class);
+    private static final Logger logger = Logger.getInstance(LightsControl.class);
     private static LightsApi lightsApi;
 
     private final Project project;
     private final Set<PipelineJobStatus> handledRuns = new HashSet<>();
 
 
-    public LightControl(Project project) {
+    public LightsControl(Project project) {
         this.project = project;
 
         initialize(project);

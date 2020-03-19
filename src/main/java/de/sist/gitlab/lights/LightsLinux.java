@@ -21,7 +21,7 @@ public class LightsLinux implements LightsApi {
     }
 
     public void initialize() {
-        clewarecontrol = LightControl.loadResource("clewarecontrol");
+        clewarecontrol = LightsControl.loadResource("clewarecontrol");
         if (clewarecontrol == null) {
             return;
         }
