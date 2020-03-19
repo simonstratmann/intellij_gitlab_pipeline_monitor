@@ -390,6 +390,7 @@ public class GitlabToolWindow {
                     int modelRow = pipelineTable.convertRowIndexToModel(viewRow);
                     String url = (String) tableModel.getValueAt(modelRow, selectedColumn);
 
+                    logger.debug("Opening URL " + url);
                     com.intellij.ide.BrowserUtil.browse(url);
                 }
             }

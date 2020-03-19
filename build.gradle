@@ -4,7 +4,7 @@ plugins {
 }
 
 group 'de.sist'
-version '1.15'
+version '1.16'
 
 sourceCompatibility = 1.8
 
@@ -31,7 +31,10 @@ patchPluginXml {
     <p>1.16</p>
     <ul>
         <li>Turn off lights when opening pipeline from notification</li>
+        <li>Turn off yellow light when showing success or failure</li>
     </ul>
+
+    <br/>
 
     <p>1.15</p>
     <ul>

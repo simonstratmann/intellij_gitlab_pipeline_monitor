@@ -76,6 +76,7 @@ public class BackgroundUpdateService {
     }
 
     public synchronized void restartBackgroundTask() {
+        logger.debug("Restarting background task");
         if (isRunning) {
             boolean cancelled = scheduledFuture.cancel(false);
             isRunning = !cancelled;

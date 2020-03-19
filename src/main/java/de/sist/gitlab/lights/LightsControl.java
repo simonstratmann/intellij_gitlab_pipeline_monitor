@@ -39,8 +39,10 @@ public class LightsControl {
             return;
         }
         if (osName.toLowerCase().contains("windows")) {
+            logger.debug("Determined OS to be windows");
             lightsApi = project.getService(LightsWindows.class);
         } else if (osName.toLowerCase().contains("nux")) {
+            logger.debug("Determined OS to be linux");
             lightsApi = project.getService(LightsLinux.class);
         } else {
             logger.error("Unable to determine OS from property " + osName);
@@ -80,18 +82,16 @@ public class LightsControl {
             String result = status.get().result;
             switch (result) {
                 case "running":
-                    logger.debug("Showing yellow light for running pipeline " + status.get());
+                    logger.debug("Showing build state light for running pipeline " + status.get());
                     lightsApi.turnOnColor(LightsWindowsLibrary.Light.YELLOW, false);
                     break;
                 case "failed":
-                    logger.debug("Showing red light for failed pipeline " + status.get());
-                    lightsApi.turnOnColor(LightsWindowsLibrary.Light.RED, false);
-                    lightsApi.turnOffColor(LightsWindowsLibrary.Light.GREEN);
+                    logger.debug("Showing failure pipeline " + status.get());
+                    lightsApi.turnOnColor(LightsWindowsLibrary.Light.RED, true);
                     break;
                 case "success":
-                    logger.debug("Showing green light for successful pipeline " + status.get());
-                    lightsApi.turnOnColor(LightsWindowsLibrary.Light.GREEN, false);
-                    lightsApi.turnOffColor(LightsWindowsLibrary.Light.RED);
+                    logger.debug("Showing success for pipeline " + status.get());
+                    lightsApi.turnOnColor(LightsWindowsLibrary.Light.GREEN, true);
                     break;
             }
             handledRuns.add(status.get());
@@ -105,6 +105,7 @@ public class LightsControl {
         if (lightsApi == null) {
             return;
         }
+        logger.debug("Turning off all lights");
         lightsApi.turnOffColor(LightsWindowsLibrary.Light.RED);
         lightsApi.turnOffColor(LightsWindowsLibrary.Light.YELLOW);
         lightsApi.turnOffColor(LightsWindowsLibrary.Light.GREEN);
@@ -133,7 +134,9 @@ public class LightsControl {
 
     public static File getPluginPath() {
         File systemPath = new File(PathManager.getSystemPath());
-        return new File(systemPath, "gitlabPipelineViewer");
+        final File gitlabPipelineViewerPath = new File(systemPath, "gitlabPipelineViewer");
+        logger.debug("Determined plugin storage path to be " + gitlabPipelineViewerPath);
+        return gitlabPipelineViewerPath;
     }
 
 }

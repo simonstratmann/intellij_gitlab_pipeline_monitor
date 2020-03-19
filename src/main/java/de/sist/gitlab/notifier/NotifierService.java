@@ -131,7 +131,6 @@ public class NotifierService {
 
         Notification notification = notificationGroup.createNotification("GitLab branch status", null, content, notificationType);
 
-
         notification.addAction(new NotificationAction("Open in Browser") {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e, @NotNull Notification notification) {
@@ -161,7 +160,6 @@ public class NotifierService {
     }
 
     private void showIncompleteConfigNotification(String message) {
-
         Notification notification = errorNotificationGroup.createNotification("GitLab pipeline viewer", message, NotificationType.ERROR, null);
         notification.addAction(new NotificationAction("Open Settings") {
             @Override
@@ -170,6 +168,7 @@ public class NotifierService {
                 ShowSettingsUtil.getInstance().showSettingsDialog(project, GitlabConfigurable.class);
             }
         });
+        logger.debug("Showing notification for incomplete config");
         Notifications.Bus.notify(notification, project);
     }
 

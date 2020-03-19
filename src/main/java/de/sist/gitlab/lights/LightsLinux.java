@@ -32,10 +32,12 @@ public class LightsLinux implements LightsApi {
     }
 
     public void turnOffColor(LightsWindowsLibrary.Light light) {
+        logger.debug("Turning off " + light);
         runCommand("-as " + light.indexLinux + OFF);
     }
 
     public void turnOnColor(LightsWindowsLibrary.Light light, boolean turnOthersOff) {
+        logger.debug("Turning on " + light);
         StringBuilder stringBuilder = new StringBuilder("-as " + light.indexLinux + ON);
 
         if (turnOthersOff) {
@@ -51,6 +53,7 @@ public class LightsLinux implements LightsApi {
     }
 
     public void turnAllOff() {
+        logger.debug("Turning all lights off");
         runCommand(" -as " + LightsWindowsLibrary.Light.RED.indexLinux + OFF
                 + " -as " + LightsWindowsLibrary.Light.YELLOW.indexLinux + OFF
                 + " -as " + LightsWindowsLibrary.Light.GREEN.indexLinux + OFF);
@@ -70,7 +73,9 @@ public class LightsLinux implements LightsApi {
         }
         thread = new Thread(() -> {
             try {
-                Runtime.getRuntime().exec(clewarecontrol.getAbsolutePath() + " -c 1 " + parameter).waitFor();
+                final String command = clewarecontrol.getAbsolutePath() + " -c 1 " + parameter;
+                logger.debug("Running command " + command);
+                Runtime.getRuntime().exec(command).waitFor();
             } catch (IOException | InterruptedException e) {
                 logger.error(e);
             }
