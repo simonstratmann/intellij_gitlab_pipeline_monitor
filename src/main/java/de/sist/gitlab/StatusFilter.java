@@ -32,18 +32,22 @@ public class StatusFilter {
             return Collections.emptyList();
         }
         GitBranchesCollection branches = gitRepository.getBranches();
-        Set<String> trackedBranches = branches.getLocalBranches().stream().filter(x -> branches.getRemoteBranches().stream().anyMatch(remote -> remote.getNameForRemoteOperations().equals(x.getName()))).map(GitReference::getName).collect(Collectors.toSet());
+        Set<String> trackedBranches = branches.getLocalBranches().stream()
+                .filter(x -> branches.getRemoteBranches().stream().anyMatch(remote -> remote.getNameForRemoteOperations().equals(x.getName())))
+                .map(GitReference::getName)
+                .collect(Collectors.toSet());
 
         return toFilter.stream().filter(x -> {
-            if (config.getBranchesToIgnore().contains(x.branchName)) {
-                return false;
-            }
-            if (trackedBranches.contains(x.branchName)) {
-                return true;
-            }
-                    if (config.getBranchesToWatch().contains(x.branchName)) {
+                    if (config.getBranchesToIgnore().contains(x.branchName)) {
+                        return false;
+                    }
+                    if (trackedBranches.contains(x.branchName)) {
                         return true;
                     }
+                    if (config.getBranchesToWatch().contains(x.branchName) && config.isShowNotificationForWatchedBranches()) {
+                        return true;
+                    }
+
                     return false;
                 }
         ).collect(Collectors.toList());

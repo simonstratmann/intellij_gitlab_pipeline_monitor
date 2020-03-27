@@ -43,6 +43,7 @@ public class ConfigForm {
     private JLabel lightsLabel;
     private JTextField lightsBranch;
     private JTextField mergeRequestTargetBranch;
+    private JCheckBox watchedBranchesNotificationCheckbox;
     private JPanel statesToShow;
     private JList<String> branchesToWatchList;
     private JPanel statesToNotify2;
@@ -88,6 +89,7 @@ public class ConfigForm {
         config.setBranchesToIgnore(branchesToIgnoreListModel.toList());
         config.setBranchesToWatch(branchesToWatchListModel.toList());
         config.setMergeRequestTargetBranch(mergeRequestTargetBranch.getText());
+        config.setShowNotificationForWatchedBranches(watchedBranchesNotificationCheckbox.isSelected());
         List<String> statusesToWatch = new ArrayList<>();
 
         config.setStatusesToWatch(statusesToWatch);
@@ -107,6 +109,7 @@ public class ConfigForm {
         }
         branchesToWatchListModel.replaceAll(config.getBranchesToWatch());
         branchesToIgnoreListModel.replaceAll(config.getBranchesToIgnore());
+        watchedBranchesNotificationCheckbox.setSelected(config.isShowNotificationForWatchedBranches());
 
         lightsBranch.setText(config.getShowLightsForBranch());
         mergeRequestTargetBranch.setText(config.getMergeRequestTargetBranch());
@@ -119,6 +122,7 @@ public class ConfigForm {
                         || !Objects.equals(config.getGitlabAuthToken(), authTokenField.getText())
                         || !Objects.equals(config.getShowLightsForBranch(), lightsBranch.getText())
                         || !Objects.equals(config.getMergeRequestTargetBranch(), mergeRequestTargetBranch.getText())
+                        || !Objects.equals(config.isShowNotificationForWatchedBranches(), watchedBranchesNotificationCheckbox.isSelected())
                         || !new HashSet<>(branchesToWatchListModel.getItems()).equals(new HashSet<>(config.getBranchesToWatch()))
                         || !new HashSet<>(branchesToIgnoreListModel.getItems()).equals(new HashSet<>(config.getBranchesToIgnore()))
                 ;
