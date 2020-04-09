@@ -4,7 +4,7 @@ plugins {
 }
 
 group 'de.sist'
-version '1.17'
+version '1.18'
 
 sourceCompatibility = 1.8
 
@@ -24,10 +24,18 @@ dependencies {
 // See https://github.com/JetBrains/gradle-intellij-plugin/
 intellij {
     version '2019.3.3'
+     updateSinceUntilBuild = false
     setPlugins("git4idea")
 }
 patchPluginXml {
     changeNotes """
+    <p>1.18</p>
+    <ul>
+        <li>Add compatibility with IntelliJ 2020.1</li>
+    </ul>
+
+    <br/>
+
     <p>1.17</p>
     <ul>
         <li>Add option to disable notifications for watched branches</li>

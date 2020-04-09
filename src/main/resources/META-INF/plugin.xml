@@ -19,6 +19,8 @@
     <depends>com.intellij.modules.vcs</depends>
     <depends>Git4Idea</depends>
 
+    <idea-version since-build="191"/>
+
     <extensions defaultExtensionNs="com.intellij">
         <toolWindow id="Gitlab pipeline viewer" secondary="true" icon="/toolWindow/gitlab-icon.png" anchor="bottom" factoryClass="de.sist.gitlab.ui.GitlabToolWindowFactory"/>
 
@@ -40,5 +42,6 @@
     <actions>
         <!-- Add your actions here -->
     </actions>
+
 
 </idea-plugin>
