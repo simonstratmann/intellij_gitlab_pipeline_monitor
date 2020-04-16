@@ -4,7 +4,7 @@ plugins {
 }
 
 group 'de.sist'
-version '1.18'
+version '1.19'
 
 sourceCompatibility = 1.8
 
@@ -29,6 +29,13 @@ intellij {
 }
 patchPluginXml {
     changeNotes """
+    <p>1.19</p>
+    <ul>
+        <li>Set compatibility to require at least IntelliJ 2019.3</li>
+    </ul>
+
+    <br/>
+
     <p>1.18</p>
     <ul>
         <li>Add compatibility with IntelliJ 2020.1</li>
