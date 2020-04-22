@@ -31,6 +31,8 @@ import de.sist.gitlab.ReloadListener;
 import de.sist.gitlab.StatusFilter;
 import de.sist.gitlab.config.PipelineViewerConfig;
 import de.sist.gitlab.lights.LightsControl;
+import git4idea.GitUtil;
+import git4idea.branch.GitBrancher;
 import net.miginfocom.swing.MigLayout;
 import org.jetbrains.annotations.NotNull;
 
@@ -176,6 +178,13 @@ public class GitlabToolWindow {
             @Override
             public void actionPerformed(ActionEvent e) {
                 openMergeRequestUrlForSelectedBranch(config, branchName);
+            }
+        });
+        branchPopupMenu.add(new AbstractAction("Checkout his branch") {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                GitBrancher brancher = GitBrancher.getInstance(project);
+                brancher.checkout(branchName, false, GitUtil.getRepositoryManager(project).getRepositories(), null);
             }
         });
         return branchPopupMenu;
