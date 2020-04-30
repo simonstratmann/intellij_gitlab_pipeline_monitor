@@ -180,7 +180,7 @@ public class GitlabToolWindow {
                 openMergeRequestUrlForSelectedBranch(config, branchName);
             }
         });
-        branchPopupMenu.add(new AbstractAction("Checkout his branch") {
+        branchPopupMenu.add(new AbstractAction("Checkout this branch") {
             @Override
             public void actionPerformed(ActionEvent e) {
                 GitBrancher brancher = GitBrancher.getInstance(project);
