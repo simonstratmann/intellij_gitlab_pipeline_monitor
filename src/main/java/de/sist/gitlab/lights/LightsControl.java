@@ -1,6 +1,8 @@
 package de.sist.gitlab.lights;
 
 import com.google.common.base.Strings;
+import com.google.common.io.Files;
+import com.google.common.io.Resources;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.application.PathManager;
 import com.intellij.openapi.diagnostic.Logger;
@@ -8,7 +10,6 @@ import com.intellij.openapi.project.Project;
 import de.sist.gitlab.PipelineJobStatus;
 import de.sist.gitlab.ReloadListener;
 import de.sist.gitlab.config.PipelineViewerConfig;
-import org.apache.commons.io.FileUtils;
 
 import java.io.File;
 import java.io.IOException;
@@ -111,6 +112,7 @@ public class LightsControl {
         lightsApi.turnOffColor(LightsWindowsLibrary.Light.GREEN);
     }
 
+    @SuppressWarnings("UnstableApiUsage")
     public static File loadResource(String resourceName) {
         File pluginPath = getPluginPath();
         if (!pluginPath.exists()) {
@@ -123,7 +125,7 @@ public class LightsControl {
         File file = new File(pluginPath, resourceName);
         if (!file.exists()) {
             try {
-                FileUtils.copyInputStreamToFile(LightsWindowsLibrary.class.getResourceAsStream("/" + resourceName), file);
+                Resources.asByteSource(LightsWindowsLibrary.class.getResource("/" + resourceName)).copyTo(Files.asByteSink(file));
             } catch (IOException e) {
                 logger.error(e);
                 return null;

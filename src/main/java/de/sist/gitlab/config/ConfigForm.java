@@ -12,7 +12,7 @@ import com.intellij.ui.ToolbarDecorator;
 import com.intellij.ui.components.JBList;
 import de.sist.gitlab.BackgroundUpdateService;
 import de.sist.gitlab.lights.LightsControl;
-import org.apache.commons.validator.routines.UrlValidator;
+import de.sist.gitlab.validator.UrlValidator;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
