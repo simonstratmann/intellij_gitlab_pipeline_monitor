@@ -45,6 +45,9 @@ public class LightsControl {
         } else if (osName.toLowerCase().contains("nux")) {
             logger.debug("Determined OS to be linux");
             lightsApi = project.getService(LightsLinux.class);
+        } else if (osName.toLowerCase().contains("mac")) {
+            logger.debug("Determined OS to be Mac OS X. Not supported");
+            return;
         } else {
             logger.error("Unable to determine OS from property " + osName);
             return;

@@ -4,7 +4,7 @@ plugins {
 }
 
 group 'de.sist'
-version '1.20'
+version '1.22'
 
 sourceCompatibility = 1.8
 
@@ -16,7 +16,6 @@ dependencies {
     testCompile group: 'junit', name: 'junit', version: '4.12'
     compile group: 'com.squareup.okhttp3', name: 'okhttp', version: '4.3.1'
     compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.10.2'
-
 }
 
 // See https://github.com/JetBrains/gradle-intellij-plugin/
@@ -27,6 +26,20 @@ intellij {
 }
 patchPluginXml {
     changeNotes """
+    <p>1.22</p>
+    <ul>
+        <li>Fix exception when running plugin on Mac OS X</li>
+    </ul>
+
+    <br/>
+
+    <p>1.21</p>
+    <ul>
+        <li>Remove dependency on Apache Commons to fix compatibility with PyCharm</li>
+    </ul>
+
+    <br/>
+
     <p>1.20</p>
     <ul>
         <li>Checkout branch from context menu</li>
