@@ -23,9 +23,9 @@ import com.intellij.ui.BalloonImpl;
 import com.intellij.ui.BalloonLayoutData;
 import com.intellij.ui.awt.RelativePoint;
 import de.sist.gitlab.DateTime;
+import de.sist.gitlab.PipelineFilter;
 import de.sist.gitlab.PipelineJobStatus;
 import de.sist.gitlab.ReloadListener;
-import de.sist.gitlab.StatusFilter;
 import de.sist.gitlab.config.GitlabConfigurable;
 import de.sist.gitlab.lights.LightsControl;
 import org.jetbrains.annotations.NotNull;
@@ -48,7 +48,7 @@ public class NotifierService {
     private static final Logger logger = Logger.getInstance(NotifierService.class);
 
     private static final List<String> KNOWN_STATUSES = Arrays.asList("pending", "running", "canceled", "failed", "success", "skipped");
-    private final StatusFilter statusFilter;
+    private final PipelineFilter statusFilter;
     private final Project project;
 
     private List<Balloon> openBalloons = new ArrayList<>();
@@ -60,7 +60,7 @@ public class NotifierService {
 
     public NotifierService(Project project) {
         this.project = project;
-        statusFilter = project.getService(StatusFilter.class);
+        statusFilter = project.getService(PipelineFilter.class);
 
         KNOWN_STATUSES.forEach(x -> {
             statusesToNotificationGroupIds.put(x, createNotificationGroupForStatus(x).getDisplayId());
@@ -85,7 +85,7 @@ public class NotifierService {
             return;
         }
 
-        List<PipelineJobStatus> filteredStatuses = statusFilter.filterPipelines(statuses)
+        List<PipelineJobStatus> filteredStatuses = statusFilter.filterPipelines(statuses, true)
                 .stream().filter(x ->
                         !shownNotifications.contains(x)
                                 && getDisplayTypeForStatus(x.result) != NotificationDisplayType.NONE

@@ -2,8 +2,13 @@ package de.sist.gitlab.git;
 
 import com.intellij.dvcs.repo.VcsRepositoryManager;
 import com.intellij.dvcs.repo.VcsRepositoryMappingListener;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import git4idea.GitUtil;
+import git4idea.commands.Git;
+import git4idea.commands.GitCommand;
+import git4idea.commands.GitCommandResult;
+import git4idea.commands.GitLineHandler;
 import git4idea.repo.GitRepository;
 import git4idea.repo.GitRepositoryChangeListener;
 import org.jetbrains.annotations.NotNull;
@@ -12,27 +17,48 @@ import java.util.List;
 
 public class GitService {
 
+    private static final Logger logger = Logger.getInstance(GitService.class);
+
+    private GitRepository gitRepository;
+    private final Project project;
+
     public GitService(Project project) {
+        this.project = project;
         List<GitRepository> repositories = GitUtil.getRepositoryManager(project).getRepositories();
         if (repositories.isEmpty()) {
             //todo handle
             return;
         }
-        project.getMessageBus().syncPublisher(GitInitListener.GIT_INITIALIZED).handle(repositories.get(0));
+        gitRepository = repositories.get(0);
+        project.getMessageBus().syncPublisher(GitInitListener.GIT_INITIALIZED).handle(gitRepository);
 
         project.getMessageBus().connect().subscribe(VcsRepositoryManager.VCS_REPOSITORY_MAPPING_UPDATED, new VcsRepositoryMappingListener() {
             @Override
             public void mappingChanged() {
-                project.getMessageBus().syncPublisher(GitInitListener.GIT_INITIALIZED).handle(GitUtil.getRepositoryManager(project).getRepositories().get(0));
+                gitRepository = GitUtil.getRepositoryManager(project).getRepositories().get(0);
+                project.getMessageBus().syncPublisher(GitInitListener.GIT_INITIALIZED).handle(gitRepository);
             }
         });
         project.getMessageBus().connect().subscribe(GitRepository.GIT_REPO_CHANGE, new GitRepositoryChangeListener() {
             @Override
             public void repositoryChanged(@NotNull GitRepository repository) {
-                project.getMessageBus().syncPublisher(GitInitListener.GIT_INITIALIZED).handle(GitUtil.getRepositoryManager(project).getRepositories().get(0));
+                gitRepository = GitUtil.getRepositoryManager(project).getRepositories().get(0);
+                project.getMessageBus().syncPublisher(GitInitListener.GIT_INITIALIZED).handle(gitRepository);
             }
+        });
+        project.getMessageBus().connect().subscribe(GitInitListener.GIT_INITIALIZED, gitRepository -> {
+            this.gitRepository = gitRepository;
         });
     }
 
+    public String getCurrentHash() {
+        final GitLineHandler gitLineHandler = new GitLineHandler(project, gitRepository.getRoot(), GitCommand.BRANCH);
+        gitLineHandler.addParameters("log --pretty=format:%h -n 1");
+
+        final GitCommandResult gitCommandResult = Git.getInstance().runCommand(gitLineHandler);
+        final String hash = gitCommandResult.getOutput().get(0).trim();
+        logger.debug("Found local hash: " + hash);
+        return hash;
+    }
 
 }

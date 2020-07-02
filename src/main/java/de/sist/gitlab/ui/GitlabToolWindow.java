@@ -26,10 +26,11 @@ import com.intellij.util.messages.MessageBus;
 import de.sist.gitlab.BackgroundUpdateService;
 import de.sist.gitlab.DateTime;
 import de.sist.gitlab.GitlabService;
+import de.sist.gitlab.PipelineFilter;
 import de.sist.gitlab.PipelineJobStatus;
 import de.sist.gitlab.ReloadListener;
-import de.sist.gitlab.StatusFilter;
 import de.sist.gitlab.config.PipelineViewerConfig;
+import de.sist.gitlab.git.GitService;
 import de.sist.gitlab.lights.LightsControl;
 import git4idea.GitUtil;
 import git4idea.branch.GitBrancher;
@@ -48,6 +49,9 @@ import java.awt.Component;
 import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.Point;
+import java.awt.Toolkit;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.StringSelection;
 import java.awt.event.ActionEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -80,9 +84,10 @@ public class GitlabToolWindow {
     private PipelineTableModel tableModel;
 
     private final GitlabService gitlabService;
+    private final GitService gitService;
     private final BackgroundUpdateService backgroundUpdateService;
     private final MessageBus messageBus;
-    private final StatusFilter statusFilter;
+    private final PipelineFilter statusFilter;
     private TableRowSorter<PipelineTableModel> tableSorter;
     private Project project;
     private static final String GITLAB_URL_PLACEHOLDER = "%GITLAB_URL%";
@@ -95,9 +100,10 @@ public class GitlabToolWindow {
     public GitlabToolWindow(Project project) {
         this.project = project;
         gitlabService = project.getService(GitlabService.class);
+        gitService = project.getService(GitService.class);
         backgroundUpdateService = project.getService(BackgroundUpdateService.class);
         messageBus = project.getMessageBus();
-        statusFilter = project.getService(StatusFilter.class);
+        statusFilter = project.getService(PipelineFilter.class);
 
         messageBus.connect().subscribe(ReloadListener.RELOAD, statuses -> {
             ApplicationManager.getApplication().invokeLater(() ->
@@ -242,7 +248,20 @@ public class GitlabToolWindow {
             }
         };
 
-        DefaultActionGroup actionGroup = new DefaultActionGroup(refreshActionButton, turnOffLightsAction);
+        AnActionButton copyCurrentGitHash = new AnActionButton("Copy current git hash to clipboard", "Copy current git hash to clipboard", null) {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+                clipboard.setContents(new StringSelection(gitService.getCurrentHash()), null);
+            }
+
+            @Override
+            public JComponent getContextComponent() {
+                return pipelineTable;
+            }
+        };
+
+        DefaultActionGroup actionGroup = new DefaultActionGroup(refreshActionButton, turnOffLightsAction, copyCurrentGitHash);
 
         ActionToolbar actionToolbar = ActionManager.getInstance().createActionToolbar(ActionPlaces.TOOLBAR, actionGroup, true);
 
@@ -323,7 +342,7 @@ public class GitlabToolWindow {
      */
     private List<PipelineJobStatus> getStatusesToShow(List<PipelineJobStatus> statuses) {
         List<PipelineJobStatus> newRows = new ArrayList<>();
-        statuses = new ArrayList<>(statusFilter.filterPipelines(statuses));
+        statuses = new ArrayList<>(statusFilter.filterPipelines(statuses, false));
         statuses.sort(Comparator.comparing(x -> ((PipelineJobStatus) x).creationTime).reversed());
         Map<String, List<PipelineJobStatus>> branchesToStatuses = statuses.stream().collect(Collectors.groupingBy(x -> x.branchName));
         for (Map.Entry<String, List<PipelineJobStatus>> entry : branchesToStatuses.entrySet()) {

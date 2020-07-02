@@ -4,7 +4,7 @@ plugins {
 }
 
 group 'de.sist'
-version '1.22'
+version '1.23'
 
 sourceCompatibility = 1.8
 
@@ -26,6 +26,15 @@ intellij {
 }
 patchPluginXml {
     changeNotes """
+    <p>1.23</p>
+    <ul>
+        <li>Add button to copy current git hash to clipboard</li>
+        <li>Fix watched branches not being shown in form</li>
+        <li>Load and show pipelines on startup</li>
+    </ul>
+
+    <br/>
+
     <p>1.22</p>
     <ul>
         <li>Fix exception when running plugin on Mac OS X</li>
