@@ -24,12 +24,6 @@ public class GitService {
 
     public GitService(Project project) {
         this.project = project;
-        List<GitRepository> repositories = GitUtil.getRepositoryManager(project).getRepositories();
-        if (repositories.isEmpty()) {
-            //todo handle
-            return;
-        }
-        gitRepository = repositories.get(0);
         project.getMessageBus().syncPublisher(GitInitListener.GIT_INITIALIZED).handle(gitRepository);
 
         project.getMessageBus().connect().subscribe(VcsRepositoryManager.VCS_REPOSITORY_MAPPING_UPDATED, new VcsRepositoryMappingListener() {
@@ -59,6 +53,16 @@ public class GitService {
         final String hash = gitCommandResult.getOutput().get(0).trim();
         logger.debug("Found local hash: " + hash);
         return hash;
+    }
+
+    public GitRepository getGitRepository() {
+        List<GitRepository> repositories = GitUtil.getRepositoryManager(project).getRepositories();
+        if (repositories.isEmpty()) {
+            logger.error("No GitRepositories");
+            return null;
+        }
+        gitRepository = repositories.get(0);
+        return gitRepository;
     }
 
 }

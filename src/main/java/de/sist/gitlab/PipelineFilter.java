@@ -4,6 +4,7 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import de.sist.gitlab.config.PipelineViewerConfig;
 import de.sist.gitlab.git.GitInitListener;
+import de.sist.gitlab.git.GitService;
 import git4idea.GitReference;
 import git4idea.branch.GitBranchesCollection;
 import git4idea.repo.GitRepository;
@@ -19,6 +20,7 @@ public class PipelineFilter {
     private static final Logger logger = Logger.getInstance(PipelineFilter.class);
 
     private final PipelineViewerConfig config;
+    private final Project project;
     private GitRepository gitRepository;
 
     public PipelineFilter(Project project) {
@@ -26,12 +28,15 @@ public class PipelineFilter {
         project.getMessageBus().connect().subscribe(GitInitListener.GIT_INITIALIZED, gitRepository -> {
             this.gitRepository = gitRepository;
         });
+        this.project = project;
     }
 
     public List<PipelineJobStatus> filterPipelines(List<PipelineJobStatus> toFilter, boolean forNotification) {
         if (gitRepository == null) {
-            logger.error("GitRepository not set");
-            return Collections.emptyList();
+            gitRepository = project.getService(GitService.class).getGitRepository();
+            if (gitRepository == null) {
+                return Collections.emptyList();
+            }
         }
         GitBranchesCollection branches = gitRepository.getBranches();
         Set<String> trackedBranches = branches.getLocalBranches().stream()
