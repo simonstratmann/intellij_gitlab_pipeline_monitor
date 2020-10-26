@@ -1,5 +1,6 @@
 package de.sist.gitlab;
 
+import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.startup.StartupActivity;
 import de.sist.gitlab.config.PipelineViewerConfig;
@@ -19,14 +20,14 @@ public class StartupInitialization implements StartupActivity {
     @Override
     public void runActivity(@NotNull Project project) {
         //Get service so it's initialized
-        project.getService(NotifierService.class);
-        project.getService(LightsControl.class);
+        ServiceManager.getService(project, NotifierService.class);
+        ServiceManager.getService(project, LightsControl.class);
 
         PipelineViewerConfig config = PipelineViewerConfig.getInstance(project);
         if (config != null) {
             config.initIfNeeded();
         }
-        project.getService(GitService.class);
+        ServiceManager.getService(project, GitService.class);
 
         List<GitRepository> repositories = GitUtil.getRepositoryManager(project).getRepositories();
         if (repositories.isEmpty()) {

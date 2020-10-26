@@ -10,6 +10,7 @@ import com.intellij.notification.impl.NotificationSettings;
 import com.intellij.notification.impl.NotificationsConfigurationImpl;
 import com.intellij.notification.impl.NotificationsManagerImpl;
 import com.intellij.openapi.actionSystem.AnActionEvent;
+import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.options.ShowSettingsUtil;
 import com.intellij.openapi.project.Project;
@@ -51,7 +52,7 @@ public class NotifierService {
     private final PipelineFilter statusFilter;
     private final Project project;
 
-    private List<Balloon> openBalloons = new ArrayList<>();
+    private final List<Balloon> openBalloons = new ArrayList<>();
 
     private Set<PipelineJobStatus> shownNotifications;
 
@@ -60,7 +61,7 @@ public class NotifierService {
 
     public NotifierService(Project project) {
         this.project = project;
-        statusFilter = project.getService(PipelineFilter.class);
+        statusFilter = ServiceManager.getService(project, PipelineFilter.class);
 
         KNOWN_STATUSES.forEach(x -> {
             statusesToNotificationGroupIds.put(x, createNotificationGroupForStatus(x).getDisplayId());

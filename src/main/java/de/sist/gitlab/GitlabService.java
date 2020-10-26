@@ -1,6 +1,7 @@
 package de.sist.gitlab;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.util.io.HttpRequests;
@@ -12,10 +13,8 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 public class GitlabService {
@@ -30,16 +29,14 @@ public class GitlabService {
 
     public GitlabService(Project project) {
         this.project = project;
-        config = project.getService(PipelineViewerConfig.class);
+        config = ServiceManager.getService(project, PipelineViewerConfig.class);
     }
 
     public List<PipelineJobStatus> getStatuses() throws IOException {
-        Set<PipelineJobStatus> statuses = new HashSet<>();
-        for (PipelineTo pipeline : getPipelines()) {
-            statuses.add(new PipelineJobStatus(pipeline.getRef(), pipeline.getCreatedAt(), pipeline.getUpdatedAt(), pipeline.getStatus(), pipeline.getWebUrl()));
-        }
-
-        return statuses.stream().sorted(Comparator.comparing(PipelineJobStatus::getUpdateTime).reversed()).collect(Collectors.toList());
+        return getPipelines().stream()
+                .map(pipeline -> new PipelineJobStatus(pipeline.getRef(), pipeline.getCreatedAt(), pipeline.getUpdatedAt(), pipeline.getStatus(), pipeline.getWebUrl()))
+                .sorted(Comparator.comparing(PipelineJobStatus::getUpdateTime).reversed())
+                .collect(Collectors.toList());
     }
 
     public List<PipelineTo> getPipelines() throws IOException {
@@ -63,7 +60,6 @@ public class GitlabService {
 
             uriBuilder.addParameter("page", String.valueOf(page))
                     .addParameter("per_page", "100");
-
 
             url = uriBuilder.build().toString();
         } catch (URISyntaxException e) {

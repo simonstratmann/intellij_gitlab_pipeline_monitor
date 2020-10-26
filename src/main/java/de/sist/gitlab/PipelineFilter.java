@@ -1,5 +1,6 @@
 package de.sist.gitlab;
 
+import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import de.sist.gitlab.config.PipelineViewerConfig;
@@ -33,7 +34,7 @@ public class PipelineFilter {
 
     public List<PipelineJobStatus> filterPipelines(List<PipelineJobStatus> toFilter, boolean forNotification) {
         if (gitRepository == null) {
-            gitRepository = project.getService(GitService.class).getGitRepository();
+            gitRepository = ServiceManager.getService(project, GitService.class).getGitRepository();
             if (gitRepository == null) {
                 return Collections.emptyList();
             }
@@ -48,12 +49,12 @@ public class PipelineFilter {
                     if (config.getBranchesToIgnore().contains(x.branchName)) {
                         return false;
                     }
-            if (trackedBranches.contains(x.branchName)) {
-                return true;
-            }
-            if (config.getBranchesToWatch().contains(x.branchName) && (!forNotification || config.isShowNotificationForWatchedBranches())) {
-                return true;
-            }
+                    if (trackedBranches.contains(x.branchName)) {
+                        return true;
+                    }
+                    if (config.getBranchesToWatch().contains(x.branchName) && (!forNotification || config.isShowNotificationForWatchedBranches())) {
+                        return true;
+                    }
 
                     return false;
                 }

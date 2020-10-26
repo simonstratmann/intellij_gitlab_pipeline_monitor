@@ -5,6 +5,7 @@ import com.google.common.io.Files;
 import com.google.common.io.Resources;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.application.PathManager;
+import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import de.sist.gitlab.PipelineJobStatus;
@@ -41,10 +42,10 @@ public class LightsControl {
         }
         if (osName.toLowerCase().contains("windows")) {
             logger.debug("Determined OS to be windows");
-            lightsApi = project.getService(LightsWindows.class);
+            lightsApi = ServiceManager.getService(project, LightsWindows.class);
         } else if (osName.toLowerCase().contains("nux")) {
             logger.debug("Determined OS to be linux");
-            lightsApi = project.getService(LightsLinux.class);
+            lightsApi = ServiceManager.getService(project, LightsLinux.class);
         } else if (osName.toLowerCase().contains("mac")) {
             logger.debug("Determined OS to be Mac OS X. Not supported");
             return;

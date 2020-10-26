@@ -2,6 +2,7 @@ package de.sist.gitlab;
 
 import com.intellij.notification.NotificationDisplayType;
 import com.intellij.notification.NotificationGroup;
+import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.MessageType;
@@ -28,13 +29,13 @@ public class BackgroundUpdateService {
     private ScheduledFuture<?> scheduledFuture;
 
     public BackgroundUpdateService(Project project) {
-        GitlabService gitlabService = project.getService(GitlabService.class);
+        GitlabService gitlabService = ServiceManager.getService(project, GitlabService.class);
         backgroundTask = () -> {
             try {
                 List<PipelineJobStatus> statuses = gitlabService.getStatuses();
                 project.getMessageBus().syncPublisher(ReloadListener.RELOAD).reload(statuses);
             } catch (IOException e) {
-                project.getService(NotifierService.class).showError("Unable to connect got gitlab: " + e);
+                ServiceManager.getService(project, NotifierService.class).showError("Unable to connect got gitlab: " + e);
             }
         };
         PipelineViewerConfig config = PipelineViewerConfig.getInstance(project);

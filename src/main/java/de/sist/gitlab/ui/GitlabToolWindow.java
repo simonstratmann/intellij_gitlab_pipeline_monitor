@@ -7,6 +7,7 @@ import com.intellij.openapi.actionSystem.ActionToolbar;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.DefaultActionGroup;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressManager;
@@ -76,12 +77,12 @@ public class GitlabToolWindow {
     Logger logger = Logger.getInstance(GitlabToolWindow.class);
 
     private JPanel toolWindowContent;
-    private JTable pipelineTable;
+    private final JTable pipelineTable;
     private JScrollPane tableScrollPane;
     private JPanel tablePanel;
     private boolean initialLoad = true;
 
-    private PipelineTableModel tableModel;
+    private final PipelineTableModel tableModel;
 
     private final GitlabService gitlabService;
     private final GitService gitService;
@@ -89,7 +90,7 @@ public class GitlabToolWindow {
     private final MessageBus messageBus;
     private final PipelineFilter statusFilter;
     private TableRowSorter<PipelineTableModel> tableSorter;
-    private Project project;
+    private final Project project;
     private static final String GITLAB_URL_PLACEHOLDER = "%GITLAB_URL%";
     private static final String PROJECT_ID_PLACEHOLDER = "%PROJECT_ID%";
     private static final String SOURCE_BRANCH_PLACEHOLDER = "%SOURCE_BRANCH%";
@@ -98,12 +99,13 @@ public class GitlabToolWindow {
 
 
     public GitlabToolWindow(Project project) {
+
         this.project = project;
-        gitlabService = project.getService(GitlabService.class);
-        gitService = project.getService(GitService.class);
-        backgroundUpdateService = project.getService(BackgroundUpdateService.class);
+        gitlabService = ServiceManager.getService(project, GitlabService.class);
+        gitService = ServiceManager.getService(project, GitService.class);
+        backgroundUpdateService = ServiceManager.getService(project, BackgroundUpdateService.class);
         messageBus = project.getMessageBus();
-        statusFilter = project.getService(PipelineFilter.class);
+        statusFilter = ServiceManager.getService(project, PipelineFilter.class);
 
         messageBus.connect().subscribe(ReloadListener.RELOAD, statuses -> {
             ApplicationManager.getApplication().invokeLater(() ->
@@ -315,6 +317,7 @@ public class GitlabToolWindow {
             messageBus.syncPublisher(ReloadListener.RELOAD).reload(statuses);
             backgroundUpdateService.startBackgroundTask();
         } catch (IOException ex) {
+            logger.error("Unable to load pipelines", ex);
             backgroundUpdateService.stopBackgroundTask();
         }
     }

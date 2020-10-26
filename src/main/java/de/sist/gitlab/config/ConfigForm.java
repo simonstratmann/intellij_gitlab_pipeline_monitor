@@ -1,6 +1,7 @@
 package de.sist.gitlab.config;
 
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.ComponentValidator;
 import com.intellij.openapi.ui.Messages;
@@ -96,8 +97,8 @@ public class ConfigForm {
         config.setShowLightsForBranch(lightsBranch.getText());
 
         ApplicationManager.getApplication().invokeLater(() -> {
-            project.getService(BackgroundUpdateService.class).restartBackgroundTask();
-            project.getService(LightsControl.class).initialize(project);
+            ServiceManager.getService(project, BackgroundUpdateService.class).restartBackgroundTask();
+            ServiceManager.getService(project, LightsControl.class).initialize(project);
         });
     }
 
