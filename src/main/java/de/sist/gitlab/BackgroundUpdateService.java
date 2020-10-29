@@ -25,7 +25,7 @@ public class BackgroundUpdateService {
     Logger logger = Logger.getInstance(BackgroundUpdateService.class);
 
     private boolean isRunning = false;
-    private Runnable backgroundTask;
+    private final Runnable backgroundTask;
     private ScheduledFuture<?> scheduledFuture;
 
     public BackgroundUpdateService(Project project) {
@@ -35,7 +35,9 @@ public class BackgroundUpdateService {
                 List<PipelineJobStatus> statuses = gitlabService.getStatuses();
                 project.getMessageBus().syncPublisher(ReloadListener.RELOAD).reload(statuses);
             } catch (IOException e) {
-                ServiceManager.getService(project, NotifierService.class).showError("Unable to connect got gitlab: " + e);
+                if (PipelineViewerConfig.getInstance(project).isShowConnectionErrorNotifications()) {
+                    ServiceManager.getService(project, NotifierService.class).showError("Unable to connect got gitlab: " + e);
+                }
             }
         };
         PipelineViewerConfig config = PipelineViewerConfig.getInstance(project);

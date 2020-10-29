@@ -45,6 +45,7 @@ public class ConfigForm {
     private JTextField lightsBranch;
     private JTextField mergeRequestTargetBranch;
     private JCheckBox watchedBranchesNotificationCheckbox;
+    private JCheckBox showConnectionErrorsCheckbox;
     private JPanel statesToShow;
     private JList<String> branchesToWatchList;
     private JPanel statesToNotify2;
@@ -91,6 +92,7 @@ public class ConfigForm {
         config.setBranchesToWatch(branchesToWatchListModel.toList());
         config.setMergeRequestTargetBranch(mergeRequestTargetBranch.getText());
         config.setShowNotificationForWatchedBranches(watchedBranchesNotificationCheckbox.isSelected());
+        config.setShowConnectionErrors(showConnectionErrorsCheckbox.isSelected());
         List<String> statusesToWatch = new ArrayList<>();
 
         config.setStatusesToWatch(statusesToWatch);
@@ -111,6 +113,7 @@ public class ConfigForm {
         branchesToWatchListModel.replaceAll(config.getBranchesToWatch());
         branchesToIgnoreListModel.replaceAll(config.getBranchesToIgnore());
         watchedBranchesNotificationCheckbox.setSelected(config.isShowNotificationForWatchedBranches());
+        showConnectionErrorsCheckbox.setSelected(config.isShowConnectionErrorNotifications());
 
         lightsBranch.setText(config.getShowLightsForBranch());
         mergeRequestTargetBranch.setText(config.getMergeRequestTargetBranch());
@@ -124,6 +127,7 @@ public class ConfigForm {
                         || !Objects.equals(config.getShowLightsForBranch(), lightsBranch.getText())
                         || !Objects.equals(config.getMergeRequestTargetBranch(), mergeRequestTargetBranch.getText())
                         || !Objects.equals(config.isShowNotificationForWatchedBranches(), watchedBranchesNotificationCheckbox.isSelected())
+                        || !Objects.equals(config.isShowConnectionErrorNotifications(), showConnectionErrorsCheckbox.isSelected())
                         || !new HashSet<>(branchesToWatchListModel.getItems()).equals(new HashSet<>(config.getBranchesToWatch()))
                         || !new HashSet<>(branchesToIgnoreListModel.getItems()).equals(new HashSet<>(config.getBranchesToIgnore()))
                 ;

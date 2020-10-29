@@ -24,6 +24,7 @@ public class PipelineViewerConfig implements PersistentStateComponent<PipelineVi
     private String showLightsForBranch;
     private String mergeRequestTargetBranch = "master";
     private boolean showNotificationForWatchedBranches = true;
+    private boolean showConnectionErrors = true;
 
     public String getGitlabUrl() {
         return gitlabUrl;
@@ -96,6 +97,14 @@ public class PipelineViewerConfig implements PersistentStateComponent<PipelineVi
 
     public void setShowNotificationForWatchedBranches(boolean showNotificationForWatchedBranches) {
         this.showNotificationForWatchedBranches = showNotificationForWatchedBranches;
+    }
+
+    public boolean isShowConnectionErrorNotifications() {
+        return showConnectionErrors;
+    }
+
+    public void setShowConnectionErrors(boolean showConnectionErrors) {
+        this.showConnectionErrors = showConnectionErrors;
     }
 
     public void initIfNeeded() {

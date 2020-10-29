@@ -4,7 +4,7 @@ plugins {
 }
 
 group 'de.sist'
-version '1.25'
+version '1.26'
 
 sourceCompatibility = 1.8
 
@@ -26,6 +26,11 @@ intellij {
 }
 patchPluginXml {
     changeNotes """
+    <p>1.26</p>
+    <ul>
+        <li>Add option to disable notifications for connection errors to gitlab</li>
+    </ul>
+
     <p>1.25</p>
     <ul>
         <li>Only show the newest 3 notifications, don't spam the older ones</li>
