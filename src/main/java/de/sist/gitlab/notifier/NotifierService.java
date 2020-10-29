@@ -102,6 +102,8 @@ public class NotifierService {
             PipelineJobStatus status = filteredStatuses.get(i);
             showBalloonForStatus(status, i);
         }
+        //Mark the other ones as read so they aren't spammed later
+        shownNotifications.addAll(statusesToShow);
     }
 
     private void enableDebugModeIfApplicable() {

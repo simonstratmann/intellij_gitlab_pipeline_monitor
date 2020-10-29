@@ -4,7 +4,7 @@ plugins {
 }
 
 group 'de.sist'
-version '1.24'
+version '1.25'
 
 sourceCompatibility = 1.8
 
@@ -26,6 +26,12 @@ intellij {
 }
 patchPluginXml {
     changeNotes """
+    <p>1.25</p>
+    <ul>
+        <li>Only show the newest 3 notifications, don't spam the older ones</li>
+        <li>Improve compatibility with older IntelliJ 2019.3 versions</li>
+    </ul>
+
     <p>1.24</p>
     <ul>
         <li>Fix NPE when loading git repository</li>
