@@ -57,7 +57,6 @@ public class GitService {
             logger.debug("Found local hash: " + hash);
             return hash;
         });
-
     }
 
     public GitRepository getGitRepository() {

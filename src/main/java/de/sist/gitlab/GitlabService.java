@@ -11,6 +11,7 @@ import org.apache.http.client.utils.URIBuilder;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -35,7 +36,7 @@ public class GitlabService {
     public List<PipelineJobStatus> getStatuses() throws IOException {
         return getPipelines().stream()
                 .map(pipeline -> new PipelineJobStatus(pipeline.getRef(), pipeline.getCreatedAt(), pipeline.getUpdatedAt(), pipeline.getStatus(), pipeline.getWebUrl()))
-                .sorted(Comparator.comparing(PipelineJobStatus::getUpdateTime).reversed())
+                .sorted(Comparator.comparing((PipelineJobStatus pipelineJobStatus) -> pipelineJobStatus.getUpdateTime() == null ? LocalDateTime.now() : pipelineJobStatus.getUpdateTime()).reversed())
                 .collect(Collectors.toList());
     }
 
