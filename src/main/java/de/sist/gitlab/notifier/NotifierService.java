@@ -164,7 +164,7 @@ public class NotifierService {
 
     private void showIncompleteConfigNotification(String message) {
         Notification notification = errorNotificationGroup.createNotification("GitLab pipeline viewer", message, NotificationType.ERROR, null);
-        notification.addAction(new NotificationAction("Open Settings") {
+        notification.addAction(new NotificationAction("Open settings") {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e, @NotNull Notification notification) {
                 notification.hideBalloon();
@@ -249,7 +249,7 @@ public class NotifierService {
             return registeredGroup;
         }
         return new NotificationGroup(displayId, displayType, shouldLog,
-                "GitLab pipeline viewer", IconLoader.getIcon("/toolWindow/gitlab-icon.png"));
+                "GitLab pipeline viewer", IconLoader.getIcon("/toolWindow/gitlab-icon.png", NotifierService.class));
     }
 
     private NotificationDisplayType getDisplayTypeForStatus(String status) {

@@ -45,7 +45,7 @@ public class BackgroundUpdateService {
             NotificationGroup notificationGroup = NotificationGroup.findRegisteredGroup(DISPLAY_ID);
             if (notificationGroup == null) {
                 notificationGroup = new NotificationGroup(DISPLAY_ID, NotificationDisplayType.BALLOON, true,
-                        "GitLab pipeline viewer", IconLoader.getIcon("/toolWindow/gitlab-icon.png"));
+                        "GitLab pipeline viewer", IconLoader.getIcon("/toolWindow/gitlab-icon.png", BackgroundUpdateService.class));
             }
             notificationGroup.createNotification("No gitlab project ID set", MessageType.ERROR);
             return;

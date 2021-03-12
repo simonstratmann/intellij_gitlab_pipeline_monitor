@@ -1,6 +1,6 @@
 <idea-plugin>
     <id>de.sist.gitlab</id>
-    <name>IntelliJ GitLab Pipeline Viewer</name>
+    <name>GitLab Pipeline Viewer</name>
     <vendor email="stratmann.simon@gmail.com">Simon Stratmann</vendor>
 
     <description><![CDATA[

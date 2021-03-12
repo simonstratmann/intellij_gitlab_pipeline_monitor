@@ -238,7 +238,7 @@ public class GitlabToolWindow {
 
         };
 
-        AnActionButton turnOffLightsAction = new AnActionButton("Turn Off Lights", IconLoader.getIcon("/trafficLightsOff.png")) {
+        AnActionButton turnOffLightsAction = new AnActionButton("Turn Off Lights", IconLoader.getIcon("/trafficLightsOff.png", GitlabToolWindow.class)) {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
                 LightsControl.turnOffAllLights();
@@ -472,7 +472,7 @@ public class GitlabToolWindow {
                 JLabel jLabel = new JLabel(branchName);
 
                 if (Objects.equals(PipelineViewerConfig.getInstance(project).getShowLightsForBranch(), branchName)) {
-                    jLabel.setIcon(IconLoader.getIcon("/trafficLights.png"));
+                    jLabel.setIcon(IconLoader.getIcon("/trafficLights.png", GitlabToolWindow.class));
                 } else if (PipelineViewerConfig.getInstance(project).getBranchesToWatch().contains(branchName)) {
                     jLabel.setIcon(AllIcons.General.InspectionsEye);
                 }
