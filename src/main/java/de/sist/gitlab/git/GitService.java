@@ -2,8 +2,10 @@ package de.sist.gitlab.git;
 
 import com.intellij.dvcs.repo.VcsRepositoryManager;
 import com.intellij.dvcs.repo.VcsRepositoryMappingListener;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.util.Computable;
 import git4idea.GitUtil;
 import git4idea.commands.Git;
 import git4idea.commands.GitCommand;
@@ -46,13 +48,16 @@ public class GitService {
     }
 
     public String getCurrentHash() {
-        final GitLineHandler gitLineHandler = new GitLineHandler(project, gitRepository.getRoot(), GitCommand.BRANCH);
-        gitLineHandler.addParameters("log --pretty=format:%h -n 1");
+        final GitLineHandler gitLineHandler = new GitLineHandler(project, gitRepository.getRoot(), GitCommand.LOG);
+        gitLineHandler.addParameters("--pretty=format:%h -n 1");
 
-        final GitCommandResult gitCommandResult = Git.getInstance().runCommand(gitLineHandler);
-        final String hash = gitCommandResult.getOutput().get(0).trim();
-        logger.debug("Found local hash: " + hash);
-        return hash;
+        return ApplicationManager.getApplication().runReadAction((Computable<String>) () -> {
+            final GitCommandResult gitCommandResult = Git.getInstance().runCommand(gitLineHandler);
+            String hash = gitCommandResult.getOutput().get(0).trim().replace("-n 1", "").trim();
+            logger.debug("Found local hash: " + hash);
+            return hash;
+        });
+
     }
 
     public GitRepository getGitRepository() {

@@ -6,6 +6,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.ComponentValidator;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.ui.ValidationInfo;
+import com.intellij.openapi.util.Disposer;
 import com.intellij.ui.CollectionListModel;
 import com.intellij.ui.DocumentAdapter;
 import com.intellij.ui.IdeBorderFactory;
@@ -66,7 +67,7 @@ public class ConfigForm {
         config.initIfNeeded();
         loadSettings();
 
-        new ComponentValidator(project).withValidator(() -> {
+        new ComponentValidator(Disposer.newDisposable()).withValidator(() -> {
             boolean valid = UrlValidator.getInstance().isValid(gitlabUrlField.getText());
             if (!valid) {
                 return new ValidationInfo("The gitlab URL is not valid", gitlabUrlField);
