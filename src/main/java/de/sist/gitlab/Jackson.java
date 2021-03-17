@@ -16,6 +16,7 @@ public class Jackson {
 
     static {
         OBJECT_MAPPER.configure(DeserializationFeature.FAIL_ON_IGNORED_PROPERTIES, false);
+        OBJECT_MAPPER.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     }
 
     public static class DateTimeJsonDeserializer extends StdDeserializer<LocalDateTime> {

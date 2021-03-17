@@ -4,7 +4,7 @@ plugins {
 }
 
 group 'de.sist'
-version '1.27'
+version '1.28'
 
 sourceCompatibility = 1.8
 
@@ -26,6 +26,11 @@ intellij {
 }
 patchPluginXml {
     changeNotes """
+    <p>1.28</p>
+    <ul>
+        <li>Ensure compatibility with new Gitlab API (ignore unknown values)</li>
+    </ul>
+
     <p>1.27</p>
     <ul>
         <li>Fix exception when copying commit hash to clipboard</li>
