@@ -1,5 +1,6 @@
 package de.sist.gitlab;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 
@@ -7,6 +8,7 @@ import java.time.LocalDateTime;
 import java.util.StringJoiner;
 
 @SuppressWarnings("unused")
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class PipelineTo {
 
     @JsonProperty("id")
