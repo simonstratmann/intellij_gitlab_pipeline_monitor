@@ -39,7 +39,7 @@ public class GitlabService {
                 .collect(Collectors.toList());
     }
 
-    public List<PipelineTo> getPipelines() throws IOException {
+    private List<PipelineTo> getPipelines() throws IOException {
         ConfigProvider config = ConfigProvider.getInstance();
         boolean configIncomplete = config == null || config.getGitlabProjectId(project) == null || config.getGitlabUrl(project) == null;
         if (configIncomplete & !incompleteConfigNotificationShown) {

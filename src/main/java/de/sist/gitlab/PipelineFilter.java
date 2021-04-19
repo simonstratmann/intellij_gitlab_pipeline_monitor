@@ -20,6 +20,7 @@ public class PipelineFilter {
     private final ConfigProvider config;
     private final Project project;
     private GitRepository gitRepository;
+    private PipelineJobStatus latestShown;
 
     public PipelineFilter(Project project) {
         config = ConfigProvider.getInstance();
@@ -42,21 +43,27 @@ public class PipelineFilter {
                 .filter(name -> branches.getRemoteBranches().stream().anyMatch(remote -> remote.getNameForRemoteOperations().equals(name)))
                 .collect(Collectors.toSet());
 
-        return toFilter.stream().filter(x -> {
-            if (config.getBranchesToIgnore(project).contains(x.branchName)) {
-                return false;
-            }
-            if (trackedBranches.contains(x.branchName)) {
-                return true;
-            }
-            if (config.getBranchesToWatch(project).contains(x.branchName) && (!forNotification || config.isShowNotificationForWatchedBranches())) {
-                return true;
-            }
+        final List<PipelineJobStatus> statuses = toFilter.stream().filter(x -> {
+                    if (config.getBranchesToIgnore(project).contains(x.branchName)) {
+                        return false;
+                    }
+                    if (trackedBranches.contains(x.branchName)) {
+                        return true;
+                    }
+                    if (config.getBranchesToWatch(project).contains(x.branchName) && (!forNotification || config.isShowNotificationForWatchedBranches())) {
+                        return true;
+                    }
 
                     return false;
                 }
         ).collect(Collectors.toList());
+        if (!statuses.isEmpty() && !forNotification) {
+            latestShown = statuses.get(0);
+        }
+        return statuses;
     }
 
-
+    public PipelineJobStatus getLatestShown() {
+        return latestShown;
+    }
 }

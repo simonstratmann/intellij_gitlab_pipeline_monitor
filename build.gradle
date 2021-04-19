@@ -33,6 +33,7 @@ patchPluginXml {
         <li>Display times in local time zone.</li>
         <li>Don't remove path of configured gitlab URL.</li>
         <li>Show config validation errors as warnings.</li>
+        <li>Add action to open last pipeline in browser (located in Git main menu group).</li>
     </ul>
     
     <br/>

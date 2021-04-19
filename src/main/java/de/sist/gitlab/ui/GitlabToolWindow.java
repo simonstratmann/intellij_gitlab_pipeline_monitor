@@ -101,7 +101,6 @@ public class GitlabToolWindow {
 
 
     public GitlabToolWindow(Project project) {
-
         this.project = project;
         gitlabService = ServiceManager.getService(project, GitlabService.class);
         gitService = ServiceManager.getService(project, GitService.class);
