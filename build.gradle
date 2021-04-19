@@ -32,6 +32,7 @@ patchPluginXml {
         <li>Use gitlab default target branch for merge requests if none is configured.</li>
         <li>Display times in local time zone.</li>
         <li>Don't remove path of configured gitlab URL.</li>
+        <li>Show config validation errors as warnings.</li>
     </ul>
     
     <br/>

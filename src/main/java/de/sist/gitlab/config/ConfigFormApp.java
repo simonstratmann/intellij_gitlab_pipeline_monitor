@@ -52,7 +52,7 @@ public class ConfigFormApp {
         new ComponentValidator(Objects.requireNonNull(DialogWrapper.findInstanceFromFocus()).getDisposable()).withValidator(() -> {
             boolean valid = Strings.isNullOrEmpty(gitlabUrlField.getText()) || UrlValidator.getInstance().isValid(gitlabUrlField.getText());
             if (!valid) {
-                return new ValidationInfo("The gitlab URL is not valid", gitlabUrlField);
+                return new ValidationInfo("The gitlab URL doesn't seem to be valid", gitlabUrlField).asWarning();
             }
             return null;
         }).installOn(gitlabUrlField);
@@ -64,7 +64,7 @@ public class ConfigFormApp {
             try {
                 Integer.parseInt(projectId.getText());
             } catch (NumberFormatException e) {
-                return new ValidationInfo("Must be a number", projectId);
+                return new ValidationInfo("Must be a number", projectId).asWarning();
             }
             return null;
         }).installOn(projectId);
