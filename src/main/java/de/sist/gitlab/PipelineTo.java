@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.StringJoiner;
 
 @SuppressWarnings("unused")
@@ -20,9 +20,9 @@ public class PipelineTo {
     @JsonProperty("status")
     private String status;
     @JsonProperty("created_at")
-    private LocalDateTime createdAt;
+    private ZonedDateTime createdAt;
     @JsonProperty("updated_at")
-    private LocalDateTime updatedAt;
+    private ZonedDateTime updatedAt;
     @JsonProperty("web_url")
     private String webUrl;
 
@@ -67,24 +67,24 @@ public class PipelineTo {
     }
 
     @JsonProperty("created_at")
-    public LocalDateTime getCreatedAt() {
+    public ZonedDateTime getCreatedAt() {
         return createdAt;
     }
 
     @JsonProperty("created_at")
     @JsonDeserialize(using = Jackson.DateTimeJsonDeserializer.class)
-    public void setCreatedAt(LocalDateTime createdAt) {
+    public void setCreatedAt(ZonedDateTime createdAt) {
         this.createdAt = createdAt;
     }
 
     @JsonProperty("updated_at")
-    public LocalDateTime getUpdatedAt() {
+    public ZonedDateTime getUpdatedAt() {
         return updatedAt;
     }
 
     @JsonProperty("updated_at")
     @JsonDeserialize(using = Jackson.DateTimeJsonDeserializer.class)
-    public void setUpdatedAt(LocalDateTime updatedAt) {
+    public void setUpdatedAt(ZonedDateTime updatedAt) {
         this.updatedAt = updatedAt;
     }
 

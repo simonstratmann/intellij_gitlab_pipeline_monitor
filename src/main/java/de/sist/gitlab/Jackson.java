@@ -7,7 +7,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 
 import java.io.IOException;
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 
 public class Jackson {
@@ -19,15 +19,15 @@ public class Jackson {
         OBJECT_MAPPER.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     }
 
-    public static class DateTimeJsonDeserializer extends StdDeserializer<LocalDateTime> {
+    public static class DateTimeJsonDeserializer extends StdDeserializer<ZonedDateTime> {
 
         public DateTimeJsonDeserializer() {
-            super(LocalDateTime.class);
+            super(ZonedDateTime.class);
         }
 
         @Override
-        public LocalDateTime deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
-            return LocalDateTime.parse(p.getText(), DateTimeFormatter.ISO_DATE_TIME);
+        public ZonedDateTime deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
+            return ZonedDateTime.parse(p.getText(), DateTimeFormatter.ISO_DATE_TIME);
         }
     }
 

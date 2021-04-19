@@ -74,7 +74,7 @@ public class ConfigForm {
     public void apply() {
         projectConfig.setGitlabUrl(gitlabUrlField.getText());
         projectConfig.setGitlabAuthToken(authTokenField.getText());
-        projectConfig.setGitlabProjectId(projectId.getText());
+        projectConfig.parseAndSetGitlabProjectId(projectId.getText());
         projectConfig.setBranchesToIgnore(branchesToIgnoreListModel.toList());
         projectConfig.setBranchesToWatch(branchesToWatchListModel.toList());
         projectConfig.setMergeRequestTargetBranch(mergeRequestTargetBranch.getText());

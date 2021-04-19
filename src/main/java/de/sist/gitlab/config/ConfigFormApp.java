@@ -86,7 +86,7 @@ public class ConfigFormApp {
     public void apply() {
         config.setGitlabUrl(gitlabUrlField.getText());
         config.setGitlabAuthToken(authTokenField.getText());
-        config.setGitlabProjectId(projectId.getText());
+        config.parseAndSetGitlabProjectId(projectId.getText());
         config.setMergeRequestTargetBranch(mergeRequestTargetBranch.getText());
         config.setShowNotificationForWatchedBranches(watchedBranchesNotificationCheckbox.isSelected());
         config.setShowConnectionErrors(showConnectionErrorsCheckbox.isSelected());

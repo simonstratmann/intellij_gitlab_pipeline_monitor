@@ -2,18 +2,18 @@ package de.sist.gitlab;
 
 import com.google.common.base.Objects;
 
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.StringJoiner;
 
 public class PipelineJobStatus {
 
     public String branchName;
-    public LocalDateTime creationTime;
-    public LocalDateTime updateTime;
+    public ZonedDateTime creationTime;
+    public ZonedDateTime updateTime;
     public String result;
     public String pipelineLink;
 
-    public PipelineJobStatus(String ref, LocalDateTime creationTime, LocalDateTime updatedAt, String result, String webUrl) {
+    public PipelineJobStatus(String ref, ZonedDateTime creationTime, ZonedDateTime updatedAt, String result, String webUrl) {
         this.branchName = ref;
         this.pipelineLink = webUrl;
         this.creationTime = creationTime;
@@ -40,11 +40,11 @@ public class PipelineJobStatus {
         return branchName;
     }
 
-    public LocalDateTime getCreationTime() {
+    public ZonedDateTime getCreationTime() {
         return creationTime;
     }
 
-    public LocalDateTime getUpdateTime() {
+    public ZonedDateTime getUpdateTime() {
         return updateTime;
     }
 

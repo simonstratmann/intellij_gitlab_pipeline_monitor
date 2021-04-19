@@ -53,7 +53,7 @@ public class PipelineViewerConfigProject implements PersistentStateComponent<Pip
         this.gitlabProjectId = gitlabProjectId;
     }
 
-    public void setGitlabProjectId(String gitlabProjectId) {
+    public void parseAndSetGitlabProjectId(String gitlabProjectId) {
         if (Strings.isNullOrEmpty(gitlabProjectId)) {
             this.gitlabProjectId = null;
         } else {

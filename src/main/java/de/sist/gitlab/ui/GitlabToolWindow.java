@@ -59,7 +59,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.font.TextAttribute;
 import java.io.IOException;
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -462,7 +462,7 @@ public class GitlabToolWindow {
         return new TableCellRenderer() {
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
-                LocalDateTime dateTime = (LocalDateTime) value;
+                ZonedDateTime dateTime = (ZonedDateTime) value;
                 return new JLabel(DateTime.formatDateTime(dateTime));
             }
         };
