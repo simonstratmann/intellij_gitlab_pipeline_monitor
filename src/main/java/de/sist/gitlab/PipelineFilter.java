@@ -38,8 +38,8 @@ public class PipelineFilter {
         }
         GitBranchesCollection branches = gitRepository.getBranches();
         Set<String> trackedBranches = branches.getLocalBranches().stream()
-                .filter(x -> branches.getRemoteBranches().stream().anyMatch(remote -> remote.getNameForRemoteOperations().equals(x.getName())))
                 .map(GitReference::getName)
+                .filter(name -> branches.getRemoteBranches().stream().anyMatch(remote -> remote.getNameForRemoteOperations().equals(name)))
                 .collect(Collectors.toSet());
 
         return toFilter.stream().filter(x -> {

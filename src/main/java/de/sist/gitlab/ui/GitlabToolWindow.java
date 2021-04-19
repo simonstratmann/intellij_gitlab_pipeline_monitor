@@ -96,7 +96,8 @@ public class GitlabToolWindow {
     private static final String PROJECT_ID_PLACEHOLDER = "%PROJECT_ID%";
     private static final String SOURCE_BRANCH_PLACEHOLDER = "%SOURCE_BRANCH%";
     private static final String TARGET_BRANCH_PLACEHOLDER = "%TARGET_BRANCH%";
-    private static final String NEW_MERGE_REQUEST_URL_TEMPLATE = "%GITLAB_URL%/-/merge_requests/new?utf8=%E2%9C%93&merge_request%5Bsource_project_id%5D=%PROJECT_ID%&merge_request%5Bsource_branch%5D=%SOURCE_BRANCH%&merge_request%5Btarget_project_id%5D=%PROJECT_ID%&merge_request%5Btarget_branch%5D=%TARGET_BRANCH%";
+    private static final String NEW_MERGE_REQUEST_URL_TEMPLATE = "%GITLAB_URL%/-/merge_requests/new?utf8=%E2%9C%93&merge_request%5Bsource_project_id%5D=%PROJECT_ID%&merge_request%5Bsource_branch%5D=%SOURCE_BRANCH%&merge_request%5Btarget_project_id%5D=%PROJECT_ID%";
+    private static final String NEW_MERGE_REQUEST_URL_TARGET_BRANCH_POSTFIX = "&merge_request%5Btarget_branch%5D=%TARGET_BRANCH%";
 
 
     public GitlabToolWindow(Project project) {
@@ -203,8 +204,10 @@ public class GitlabToolWindow {
         String url = NEW_MERGE_REQUEST_URL_TEMPLATE
                 .replace(GITLAB_URL_PLACEHOLDER, gitlabService.getGitlabHtmlBaseUrl())
                 .replace(PROJECT_ID_PLACEHOLDER, config.getGitlabProjectId(project).toString())
-                .replace(SOURCE_BRANCH_PLACEHOLDER, branchName)
-                .replace(TARGET_BRANCH_PLACEHOLDER, config.getMergeRequestTargetBranch(project));
+                .replace(SOURCE_BRANCH_PLACEHOLDER, branchName);
+        if (config.getMergeRequestTargetBranch(project) != null) {
+            url += NEW_MERGE_REQUEST_URL_TARGET_BRANCH_POSTFIX.replace(TARGET_BRANCH_PLACEHOLDER, config.getMergeRequestTargetBranch(project));
+        }
         logger.info("Opening URL " + url);
         com.intellij.ide.BrowserUtil.browse(url);
     }

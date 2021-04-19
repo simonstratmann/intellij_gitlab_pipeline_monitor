@@ -29,34 +29,47 @@ patchPluginXml {
     <p>1.29</p>
     <ul>
         <li>Introduce application and project scoped settings. Unfortunately some of the settings can not be migrated and may need to be entered again (once, this time).</li>
+        <li>Use gitlab default target branch for merge requests if none is configured.</li>
     </ul>
-
+    
+    <br/>
+    
     <p>1.28</p>
     <ul>
         <li>Ensure compatibility with new Gitlab API (ignore unknown values).</li>
     </ul>
-
+    
+    <br/>
+    
     <p>1.27</p>
     <ul>
         <li>Fix exception when copying commit hash to clipboard</li>
         <li>(Hopefully) fix exception when sorting branches without update time.</li>
     </ul>
+    
+    <br/>
 
     <p>1.26</p>
     <ul>
         <li>Add option to disable notifications for connection errors to gitlab<./li>
     </ul>
+    
+    <br/>
 
     <p>1.25</p>
     <ul>
         <li>Only show the newest 3 notifications, don't spam the older ones.</li>
         <li>Improve compatibility with older IntelliJ 2019.3 versions.</li>
     </ul>
+    
+    <br/>
 
     <p>1.24</p>
     <ul>
         <li>Fix NPE when loading git repository.</li>
     </ul>
+    
+    <br/>
 
     <p>1.23</p>
     <ul>
@@ -78,14 +91,13 @@ patchPluginXml {
     <ul>
         <li>Remove dependency on Apache Commons to fix compatibility with PyCharm.</li>
     </ul>
-
+    
     <br/>
 
     <p>1.20</p>
     <ul>
         <li>Checkout branch from context menu.</li>
     </ul>
-
     <br/>
 
     <p>1.19</p>
