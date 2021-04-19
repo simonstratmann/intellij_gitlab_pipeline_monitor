@@ -1,6 +1,5 @@
 package de.sist.gitlab.config;
 
-import com.google.common.base.Strings;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.project.Project;
@@ -40,7 +39,7 @@ public class ConfigForm {
     private JLabel lightsLabel;
     private JTextField lightsBranch;
     private JTextField mergeRequestTargetBranch;
-    private JTextField projectId;
+    private JCheckBox enabledCheckbox;
     private JList<String> branchesToWatchList;
 
     private CollectionListModel<String> branchesToIgnoreListModel;
@@ -56,10 +55,9 @@ public class ConfigForm {
     public void init(Project project) {
         this.project = project;
         projectConfig = PipelineViewerConfigProject.getInstance(project);
-        projectConfig.initIfNeeded();
         loadSettings();
 
-        ConfigFormApp.createValidators(gitlabUrlField, projectId);
+        ConfigFormApp.createValidator(gitlabUrlField);
 
         gitlabUrlField.getDocument().addDocumentListener(new DocumentAdapter() {
             @Override
@@ -74,10 +72,10 @@ public class ConfigForm {
     public void apply() {
         projectConfig.setGitlabUrl(gitlabUrlField.getText());
         projectConfig.setGitlabAuthToken(authTokenField.getText());
-        projectConfig.parseAndSetGitlabProjectId(projectId.getText());
         projectConfig.setBranchesToIgnore(branchesToIgnoreListModel.toList());
         projectConfig.setBranchesToWatch(branchesToWatchListModel.toList());
         projectConfig.setMergeRequestTargetBranch(mergeRequestTargetBranch.getText());
+        projectConfig.setEnabled(enabledCheckbox.isSelected());
         List<String> statusesToWatch = new ArrayList<>();
 
         projectConfig.setShowLightsForBranch(lightsBranch.getText());
@@ -86,30 +84,28 @@ public class ConfigForm {
             ServiceManager.getService(project, BackgroundUpdateService.class).restartBackgroundTask();
             ServiceManager.getService(project, LightsControl.class).initialize(project);
         });
+        ApplicationManager.getApplication().getMessageBus().syncPublisher(ConfigChangedListener.CONFIG_CHANGED).configChanged();
     }
 
     public void loadSettings() {
         gitlabUrlField.setText(projectConfig.getGitlabUrl());
         authTokenField.setText(projectConfig.getGitlabAuthToken());
-        if (projectConfig.getGitlabProjectId() != null) {
-            projectId.setText(projectConfig.getGitlabProjectId() == null ? null : String.valueOf(projectConfig.getGitlabProjectId()));
-        }
         branchesToWatchListModel.replaceAll(projectConfig.getBranchesToWatch());
         branchesToIgnoreListModel.replaceAll(projectConfig.getBranchesToIgnore());
+        enabledCheckbox.setSelected(projectConfig.isEnabled());
 
         lightsBranch.setText(projectConfig.getShowLightsForBranch());
         mergeRequestTargetBranch.setText(projectConfig.getMergeRequestTargetBranch());
     }
 
     public boolean isModified() {
-        return
-                !Objects.equals(gitlabUrlField.getText(), projectConfig.getGitlabUrl())
-                        || !Objects.equals(projectConfig.getGitlabProjectId(), Strings.isNullOrEmpty(projectId.getText()) ? null : Integer.parseInt(projectId.getText()))
-                        || !Objects.equals(projectConfig.getGitlabAuthToken(), authTokenField.getText())
-                        || !Objects.equals(projectConfig.getShowLightsForBranch(), lightsBranch.getText())
-                        || !Objects.equals(projectConfig.getMergeRequestTargetBranch(), mergeRequestTargetBranch.getText())
-                        || !new HashSet<>(branchesToWatchListModel.getItems()).equals(new HashSet<>(projectConfig.getBranchesToWatch()))
-                        || !new HashSet<>(branchesToIgnoreListModel.getItems()).equals(new HashSet<>(projectConfig.getBranchesToIgnore()))
+        return !Objects.equals(gitlabUrlField.getText(), projectConfig.getGitlabUrl())
+                || !Objects.equals(projectConfig.getGitlabAuthToken(), authTokenField.getText())
+                || !Objects.equals(projectConfig.getShowLightsForBranch(), lightsBranch.getText())
+                || !Objects.equals(projectConfig.getMergeRequestTargetBranch(), mergeRequestTargetBranch.getText())
+                || !new HashSet<>(branchesToWatchListModel.getItems()).equals(new HashSet<>(projectConfig.getBranchesToWatch()))
+                || !new HashSet<>(branchesToIgnoreListModel.getItems()).equals(new HashSet<>(projectConfig.getBranchesToIgnore()))
+                || enabledCheckbox.isSelected() != projectConfig.isEnabled()
                 ;
     }
 
@@ -137,7 +133,7 @@ public class ConfigForm {
             }
         });
         branchesToWatchPanel.add(decorator.createPanel());
-        branchesToWatchPanel.setBorder(IdeBorderFactory.createTitledBorder("Branches to always watch"));
+        branchesToWatchPanel.setBorder(IdeBorderFactory.createTitledBorder("Branches To Always Watch"));
 
     }
 
@@ -158,6 +154,7 @@ public class ConfigForm {
             }
         });
         branchesToIgnorePanel.add(decorator.createPanel());
-        branchesToIgnorePanel.setBorder(IdeBorderFactory.createTitledBorder("Branches to ignore"));
+        branchesToIgnorePanel.setBorder(IdeBorderFactory.createTitledBorder("Branches To Ignore"));
     }
+
 }

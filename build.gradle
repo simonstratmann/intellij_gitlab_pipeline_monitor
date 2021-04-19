@@ -26,9 +26,10 @@ intellij {
 }
 patchPluginXml {
     changeNotes """
-    <p>1.29</p>
+    <p>2.0</p>
     <ul>
-        <li>Introduce application and project scoped settings. Unfortunately some of the settings can not be migrated and may need to be entered again (once, this time).</li>
+        <li>Changed the workflow and config to support multiple gitlab projects in one IntelliJ project. The plugin will now recognize all git remotes used in a project and attempt to show pipelines for all of them.</li>
+        <li>Store settings on application level where sensible so you only have to configure the gitlab URL and access token only once if you use the same instance in different projects.</li>
         <li>Use gitlab default target branch for merge requests if none is configured.</li>
         <li>Display times in local time zone.</li>
         <li>Don't remove path of configured gitlab URL.</li>

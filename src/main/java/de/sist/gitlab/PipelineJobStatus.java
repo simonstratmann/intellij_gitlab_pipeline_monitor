@@ -8,13 +8,15 @@ import java.util.StringJoiner;
 public class PipelineJobStatus {
 
     public String branchName;
+    public String projectId;
     public ZonedDateTime creationTime;
     public ZonedDateTime updateTime;
     public String result;
     public String pipelineLink;
 
-    public PipelineJobStatus(String ref, ZonedDateTime creationTime, ZonedDateTime updatedAt, String result, String webUrl) {
+    public PipelineJobStatus(String ref, String projectId, ZonedDateTime creationTime, ZonedDateTime updatedAt, String result, String webUrl) {
         this.branchName = ref;
+        this.projectId = projectId;
         this.pipelineLink = webUrl;
         this.creationTime = creationTime;
         this.updateTime = updatedAt;
@@ -31,6 +33,7 @@ public class PipelineJobStatus {
         }
         PipelineJobStatus that = (PipelineJobStatus) o;
         return Objects.equal(branchName, that.branchName) &&
+                Objects.equal(projectId, that.projectId) &&
                 Objects.equal(creationTime, that.creationTime) &&
                 Objects.equal(result, that.result) &&
                 Objects.equal(pipelineLink, that.pipelineLink);
@@ -38,6 +41,10 @@ public class PipelineJobStatus {
 
     public String getBranchName() {
         return branchName;
+    }
+
+    public String getProjectId() {
+        return projectId;
     }
 
     public ZonedDateTime getCreationTime() {

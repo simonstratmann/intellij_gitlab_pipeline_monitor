@@ -7,9 +7,13 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.ui.ComponentValidator;
 import com.intellij.openapi.ui.DialogWrapper;
+import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.ui.ValidationInfo;
+import com.intellij.ui.CollectionListModel;
 import com.intellij.ui.DocumentAdapter;
 import com.intellij.ui.IdeBorderFactory;
+import com.intellij.ui.ToolbarDecorator;
+import com.intellij.ui.components.JBList;
 import de.sist.gitlab.BackgroundUpdateService;
 import de.sist.gitlab.lights.LightsControl;
 import de.sist.gitlab.validator.UrlValidator;
@@ -18,8 +22,10 @@ import org.jetbrains.annotations.NotNull;
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 @SuppressWarnings("unused")
 public class ConfigFormApp {
@@ -34,7 +40,10 @@ public class ConfigFormApp {
     private JTextField mergeRequestTargetBranch;
     private JCheckBox watchedBranchesNotificationCheckbox;
     private JCheckBox showConnectionErrorsCheckbox;
-    private JTextField projectId;
+    private JPanel mappingsPanel;
+    private JPanel ignoredRemotesPanel;
+    private final CollectionListModel<String> mappingsModel = new CollectionListModel<>();
+    private final CollectionListModel<String> ignoredRemotesModel = new CollectionListModel<>();
 
 
     public ConfigFormApp() {
@@ -44,11 +53,13 @@ public class ConfigFormApp {
     public void init() {
         config = PipelineViewerConfigApp.getInstance();
         loadSettings();
+        createMappingsPanel();
+        createIgnoredRemotesPanel();
 
-        createValidators(gitlabUrlField, projectId);
+        createValidator(gitlabUrlField);
     }
 
-    static void createValidators(JTextField gitlabUrlField, JTextField projectId) {
+    static void createValidator(JTextField gitlabUrlField) {
         new ComponentValidator(Objects.requireNonNull(DialogWrapper.findInstanceFromFocus()).getDisposable()).withValidator(() -> {
             boolean valid = Strings.isNullOrEmpty(gitlabUrlField.getText()) || UrlValidator.getInstance().isValid(gitlabUrlField.getText());
             if (!valid) {
@@ -57,39 +68,22 @@ public class ConfigFormApp {
             return null;
         }).installOn(gitlabUrlField);
 
-        new ComponentValidator(Objects.requireNonNull(DialogWrapper.findInstanceFromFocus()).getDisposable()).withValidator(() -> {
-            if (Strings.isNullOrEmpty(projectId.getText())) {
-                return null;
-            }
-            try {
-                Integer.parseInt(projectId.getText());
-            } catch (NumberFormatException e) {
-                return new ValidationInfo("Must be a number", projectId).asWarning();
-            }
-            return null;
-        }).installOn(projectId);
         gitlabUrlField.getDocument().addDocumentListener(new DocumentAdapter() {
             @Override
             protected void textChanged(@NotNull DocumentEvent e) {
                 ComponentValidator.getInstance(gitlabUrlField).ifPresent(ComponentValidator::revalidate);
             }
         });
-        projectId.getDocument().addDocumentListener(new DocumentAdapter() {
-            @Override
-            protected void textChanged(@NotNull DocumentEvent e) {
-                ComponentValidator.getInstance(projectId).ifPresent(ComponentValidator::revalidate);
-            }
-        });
     }
-
 
     public void apply() {
         config.setGitlabUrl(gitlabUrlField.getText());
         config.setGitlabAuthToken(authTokenField.getText());
-        config.parseAndSetGitlabProjectId(projectId.getText());
         config.setMergeRequestTargetBranch(mergeRequestTargetBranch.getText());
         config.setShowNotificationForWatchedBranches(watchedBranchesNotificationCheckbox.isSelected());
         config.setShowConnectionErrors(showConnectionErrorsCheckbox.isSelected());
+        config.setMappings(mappingsModel.getItems().stream().map(Mapping::toMapping).filter(Objects::nonNull).collect(Collectors.toList()));
+        config.setIgnoredRemotes(ignoredRemotesModel.getItems());
         List<String> statusesToWatch = new ArrayList<>();
 
         config.setStatusesToWatch(statusesToWatch);
@@ -100,27 +94,31 @@ public class ConfigFormApp {
                 ServiceManager.getService(project, LightsControl.class).initialize(project);
             });
         }
+        ApplicationManager.getApplication().getMessageBus().syncPublisher(ConfigChangedListener.CONFIG_CHANGED).configChanged();
     }
 
     public void loadSettings() {
         gitlabUrlField.setText(config.getGitlabUrl());
         authTokenField.setText(config.getGitlabAuthToken());
-        if (config.getGitlabProjectId() != null) {
-            projectId.setText(config.getGitlabProjectId() == null ? null : String.valueOf(config.getGitlabProjectId()));
-        }
         watchedBranchesNotificationCheckbox.setSelected(config.isShowNotificationForWatchedBranches());
         showConnectionErrorsCheckbox.setSelected(config.isShowConnectionErrorNotifications());
-
         mergeRequestTargetBranch.setText(config.getMergeRequestTargetBranch());
+
+        mappingsModel.removeAll();
+        config.getMappings().stream().map(Mapping::toSerializable).forEach(mappingsModel::add);
+
+        ignoredRemotesModel.removeAll();
+        config.getIgnoredRemotes().forEach(ignoredRemotesModel::add);
     }
 
     public boolean isModified() {
         return !Objects.equals(gitlabUrlField.getText(), config.getGitlabUrl())
-                || !Objects.equals(config.getGitlabProjectId(), Strings.isNullOrEmpty(projectId.getText()) ? null : Integer.parseInt(projectId.getText()))
+                || !mappingsModel.getItems().stream().map(Mapping::toMapping).filter(Objects::nonNull).collect(Collectors.toList()).equals(config.getMappings())
                 || !Objects.equals(config.getGitlabAuthToken(), authTokenField.getText())
                 || !Objects.equals(config.getMergeRequestTargetBranch(), mergeRequestTargetBranch.getText())
                 || !Objects.equals(config.isShowNotificationForWatchedBranches(), watchedBranchesNotificationCheckbox.isSelected())
                 || !Objects.equals(config.isShowConnectionErrorNotifications(), showConnectionErrorsCheckbox.isSelected())
+                || !Objects.equals(new HashSet<>(config.getIgnoredRemotes()), new HashSet<>(ignoredRemotesModel.getItems()))
                 ;
     }
 
@@ -128,7 +126,48 @@ public class ConfigFormApp {
         return mainPanel;
     }
 
-    private void createUIComponents() {
+    private void createMappingsPanel() {
+        JBList<String> mappingList = new JBList<>(mappingsModel);
+
+        ToolbarDecorator decorator = ToolbarDecorator.createDecorator(mappingList, mappingsModel);
+        decorator.setAddAction(anActionButton -> {
+            String newMapping = Messages.showInputDialog("Please enter the mapping using the format '<git remote>=<Project ID>'.", "New Mapping", null);
+            if (newMapping != null) {
+                mappingsModel.add(newMapping);
+            }
+        });
+        decorator.setRemoveAction(anActionButton -> {
+            for (String s : mappingList.getSelectedValuesList()) {
+                mappingsModel.remove(s);
+            }
+        });
+        decorator.setEditAction(anActionButton -> {
+            if (mappingList.getSelectedValuesList().size() != 1) {
+                return;
+            }
+            final String selectedValueBefore = mappingList.getSelectedValuesList().get(0);
+            String newValue = Messages.showInputDialog("Please enter the new value (format '<git remote>=<Project ID>').", "Change Mapping", null, selectedValueBefore, null);
+            if (newValue != null) {
+                mappingsModel.remove(selectedValueBefore);
+                mappingsModel.add(newValue);
+            }
+        });
+        mappingsPanel.add(decorator.createPanel());
+        mappingsPanel.setBorder(IdeBorderFactory.createTitledBorder("Git Remote To Gitlab Project Mapping"));
+    }
+
+    private void createIgnoredRemotesPanel() {
+        JBList<String> ignoredRemotesList = new JBList<>(ignoredRemotesModel);
+
+        ToolbarDecorator decorator = ToolbarDecorator.createDecorator(ignoredRemotesList, ignoredRemotesModel);
+        decorator.setRemoveAction(anActionButton -> {
+            for (String s : ignoredRemotesList.getSelectedValuesList()) {
+                ignoredRemotesModel.remove(s);
+            }
+        });
+
+        ignoredRemotesPanel.add(decorator.createPanel());
+        ignoredRemotesPanel.setBorder(IdeBorderFactory.createTitledBorder("Ignored Remotes"));
     }
 
 

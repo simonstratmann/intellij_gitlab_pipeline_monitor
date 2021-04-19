@@ -10,18 +10,22 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @State(name = "PipelineViewerConfigApp", storages = {@Storage("PipelineViewerConfigApp.xml")})
 public class PipelineViewerConfigApp implements PersistentStateComponent<PipelineViewerConfigApp> {
 
     private String gitlabUrl;
     private String gitlabAuthToken;
-    private Integer gitlabProjectId;
+    private List<Mapping> mappings = new ArrayList<>();
     private String mergeRequestTargetBranch = "master";
     private List<String> statusesToWatch = new ArrayList<>();
     private boolean showNotificationForWatchedBranches = true;
     private boolean showConnectionErrors = true;
+    private List<String> ignoredRemotes = new ArrayList<>();
 
     public String getGitlabUrl() {
         return Strings.emptyToNull(gitlabUrl);
@@ -39,26 +43,16 @@ public class PipelineViewerConfigApp implements PersistentStateComponent<Pipelin
         this.gitlabAuthToken = gitlabAuthToken;
     }
 
-    public Integer getGitlabProjectId() {
-        return (gitlabProjectId == null || gitlabProjectId == 0) ? null : gitlabProjectId;
+    public List<Mapping> getMappings() {
+        return mappings;
     }
 
-    public void setGitlabProjectId(Integer gitlabProjectId) {
-        this.gitlabProjectId = gitlabProjectId;
+    public void setMappings(List<Mapping> mappings) {
+        this.mappings = new ArrayList<>(new HashSet<>(mappings));
     }
 
-    public void parseAndSetGitlabProjectId(String gitlabProjectId) {
-        if (Strings.isNullOrEmpty(gitlabProjectId)) {
-            this.gitlabProjectId = null;
-        } else {
-            final int asInt;
-            try {
-                asInt = Integer.parseInt(gitlabProjectId);
-                this.gitlabProjectId = asInt;
-            } catch (NumberFormatException ignored) {
-                this.gitlabProjectId = null;
-            }
-        }
+    public boolean isShowConnectionErrors() {
+        return showConnectionErrors;
     }
 
     public String getMergeRequestTargetBranch() {
@@ -92,6 +86,14 @@ public class PipelineViewerConfigApp implements PersistentStateComponent<Pipelin
 
     public void setStatusesToWatch(List<String> statusesToWatch) {
         this.statusesToWatch = statusesToWatch;
+    }
+
+    public List<String> getIgnoredRemotes() {
+        return new HashSet<>(ignoredRemotes).stream().sorted(Comparator.naturalOrder()).collect(Collectors.toList());
+    }
+
+    public void setIgnoredRemotes(List<String> ignoredRemotes) {
+        this.ignoredRemotes = new HashSet<>(ignoredRemotes).stream().sorted(Comparator.naturalOrder()).collect(Collectors.toList());
     }
 
     @Override

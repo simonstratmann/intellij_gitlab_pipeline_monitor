@@ -36,6 +36,7 @@ import java.awt.Point;
 import java.awt.Rectangle;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -78,19 +79,22 @@ public class NotifierService {
         Notifications.Bus.notify(notification, project);
     }
 
-    private void showStatusNotifications(List<PipelineJobStatus> statuses) {
+    private void showStatusNotifications(Map<String, List<PipelineJobStatus>> projectToPipelines) {
 //        enableDebugModeIfApplicable();
         if (shownNotifications == null) {
             //Don't show notifications for pipeline statuses from before the program was started
-            shownNotifications = new HashSet<>(statuses);
+            shownNotifications = projectToPipelines.values().stream().flatMap(Collection::stream).collect(Collectors.toSet());
             return;
         }
 
-        List<PipelineJobStatus> filteredStatuses = statusFilter.filterPipelines(statuses, true)
-                .stream().filter(x ->
-                        !shownNotifications.contains(x)
-                                && getDisplayTypeForStatus(x.result) != NotificationDisplayType.NONE
-                ).collect(Collectors.toList());
+        List<PipelineJobStatus> filteredStatuses = new ArrayList<>();
+        for (Map.Entry<String, List<PipelineJobStatus>> entry : projectToPipelines.entrySet()) {
+            statusFilter.filterPipelines(entry.getKey(), entry.getValue(), true)
+                    .stream().filter(x ->
+                    !shownNotifications.contains(x)
+                            && getDisplayTypeForStatus(x.result) != NotificationDisplayType.NONE
+            ).forEach(filteredStatuses::add);
+        }
         //Don't spam the GUI, never show more than the newest 3
         List<PipelineJobStatus> statusesToShow = filteredStatuses.subList(Math.max(0, filteredStatuses.size() - 3), filteredStatuses.size());
         for (int i = 0; i < statusesToShow.size(); i++) {

@@ -11,6 +11,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 
 @State(name = "PipelineViewerConfigProject", storages = {@Storage("PipelineViewerConfig.xml")})
@@ -18,11 +19,11 @@ public class PipelineViewerConfigProject implements PersistentStateComponent<Pip
 
     private String gitlabUrl;
     private String gitlabAuthToken;
-    private Integer gitlabProjectId;
     private List<String> branchesToIgnore = new ArrayList<>();
     private List<String> branchesToWatch = new ArrayList<>();
     private String showLightsForBranch;
     private String mergeRequestTargetBranch = "master";
+    private boolean enabled;
 
 
     public String getGitlabUrl() {
@@ -45,35 +46,13 @@ public class PipelineViewerConfigProject implements PersistentStateComponent<Pip
     }
 
 
-    public Integer getGitlabProjectId() {
-        return (gitlabProjectId == null || gitlabProjectId == 0) ? null : gitlabProjectId;
-    }
-
-    public void setGitlabProjectId(Integer gitlabProjectId) {
-        this.gitlabProjectId = gitlabProjectId;
-    }
-
-    public void parseAndSetGitlabProjectId(String gitlabProjectId) {
-        if (Strings.isNullOrEmpty(gitlabProjectId)) {
-            this.gitlabProjectId = null;
-        } else {
-            final int asInt;
-            try {
-                asInt = Integer.parseInt(gitlabProjectId);
-                this.gitlabProjectId = asInt;
-            } catch (NumberFormatException ignored) {
-                this.gitlabProjectId = null;
-            }
-        }
-    }
-
     public List<String> getBranchesToIgnore() {
         return branchesToIgnore;
     }
 
 
     public void setBranchesToIgnore(List<String> branchesToIgnore) {
-        this.branchesToIgnore = branchesToIgnore;
+        this.branchesToIgnore = new ArrayList<>(new HashSet<>(branchesToIgnore));
     }
 
 
@@ -107,18 +86,17 @@ public class PipelineViewerConfigProject implements PersistentStateComponent<Pip
         this.mergeRequestTargetBranch = mergeRequestTargetBranch;
     }
 
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+    }
 
     public @Nullable PipelineViewerConfigProject getState() {
         return this;
     }
-
-    public void initIfNeeded() {
-        if (gitlabProjectId == null) {
-            setBranchesToWatch(new ArrayList<>());
-            setBranchesToIgnore(new ArrayList<>());
-        }
-    }
-
 
     public void loadState(@NotNull PipelineViewerConfigProject state) {
         XmlSerializerUtil.copyBean(state, this);

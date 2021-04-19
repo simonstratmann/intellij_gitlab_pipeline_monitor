@@ -7,6 +7,7 @@ import com.intellij.openapi.project.Project;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * @author PPI AG
@@ -25,9 +26,16 @@ public class ConfigProvider {
     }
 
 
-    public Integer getGitlabProjectId(Project project) {
-        final Integer value = PipelineViewerConfigProject.getInstance(project).getGitlabProjectId();
-        return value != null ? value : PipelineViewerConfigApp.getInstance().getGitlabProjectId();
+    public List<Mapping> getMappings(Project project) {
+        return PipelineViewerConfigApp.getInstance().getMappings();
+    }
+
+    public Optional<Mapping> getMappingByRemote(Project project, String remote) {
+        return getMappings(project).stream().filter(x -> x.getRemote().equals(remote)).findFirst();
+    }
+
+    public Optional<Mapping> getMappingByProjectId(Project project, String projectId) {
+        return getMappings(project).stream().filter(x -> x.getGitlabProjectId().equals(projectId)).findFirst();
     }
 
 
@@ -60,10 +68,6 @@ public class ConfigProvider {
 
     public boolean isShowConnectionErrorNotifications() {
         return PipelineViewerConfigApp.getInstance().isShowConnectionErrorNotifications();
-    }
-
-    public void initIfNeeded(Project project) {
-        PipelineViewerConfigProject.getInstance(project).initIfNeeded();
     }
 
     public static ConfigProvider getInstance() {

@@ -30,6 +30,7 @@ import de.sist.gitlab.GitlabService;
 import de.sist.gitlab.PipelineFilter;
 import de.sist.gitlab.PipelineJobStatus;
 import de.sist.gitlab.ReloadListener;
+import de.sist.gitlab.config.ConfigChangedListener;
 import de.sist.gitlab.config.ConfigProvider;
 import de.sist.gitlab.config.PipelineViewerConfigProject;
 import de.sist.gitlab.git.GitService;
@@ -51,9 +52,6 @@ import java.awt.Component;
 import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.Point;
-import java.awt.Toolkit;
-import java.awt.datatransfer.Clipboard;
-import java.awt.datatransfer.StringSelection;
 import java.awt.event.ActionEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -108,26 +106,28 @@ public class GitlabToolWindow {
         messageBus = project.getMessageBus();
         statusFilter = ServiceManager.getService(project, PipelineFilter.class);
 
-        messageBus.connect().subscribe(ReloadListener.RELOAD, statuses -> {
-            ApplicationManager.getApplication().invokeLater(() ->
-                    showPipelines(statuses));
-        });
-
         tableModel = new PipelineTableModel();
+        messageBus.connect().subscribe(ReloadListener.RELOAD, pipelineInfos -> {
+            ApplicationManager.getApplication().invokeLater(() ->
+                    showPipelines(pipelineInfos));
+        });
         pipelineTable = new JBTable(tableModel) {
             @Override
             public TableCellRenderer getCellRenderer(int row, int column) {
                 TableCellRenderer cellRenderer = super.getCellRenderer(row, column);
                 if (column == 0) {
-                    return getBranchCellRenderer();
+                    return getProjectCellRenderer();
                 }
                 if (column == 1) {
-                    return getStatusCellRenderer();
+                    return getBranchCellRenderer();
                 }
                 if (column == 2) {
-                    return getDateCellRenderer();
+                    return getStatusCellRenderer();
                 }
                 if (column == 3) {
+                    return getDateCellRenderer();
+                }
+                if (column == 4) {
                     return getLinkCellRenderer();
                 }
                 return cellRenderer;
@@ -157,6 +157,26 @@ public class GitlabToolWindow {
         pipelineTable.setIntercellSpacing(new Dimension(5, 0));
 
         createTablePanel(project);
+        messageBus.connect().subscribe(ConfigChangedListener.CONFIG_CHANGED, () -> {
+            handleEnabledState(project);
+
+        });
+
+    }
+
+    private void handleEnabledState(Project project) {
+        final boolean enabled = PipelineViewerConfigProject.getInstance(project).isEnabled();
+        ApplicationManager.getApplication().invokeLater(() -> {
+            toolWindowContent.setEnabled(enabled);
+            pipelineTable.setEnabled(enabled);
+            tablePanel.setEnabled(enabled);
+            tableScrollPane.setEnabled(enabled);
+
+            if (!enabled) {
+                tableModel.rows.clear();
+                tableModel.fireTableDataChanged();
+            }
+        });
     }
 
     private JBPopupMenu getBranchPopupMenu(String branchName) {
@@ -201,8 +221,8 @@ public class GitlabToolWindow {
 
     private void openMergeRequestUrlForSelectedBranch(ConfigProvider config, String branchName) {
         String url = NEW_MERGE_REQUEST_URL_TEMPLATE
-                .replace(GITLAB_URL_PLACEHOLDER, gitlabService.getGitlabHtmlBaseUrl())
-                .replace(PROJECT_ID_PLACEHOLDER, config.getGitlabProjectId(project).toString())
+                .replace(GITLAB_URL_PLACEHOLDER, gitlabService.getGitlabHtmlBaseUrl(null))
+                .replace(PROJECT_ID_PLACEHOLDER, config.getMappings(project).toString())
                 .replace(SOURCE_BRANCH_PLACEHOLDER, branchName);
         if (config.getMergeRequestTargetBranch(project) != null) {
             url += NEW_MERGE_REQUEST_URL_TARGET_BRANCH_POSTFIX.replace(TARGET_BRANCH_PLACEHOLDER, config.getMergeRequestTargetBranch(project));
@@ -253,20 +273,8 @@ public class GitlabToolWindow {
             }
         };
 
-        AnActionButton copyCurrentGitHash = new AnActionButton("Copy current git hash to clipboard", "Copy current git hash to clipboard", null) {
-            @Override
-            public void actionPerformed(@NotNull AnActionEvent e) {
-                Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
-                clipboard.setContents(new StringSelection(gitService.getCurrentHash()), null);
-            }
 
-            @Override
-            public JComponent getContextComponent() {
-                return pipelineTable;
-            }
-        };
-
-        DefaultActionGroup actionGroup = new DefaultActionGroup(refreshActionButton, turnOffLightsAction, copyCurrentGitHash);
+        DefaultActionGroup actionGroup = new DefaultActionGroup(refreshActionButton, turnOffLightsAction);
 
         ActionToolbar actionToolbar = ActionManager.getInstance().createActionToolbar(ActionPlaces.TOOLBAR, actionGroup, true);
 
@@ -314,10 +322,10 @@ public class GitlabToolWindow {
 
 
     private void loadPipelines() {
-        List<PipelineJobStatus> statuses;
+        Map<String, List<PipelineJobStatus>> pipelineInfos;
         try {
-            statuses = gitlabService.getStatuses();
-            messageBus.syncPublisher(ReloadListener.RELOAD).reload(statuses);
+            pipelineInfos = gitlabService.getPipelineInfos();
+            messageBus.syncPublisher(ReloadListener.RELOAD).reload(pipelineInfos);
             backgroundUpdateService.startBackgroundTask();
         } catch (IOException ex) {
             logger.error("Unable to load pipelines", ex);
@@ -325,12 +333,12 @@ public class GitlabToolWindow {
         }
     }
 
-    public void showPipelines(List<PipelineJobStatus> statuses) {
-        logger.debug("Showing " + statuses.size() + " statuses in table");
+    public void showPipelines(Map<String, List<PipelineJobStatus>> pipelineInfos) {
+        logger.debug("Showing statuses for " + pipelineInfos.size() + " projects");
         tableScrollPane.setEnabled(true);
 
         tableModel.rows.clear();
-        tableModel.rows.addAll(getStatusesToShow(statuses));
+        tableModel.rows.addAll(getStatusesToShow(pipelineInfos));
         tableModel.fireTableDataChanged();
 
         if (initialLoad) {
@@ -343,21 +351,25 @@ public class GitlabToolWindow {
     /**
      * Returns a list of statuses containing for each branch either all statuses up to the last final run (failed or successful) if such a run exists or otherwise just the latest run.
      *
-     * @param statuses List of statuses to filter.
+     * @param pipelinesPerProject Project ID to pipelines
      * @return List of filtered statuses.
      */
-    private List<PipelineJobStatus> getStatusesToShow(List<PipelineJobStatus> statuses) {
+    private List<PipelineJobStatus> getStatusesToShow(Map<String, List<PipelineJobStatus>> pipelinesPerProject) {
+        // TODO sist 19.04.2021: Make configurable if show all or only for current module
         List<PipelineJobStatus> newRows = new ArrayList<>();
-        statuses = new ArrayList<>(statusFilter.filterPipelines(statuses, false));
-        statuses.sort(Comparator.comparing(x -> ((PipelineJobStatus) x).creationTime).reversed());
-        Map<String, List<PipelineJobStatus>> branchesToStatuses = statuses.stream().collect(Collectors.groupingBy(x -> x.branchName));
-        for (Map.Entry<String, List<PipelineJobStatus>> entry : branchesToStatuses.entrySet()) {
-            Optional<PipelineJobStatus> firstFinalStatus = entry.getValue().stream().filter(this::isFinalStatus).findFirst();
-            if (firstFinalStatus.isPresent()) {
-                int indexOfFirstFinalStatus = entry.getValue().indexOf(firstFinalStatus.get());
-                newRows.addAll(entry.getValue().subList(0, indexOfFirstFinalStatus + 1));
-            } else {
-                newRows.add(entry.getValue().get(0));
+        for (Map.Entry<String, List<PipelineJobStatus>> projectAndPipelines : pipelinesPerProject.entrySet()) {
+
+            List<PipelineJobStatus> statuses = new ArrayList<>(statusFilter.filterPipelines(projectAndPipelines.getKey(), projectAndPipelines.getValue(), false));
+            statuses.sort(Comparator.comparing(x -> ((PipelineJobStatus) x).creationTime).reversed());
+            Map<String, List<PipelineJobStatus>> branchesToStatuses = statuses.stream().collect(Collectors.groupingBy(x -> x.branchName));
+            for (Map.Entry<String, List<PipelineJobStatus>> entry : branchesToStatuses.entrySet()) {
+                Optional<PipelineJobStatus> firstFinalStatus = entry.getValue().stream().filter(this::isFinalStatus).findFirst();
+                if (firstFinalStatus.isPresent()) {
+                    int indexOfFirstFinalStatus = entry.getValue().indexOf(firstFinalStatus.get());
+                    newRows.addAll(entry.getValue().subList(0, indexOfFirstFinalStatus + 1));
+                } else {
+                    newRows.add(entry.getValue().get(0));
+                }
             }
         }
         newRows.sort(Comparator.comparing(x -> ((PipelineJobStatus) x).creationTime).reversed());
@@ -373,7 +385,8 @@ public class GitlabToolWindow {
         pipelineTable.setRowSorter(tableSorter);
         List<RowSorter.SortKey> sortKeys = new ArrayList<>();
         sortKeys.add(new RowSorter.SortKey(0, SortOrder.ASCENDING));
-        sortKeys.add(new RowSorter.SortKey(3, SortOrder.DESCENDING));
+        sortKeys.add(new RowSorter.SortKey(1, SortOrder.ASCENDING));
+        sortKeys.add(new RowSorter.SortKey(4, SortOrder.DESCENDING));
         tableSorter.setSortKeys(sortKeys);
         tableSorter.sort();
     }
@@ -392,7 +405,7 @@ public class GitlabToolWindow {
             public void mouseClicked(MouseEvent e) {
                 if (e.getButton() == MouseEvent.BUTTON3) {
                     int selectedColumn = pipelineTable.columnAtPoint(e.getPoint());
-                    if (selectedColumn != 0) {
+                    if (selectedColumn != 1) {
                         return;
                     }
                     String branchName;
@@ -417,7 +430,7 @@ public class GitlabToolWindow {
                     }
 
                     int selectedColumn = pipelineTable.columnAtPoint(e.getPoint());
-                    if (selectedColumn != 3) {
+                    if (selectedColumn != 4) {
                         return;
                     }
 
@@ -463,6 +476,17 @@ public class GitlabToolWindow {
             public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
                 ZonedDateTime dateTime = (ZonedDateTime) value;
                 return new JLabel(DateTime.formatDateTime(dateTime));
+            }
+        };
+    }
+
+    private TableCellRenderer getProjectCellRenderer() {
+        return new TableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+                String projectId = (String) value;
+
+                return new JLabel(gitlabService.getProjectNameById(projectId));
             }
         };
     }
@@ -518,6 +542,7 @@ public class GitlabToolWindow {
 
         public List<PipelineJobStatus> rows = new ArrayList<>();
         public List<TableRowDefinition> definitions = Arrays.asList(
+                new TableRowDefinition("Project", x -> x.projectId),
                 new TableRowDefinition("Branch", x -> x.branchName),
                 new TableRowDefinition("Result", x -> x.result),
                 new TableRowDefinition("Time", x -> x.creationTime),
