@@ -1,6 +1,7 @@
 package de.sist.gitlab;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.google.common.base.Strings;
 import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
@@ -89,11 +90,14 @@ public class GitlabService {
     }
 
     private URIBuilder getBaseUriBuilder(boolean pipelines) throws URISyntaxException {
-        String url = String.format(PROJECTS_SUFFIX, config.getGitlabProjectId(project));
+        String path = String.format(PROJECTS_SUFFIX, config.getGitlabProjectId(project));
         if (pipelines) {
-            url += PIPELINES_SUFFIX;
+            path += PIPELINES_SUFFIX;
         }
-        URIBuilder uriBuilder = new URIBuilder(config.getGitlabUrl(project)).setPath(url);
+        //Fucking URIBuilder does not allow appending paths
+        URIBuilder uriBuilder = new URIBuilder(config.getGitlabUrl(project));
+        path = (Strings.nullToEmpty(uriBuilder.getPath()) + "/" + path).replace("//", "/");
+        uriBuilder = uriBuilder.setPath(path);
         if (config.getGitlabAuthToken(project) != null) {
             uriBuilder.addParameter("private_token", config.getGitlabAuthToken(project));
         }

@@ -31,6 +31,7 @@ patchPluginXml {
         <li>Introduce application and project scoped settings. Unfortunately some of the settings can not be migrated and may need to be entered again (once, this time).</li>
         <li>Use gitlab default target branch for merge requests if none is configured.</li>
         <li>Display times in local time zone.</li>
+        <li>Don't remove path of configured gitlab URL.</li>
     </ul>
     
     <br/>
