@@ -1,5 +1,6 @@
 package de.sist.gitlab.config;
 
+import com.google.common.base.Strings;
 import com.intellij.openapi.components.PersistentStateComponent;
 import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.components.State;
@@ -12,126 +13,118 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
-@State(name = "PipelineViewerConfig", storages = {@Storage("PipelineViewerConfig.xml")})
-public class PipelineViewerConfig implements PersistentStateComponent<PipelineViewerConfig> {
+@State(name = "PipelineViewerConfigProject", storages = {@Storage("PipelineViewerConfig.xml")})
+public class PipelineViewerConfigProject implements PersistentStateComponent<PipelineViewerConfigProject> {
 
     private String gitlabUrl;
     private String gitlabAuthToken;
     private Integer gitlabProjectId;
     private List<String> branchesToIgnore = new ArrayList<>();
     private List<String> branchesToWatch = new ArrayList<>();
-    private List<String> statusesToWatch = new ArrayList<>();
     private String showLightsForBranch;
     private String mergeRequestTargetBranch = "master";
-    private boolean showNotificationForWatchedBranches = true;
-    private boolean showConnectionErrors = true;
+
 
     public String getGitlabUrl() {
-        return gitlabUrl;
+        return Strings.emptyToNull(gitlabUrl);
     }
+
 
     public void setGitlabUrl(String gitlabUrl) {
         this.gitlabUrl = gitlabUrl;
     }
 
+
     public String getGitlabAuthToken() {
-        return gitlabAuthToken;
+        return Strings.emptyToNull(gitlabAuthToken);
     }
+
 
     public void setGitlabAuthToken(String gitlabAuthToken) {
         this.gitlabAuthToken = gitlabAuthToken;
     }
 
+
     public Integer getGitlabProjectId() {
-        return gitlabProjectId;
+        return (gitlabProjectId == null || gitlabProjectId == 0) ? null : gitlabProjectId;
     }
 
     public void setGitlabProjectId(Integer gitlabProjectId) {
         this.gitlabProjectId = gitlabProjectId;
     }
 
+    public void setGitlabProjectId(String gitlabProjectId) {
+        if (Strings.isNullOrEmpty(gitlabProjectId)) {
+            this.gitlabProjectId = null;
+        } else {
+            final int asInt;
+            try {
+                asInt = Integer.parseInt(gitlabProjectId);
+                this.gitlabProjectId = asInt;
+            } catch (NumberFormatException ignored) {
+                this.gitlabProjectId = null;
+            }
+        }
+    }
+
     public List<String> getBranchesToIgnore() {
         return branchesToIgnore;
     }
 
+
     public void setBranchesToIgnore(List<String> branchesToIgnore) {
         this.branchesToIgnore = branchesToIgnore;
     }
+
 
     @NotNull
     public List<String> getBranchesToWatch() {
         return branchesToWatch;
     }
 
+
     public void setBranchesToWatch(List<String> branchesToWatch) {
         this.branchesToWatch = branchesToWatch;
     }
 
-    public List<String> getStatusesToWatch() {
-        return statusesToWatch;
-    }
-
-    public void setStatusesToWatch(List<String> statusesToWatch) {
-        this.statusesToWatch = statusesToWatch;
-    }
 
     public String getShowLightsForBranch() {
-        return showLightsForBranch;
+        return Strings.emptyToNull(showLightsForBranch);
     }
+
 
     public void setShowLightsForBranch(String showLightsForBranch) {
         this.showLightsForBranch = showLightsForBranch;
     }
 
+
     public String getMergeRequestTargetBranch() {
-        return mergeRequestTargetBranch;
+        return Strings.emptyToNull(mergeRequestTargetBranch);
     }
+
 
     public void setMergeRequestTargetBranch(String mergeRequestTargetBranch) {
         this.mergeRequestTargetBranch = mergeRequestTargetBranch;
     }
 
-    public boolean isShowNotificationForWatchedBranches() {
-        return showNotificationForWatchedBranches;
-    }
 
-    public void setShowNotificationForWatchedBranches(boolean showNotificationForWatchedBranches) {
-        this.showNotificationForWatchedBranches = showNotificationForWatchedBranches;
-    }
-
-    public boolean isShowConnectionErrorNotifications() {
-        return showConnectionErrors;
-    }
-
-    public void setShowConnectionErrors(boolean showConnectionErrors) {
-        this.showConnectionErrors = showConnectionErrors;
+    public @Nullable PipelineViewerConfigProject getState() {
+        return this;
     }
 
     public void initIfNeeded() {
         if (gitlabProjectId == null) {
-            setStatusesToWatch(new ArrayList<>());
             setBranchesToWatch(new ArrayList<>());
             setBranchesToIgnore(new ArrayList<>());
-
-            statusesToWatch.add("success");
-            statusesToWatch.add("failed");
-            statusesToWatch.add("skipped");
-            statusesToWatch.add("canceled");
         }
     }
 
-    @Nullable
-    @Override
-    public PipelineViewerConfig getState() {
-        return this;
-    }
 
-    @Override
-    public void loadState(@NotNull PipelineViewerConfig state) {
+    public void loadState(@NotNull PipelineViewerConfigProject state) {
         XmlSerializerUtil.copyBean(state, this);
     }
 
-    public static PipelineViewerConfig getInstance(Project project) {
-        return ServiceManager.getService(project, PipelineViewerConfig.class);
+    public static PipelineViewerConfigProject getInstance(Project project) {
+        return ServiceManager.getService(project, PipelineViewerConfigProject.class);
     }
 }

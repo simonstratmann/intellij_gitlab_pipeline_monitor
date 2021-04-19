@@ -3,7 +3,7 @@ package de.sist.gitlab;
 import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.startup.StartupActivity;
-import de.sist.gitlab.config.PipelineViewerConfig;
+import de.sist.gitlab.config.ConfigProvider;
 import de.sist.gitlab.git.GitInitListener;
 import de.sist.gitlab.git.GitService;
 import de.sist.gitlab.lights.LightsControl;
@@ -23,9 +23,9 @@ public class StartupInitialization implements StartupActivity {
         ServiceManager.getService(project, NotifierService.class);
         ServiceManager.getService(project, LightsControl.class);
 
-        PipelineViewerConfig config = PipelineViewerConfig.getInstance(project);
+        ConfigProvider config = ConfigProvider.getInstance();
         if (config != null) {
-            config.initIfNeeded();
+            config.initIfNeeded(project);
         }
         ServiceManager.getService(project, GitService.class);
 

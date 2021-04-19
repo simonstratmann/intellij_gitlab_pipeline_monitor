@@ -2,18 +2,15 @@ package de.sist.gitlab.config;
 
 import com.intellij.openapi.options.Configurable;
 import com.intellij.openapi.options.ConfigurationException;
-import com.intellij.openapi.project.Project;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 
-public class GitlabConfigurable implements Configurable {
+public class GitlabApplicationConfigurable implements Configurable {
 
-    private ConfigForm configForm;
-    private Project project;
+    private ConfigFormApp configForm;
 
-    public GitlabConfigurable(Project project) {
-        this.project = project;
+    public GitlabApplicationConfigurable() {
     }
 
     @Override
@@ -24,8 +21,8 @@ public class GitlabConfigurable implements Configurable {
     @Nullable
     @Override
     public JComponent createComponent() {
-        configForm = new ConfigForm();
-        configForm.init(project);
+        configForm = new ConfigFormApp();
+        configForm.init();
         return configForm.getMainPanel();
     }
 

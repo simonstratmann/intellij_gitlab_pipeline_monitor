@@ -4,7 +4,7 @@ plugins {
 }
 
 group 'de.sist'
-version '1.28'
+version '1.29'
 
 sourceCompatibility = 1.8
 
@@ -26,179 +26,184 @@ intellij {
 }
 patchPluginXml {
     changeNotes """
+    <p>1.29</p>
+    <ul>
+        <li>Introduce application and project scoped settings. Unfortunately some of the settings can not be migrated and may need to be entered again (once, this time).</li>
+    </ul>
+
     <p>1.28</p>
     <ul>
-        <li>Ensure compatibility with new Gitlab API (ignore unknown values)</li>
+        <li>Ensure compatibility with new Gitlab API (ignore unknown values).</li>
     </ul>
 
     <p>1.27</p>
     <ul>
         <li>Fix exception when copying commit hash to clipboard</li>
-        <li>(Hopefully) fix exception when sorting branches without update time</li>
+        <li>(Hopefully) fix exception when sorting branches without update time.</li>
     </ul>
 
     <p>1.26</p>
     <ul>
-        <li>Add option to disable notifications for connection errors to gitlab</li>
+        <li>Add option to disable notifications for connection errors to gitlab<./li>
     </ul>
 
     <p>1.25</p>
     <ul>
-        <li>Only show the newest 3 notifications, don't spam the older ones</li>
-        <li>Improve compatibility with older IntelliJ 2019.3 versions</li>
+        <li>Only show the newest 3 notifications, don't spam the older ones.</li>
+        <li>Improve compatibility with older IntelliJ 2019.3 versions.</li>
     </ul>
 
     <p>1.24</p>
     <ul>
-        <li>Fix NPE when loading git repository</li>
+        <li>Fix NPE when loading git repository.</li>
     </ul>
 
     <p>1.23</p>
     <ul>
-        <li>Add button to copy current git hash to clipboard</li>
-        <li>Fix watched branches not being shown in form</li>
-        <li>Load and show pipelines on startup</li>
+        <li>Add button to copy current git hash to clipboard.</li>
+        <li>Fix watched branches not being shown in form.</li>
+        <li>Load and show pipelines on startup.</li>
     </ul>
 
     <br/>
 
     <p>1.22</p>
     <ul>
-        <li>Fix exception when running plugin on Mac OS X</li>
+        <li>Fix exception when running plugin on Mac OS X.</li>
     </ul>
 
     <br/>
 
     <p>1.21</p>
     <ul>
-        <li>Remove dependency on Apache Commons to fix compatibility with PyCharm</li>
+        <li>Remove dependency on Apache Commons to fix compatibility with PyCharm.</li>
     </ul>
 
     <br/>
 
     <p>1.20</p>
     <ul>
-        <li>Checkout branch from context menu</li>
+        <li>Checkout branch from context menu.</li>
     </ul>
 
     <br/>
 
     <p>1.19</p>
     <ul>
-        <li>Set compatibility to require at least IntelliJ 2019.3</li>
+        <li>Set compatibility to require at least IntelliJ 2019.3.</li>
     </ul>
 
     <br/>
 
     <p>1.18</p>
     <ul>
-        <li>Add compatibility with IntelliJ 2020.1</li>
+        <li>Add compatibility with IntelliJ 2020.1.</li>
     </ul>
 
     <br/>
 
     <p>1.17</p>
     <ul>
-        <li>Add option to disable notifications for watched branches</li>
+        <li>Add option to disable notifications for watched branches.</li>
     </ul>
 
     <br/>
 
     <p>1.16</p>
     <ul>
-        <li>Turn off lights when opening pipeline from notification</li>
-        <li>Turn off yellow light when showing success or failure</li>
+        <li>Turn off lights when opening pipeline from notification.</li>
+        <li>Turn off yellow light when showing success or failure.</li>
     </ul>
 
     <br/>
 
     <p>1.15</p>
     <ul>
-        <li>Add support for USB lights on Linux (thanks to Florian Micheler)</li>
-        <li>Fix some exceptions</li>
+        <li>Add support for USB lights on Linux (thanks to Florian Micheler).</li>
+        <li>Fix some exceptions.</li>
     </ul>
 
     <br/>
 
     <p>1.14</p>
     <ul>
-        <li>Add context menu entry for branches to open new merge request in browser</li>
-        <li>Fix three NullPointerExceptions</li>
+        <li>Add context menu entry for branches to open new merge request in browser.</li>
+        <li>Fix three NullPointerExceptions.</li>
     </ul>
 
     <br/>
 
     <p>1.13</p>
     <ul>
-        <li>Actually don't crash by trying to load traffic lights DLL (on linux)</li>
+        <li>Actually don't crash by trying to load traffic lights DLL (on linux).</li>
     </ul>
 
     <br/>
 
     <p>1.12</p>
     <ul>
-        <li>Don't crash when trying to load traffic lights DLL (on linux)</li>
-        <li>Expire notifications after 15 seconds</li>
-        <li>Remove separate configuration of statuses for which to create notifications. Follow generic notifications config</li>
+        <li>Don't crash when trying to load traffic lights DLL (on linux).</li>
+        <li>Expire notifications after 15 seconds.</li>
+        <li>Remove separate configuration of statuses for which to create notifications. Follow generic notifications config.</li>
     </ul>
 
     <br/>
 
     <p>1.11</p>
     <ul>
-        <li>Don't spam notifications</li>
+        <li>Don't spam notifications.</li>
     </ul>
 
     <br/>
 
     <p>1.10</p>
     <ul>
-        <li>Keep red or green light on when showing yellow light</li>
-        <li>Add button to turn off all lights</li>
+        <li>Keep red or green light on when showing yellow light.</li>
+        <li>Add button to turn off all lights.</li>
     </ul>
 
     <br/>
 
     <<p>1.9</p>
     <ul>
-        <li>Support for USB lights (https://www.cleware-shop.de/)</li>
-        <li>Add context menu to pipeline table</li>
+        <li>Support for USB lights (https://www.cleware-shop.de/).</li>
+        <li>Add context menu to pipeline table.</li>
     </ul>
 
     <br/>
 
     <p>1.8</p>
     <ul>
-        <li>Sort by branch name, then by time by default</li>
+        <li>Sort by branch name, then by time by default.</li>
     </ul>
 
     <br/>
 
     <p>1.7</p>
     <ul>
-        <li>Use IntelliJ's HTTP library to connect to GitLab</li>
+        <li>Use IntelliJ's HTTP library to connect to GitLab.</li>
     </ul>
 
     <br/>
 
     <p>1.6</p>
     <ul>
-        <li>Move refresh button to toolbar</li>
-        <li>Allow filtering by branch names</li>
-        <li>Validate URL of gitlab in config</li>
-        <li>Add tooltip where to find the project ID</li>
-        <li>Properly initialize repository on startup</li>
-        <li>Show notifications for errors instead of writing to error log</li>
-        <li>Show max. 3 notifications for new pipeline statuses</li>
-        <li>Add support for GitLab private access token</li>
+        <li>Move refresh button to toolbar.</li>
+        <li>Allow filtering by branch names.</li>
+        <li>Validate URL of gitlab in config.</li>
+        <li>Add tooltip where to find the project ID.</li>
+        <li>Properly initialize repository on startup.</li>
+        <li>Show notifications for errors instead of writing to error log.</li>
+        <li>Show max. 3 notifications for new pipeline statuses.</li>
+        <li>Add support for GitLab private access token.</li>
     </ul>
 
     <br/>
 
     <p>1.5</p>
     <ul>
-        <li>Actually filter notifications</li>
-        <li>Support for custom gitlab instances</li>
+        <li>Actually filter notifications.</li>
+        <li>Support for custom gitlab instances.</li>
     </ul>
       """
 }

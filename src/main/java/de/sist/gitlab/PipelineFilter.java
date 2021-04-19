@@ -1,9 +1,8 @@
 package de.sist.gitlab;
 
 import com.intellij.openapi.components.ServiceManager;
-import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
-import de.sist.gitlab.config.PipelineViewerConfig;
+import de.sist.gitlab.config.ConfigProvider;
 import de.sist.gitlab.git.GitInitListener;
 import de.sist.gitlab.git.GitService;
 import git4idea.GitReference;
@@ -18,14 +17,12 @@ import java.util.stream.Collectors;
 @SuppressWarnings("RedundantIfStatement")
 public class PipelineFilter {
 
-    private static final Logger logger = Logger.getInstance(PipelineFilter.class);
-
-    private final PipelineViewerConfig config;
+    private final ConfigProvider config;
     private final Project project;
     private GitRepository gitRepository;
 
     public PipelineFilter(Project project) {
-        config = PipelineViewerConfig.getInstance(project);
+        config = ConfigProvider.getInstance();
         project.getMessageBus().connect().subscribe(GitInitListener.GIT_INITIALIZED, gitRepository -> {
             this.gitRepository = gitRepository;
         });
@@ -46,15 +43,15 @@ public class PipelineFilter {
                 .collect(Collectors.toSet());
 
         return toFilter.stream().filter(x -> {
-                    if (config.getBranchesToIgnore().contains(x.branchName)) {
-                        return false;
-                    }
-                    if (trackedBranches.contains(x.branchName)) {
-                        return true;
-                    }
-                    if (config.getBranchesToWatch().contains(x.branchName) && (!forNotification || config.isShowNotificationForWatchedBranches())) {
-                        return true;
-                    }
+            if (config.getBranchesToIgnore(project).contains(x.branchName)) {
+                return false;
+            }
+            if (trackedBranches.contains(x.branchName)) {
+                return true;
+            }
+            if (config.getBranchesToWatch(project).contains(x.branchName) && (!forNotification || config.isShowNotificationForWatchedBranches())) {
+                return true;
+            }
 
                     return false;
                 }

@@ -10,7 +10,7 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import de.sist.gitlab.PipelineJobStatus;
 import de.sist.gitlab.ReloadListener;
-import de.sist.gitlab.config.PipelineViewerConfig;
+import de.sist.gitlab.config.ConfigProvider;
 
 import java.io.File;
 import java.io.IOException;
@@ -54,7 +54,7 @@ public class LightsControl {
             return;
         }
 
-        String lightsForBranch = PipelineViewerConfig.getInstance(project).getShowLightsForBranch();
+        String lightsForBranch = ConfigProvider.getInstance().getShowLightsForBranch(project);
         if (!Strings.isNullOrEmpty(lightsForBranch)) {
             //Only subscribe if a branch should be watched
             project.getMessageBus().connect().subscribe(ReloadListener.RELOAD, statuses -> ApplicationManager.getApplication().invokeLater(() -> showState(statuses)));
@@ -62,7 +62,7 @@ public class LightsControl {
     }
 
     public void showState(List<PipelineJobStatus> statuses) {
-        String lightsForBranch = PipelineViewerConfig.getInstance(project).getShowLightsForBranch();
+        String lightsForBranch = ConfigProvider.getInstance().getShowLightsForBranch(project);
         if (Strings.isNullOrEmpty(lightsForBranch)) {
             //IntelliJ doesn't seem to allow to unsubscribe from an event, so if the user changed the config not to watch a branch this will still be called
             logger.debug("No branch to watch lights for set");

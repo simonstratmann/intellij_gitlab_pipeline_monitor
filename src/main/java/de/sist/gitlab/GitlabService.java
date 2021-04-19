@@ -5,7 +5,7 @@ import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.util.io.HttpRequests;
-import de.sist.gitlab.config.PipelineViewerConfig;
+import de.sist.gitlab.config.ConfigProvider;
 import de.sist.gitlab.notifier.IncompleteConfigListener;
 import org.apache.http.client.utils.URIBuilder;
 
@@ -23,14 +23,13 @@ public class GitlabService {
     private static final Logger logger = Logger.getInstance(GitlabService.class);
     private static final String PROJECTS_SUFFIX = "/api/v4/projects/%d/";
     private static final String PIPELINES_SUFFIX = "pipelines/";
-    private final PipelineViewerConfig config;
+    private final ConfigProvider config = ServiceManager.getService(ConfigProvider.class);
     private final Project project;
     private String gitlabHtmlBaseUrl;
     private boolean incompleteConfigNotificationShown = false;
 
     public GitlabService(Project project) {
         this.project = project;
-        config = ServiceManager.getService(project, PipelineViewerConfig.class);
     }
 
     public List<PipelineJobStatus> getStatuses() throws IOException {
@@ -41,8 +40,8 @@ public class GitlabService {
     }
 
     public List<PipelineTo> getPipelines() throws IOException {
-        PipelineViewerConfig config = PipelineViewerConfig.getInstance(project);
-        boolean configIncomplete = config == null || config.getGitlabProjectId() == null || config.getGitlabUrl() == null;
+        ConfigProvider config = ConfigProvider.getInstance();
+        boolean configIncomplete = config == null || config.getGitlabProjectId(project) == null || config.getGitlabUrl(project) == null;
         if (configIncomplete & !incompleteConfigNotificationShown) {
             project.getMessageBus().syncPublisher(IncompleteConfigListener.CONFIG_INCOMPLETE).handleIncompleteConfig("Incomplete config");
             logger.info("GitLab project ID and/or URL not set");
@@ -91,13 +90,13 @@ public class GitlabService {
     }
 
     private URIBuilder getBaseUriBuilder(boolean pipelines) throws URISyntaxException {
-        String url = String.format(PROJECTS_SUFFIX, config.getGitlabProjectId());
+        String url = String.format(PROJECTS_SUFFIX, config.getGitlabProjectId(project));
         if (pipelines) {
             url += PIPELINES_SUFFIX;
         }
-        URIBuilder uriBuilder = new URIBuilder(config.getGitlabUrl()).setPath(url);
-        if (config.getGitlabAuthToken() != null) {
-            uriBuilder.addParameter("private_token", config.getGitlabAuthToken());
+        URIBuilder uriBuilder = new URIBuilder(config.getGitlabUrl(project)).setPath(url);
+        if (config.getGitlabAuthToken(project) != null) {
+            uriBuilder.addParameter("private_token", config.getGitlabAuthToken(project));
         }
         return uriBuilder;
     }

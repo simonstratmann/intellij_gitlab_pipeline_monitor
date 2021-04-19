@@ -1,12 +1,11 @@
 package de.sist.gitlab.config;
 
+import com.google.common.base.Strings;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.ComponentValidator;
 import com.intellij.openapi.ui.Messages;
-import com.intellij.openapi.ui.ValidationInfo;
-import com.intellij.openapi.util.Disposer;
 import com.intellij.ui.CollectionListModel;
 import com.intellij.ui.DocumentAdapter;
 import com.intellij.ui.IdeBorderFactory;
@@ -14,7 +13,6 @@ import com.intellij.ui.ToolbarDecorator;
 import com.intellij.ui.components.JBList;
 import de.sist.gitlab.BackgroundUpdateService;
 import de.sist.gitlab.lights.LightsControl;
-import de.sist.gitlab.validator.UrlValidator;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
@@ -27,13 +25,10 @@ import java.util.Objects;
 @SuppressWarnings("unused")
 public class ConfigForm {
 
-    private PipelineViewerConfig config;
+    private PipelineViewerConfigProject projectConfig;
     private Project project;
 
-    private boolean modified = false;
-
     private JPanel mainPanel;
-    private JSpinner projectIdSpinner;
     private JPanel branchesToIgnorePanel;
     private JPanel branchesToWatchPanel;
 
@@ -45,11 +40,8 @@ public class ConfigForm {
     private JLabel lightsLabel;
     private JTextField lightsBranch;
     private JTextField mergeRequestTargetBranch;
-    private JCheckBox watchedBranchesNotificationCheckbox;
-    private JCheckBox showConnectionErrorsCheckbox;
-    private JPanel statesToShow;
+    private JTextField projectId;
     private JList<String> branchesToWatchList;
-    private JPanel statesToNotify2;
 
     private CollectionListModel<String> branchesToIgnoreListModel;
     private CollectionListModel<String> branchesToWatchListModel;
@@ -58,22 +50,16 @@ public class ConfigForm {
         createBranchesToIgnorePanel();
         createBranchesToWatchPanel();
 
-        projectIdPanel.setBorder(IdeBorderFactory.createTitledBorder("GitLab settings"));
+        projectIdPanel.setBorder(IdeBorderFactory.createTitledBorder("GitLab Settings (Project Scope)"));
     }
 
     public void init(Project project) {
         this.project = project;
-        config = PipelineViewerConfig.getInstance(project);
-        config.initIfNeeded();
+        projectConfig = PipelineViewerConfigProject.getInstance(project);
+        projectConfig.initIfNeeded();
         loadSettings();
 
-        new ComponentValidator(Disposer.newDisposable()).withValidator(() -> {
-            boolean valid = UrlValidator.getInstance().isValid(gitlabUrlField.getText());
-            if (!valid) {
-                return new ValidationInfo("The gitlab URL is not valid", gitlabUrlField);
-            }
-            return null;
-        }).installOn(gitlabUrlField);
+        ConfigFormApp.createValidators(gitlabUrlField, projectId);
 
         gitlabUrlField.getDocument().addDocumentListener(new DocumentAdapter() {
             @Override
@@ -86,18 +72,15 @@ public class ConfigForm {
 
 
     public void apply() {
-        config.setGitlabUrl(gitlabUrlField.getText());
-        config.setGitlabAuthToken(authTokenField.getText());
-        config.setGitlabProjectId((Integer) projectIdSpinner.getValue());
-        config.setBranchesToIgnore(branchesToIgnoreListModel.toList());
-        config.setBranchesToWatch(branchesToWatchListModel.toList());
-        config.setMergeRequestTargetBranch(mergeRequestTargetBranch.getText());
-        config.setShowNotificationForWatchedBranches(watchedBranchesNotificationCheckbox.isSelected());
-        config.setShowConnectionErrors(showConnectionErrorsCheckbox.isSelected());
+        projectConfig.setGitlabUrl(gitlabUrlField.getText());
+        projectConfig.setGitlabAuthToken(authTokenField.getText());
+        projectConfig.setGitlabProjectId(projectId.getText());
+        projectConfig.setBranchesToIgnore(branchesToIgnoreListModel.toList());
+        projectConfig.setBranchesToWatch(branchesToWatchListModel.toList());
+        projectConfig.setMergeRequestTargetBranch(mergeRequestTargetBranch.getText());
         List<String> statusesToWatch = new ArrayList<>();
 
-        config.setStatusesToWatch(statusesToWatch);
-        config.setShowLightsForBranch(lightsBranch.getText());
+        projectConfig.setShowLightsForBranch(lightsBranch.getText());
 
         ApplicationManager.getApplication().invokeLater(() -> {
             ServiceManager.getService(project, BackgroundUpdateService.class).restartBackgroundTask();
@@ -106,31 +89,27 @@ public class ConfigForm {
     }
 
     public void loadSettings() {
-        gitlabUrlField.setText(config.getGitlabUrl());
-        authTokenField.setText(config.getGitlabAuthToken());
-        if (config.getGitlabProjectId() != null) {
-            projectIdSpinner.setValue(config.getGitlabProjectId());
+        gitlabUrlField.setText(projectConfig.getGitlabUrl());
+        authTokenField.setText(projectConfig.getGitlabAuthToken());
+        if (projectConfig.getGitlabProjectId() != null) {
+            projectId.setText(projectConfig.getGitlabProjectId() == null ? null : String.valueOf(projectConfig.getGitlabProjectId()));
         }
-        branchesToWatchListModel.replaceAll(config.getBranchesToWatch());
-        branchesToIgnoreListModel.replaceAll(config.getBranchesToIgnore());
-        watchedBranchesNotificationCheckbox.setSelected(config.isShowNotificationForWatchedBranches());
-        showConnectionErrorsCheckbox.setSelected(config.isShowConnectionErrorNotifications());
+        branchesToWatchListModel.replaceAll(projectConfig.getBranchesToWatch());
+        branchesToIgnoreListModel.replaceAll(projectConfig.getBranchesToIgnore());
 
-        lightsBranch.setText(config.getShowLightsForBranch());
-        mergeRequestTargetBranch.setText(config.getMergeRequestTargetBranch());
+        lightsBranch.setText(projectConfig.getShowLightsForBranch());
+        mergeRequestTargetBranch.setText(projectConfig.getMergeRequestTargetBranch());
     }
 
     public boolean isModified() {
         return
-                !Objects.equals(gitlabUrlField.getText(), config.getGitlabUrl())
-                        || !Objects.equals(config.getGitlabProjectId(), projectIdSpinner.getValue())
-                        || !Objects.equals(config.getGitlabAuthToken(), authTokenField.getText())
-                        || !Objects.equals(config.getShowLightsForBranch(), lightsBranch.getText())
-                        || !Objects.equals(config.getMergeRequestTargetBranch(), mergeRequestTargetBranch.getText())
-                        || !Objects.equals(config.isShowNotificationForWatchedBranches(), watchedBranchesNotificationCheckbox.isSelected())
-                        || !Objects.equals(config.isShowConnectionErrorNotifications(), showConnectionErrorsCheckbox.isSelected())
-                        || !new HashSet<>(branchesToWatchListModel.getItems()).equals(new HashSet<>(config.getBranchesToWatch()))
-                        || !new HashSet<>(branchesToIgnoreListModel.getItems()).equals(new HashSet<>(config.getBranchesToIgnore()))
+                !Objects.equals(gitlabUrlField.getText(), projectConfig.getGitlabUrl())
+                        || !Objects.equals(projectConfig.getGitlabProjectId(), Strings.isNullOrEmpty(projectId.getText()) ? null : Integer.parseInt(projectId.getText()))
+                        || !Objects.equals(projectConfig.getGitlabAuthToken(), authTokenField.getText())
+                        || !Objects.equals(projectConfig.getShowLightsForBranch(), lightsBranch.getText())
+                        || !Objects.equals(projectConfig.getMergeRequestTargetBranch(), mergeRequestTargetBranch.getText())
+                        || !new HashSet<>(branchesToWatchListModel.getItems()).equals(new HashSet<>(projectConfig.getBranchesToWatch()))
+                        || !new HashSet<>(branchesToIgnoreListModel.getItems()).equals(new HashSet<>(projectConfig.getBranchesToIgnore()))
                 ;
     }
 

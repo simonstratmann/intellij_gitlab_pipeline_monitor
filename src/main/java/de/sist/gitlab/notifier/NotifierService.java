@@ -27,7 +27,7 @@ import de.sist.gitlab.DateTime;
 import de.sist.gitlab.PipelineFilter;
 import de.sist.gitlab.PipelineJobStatus;
 import de.sist.gitlab.ReloadListener;
-import de.sist.gitlab.config.GitlabConfigurable;
+import de.sist.gitlab.config.GitlabProjectConfigurable;
 import de.sist.gitlab.lights.LightsControl;
 import org.jetbrains.annotations.NotNull;
 
@@ -168,7 +168,7 @@ public class NotifierService {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e, @NotNull Notification notification) {
                 notification.hideBalloon();
-                ShowSettingsUtil.getInstance().showSettingsDialog(project, GitlabConfigurable.class);
+                ShowSettingsUtil.getInstance().showSettingsDialog(project, GitlabProjectConfigurable.class);
             }
         });
         logger.debug("Showing notification for incomplete config");

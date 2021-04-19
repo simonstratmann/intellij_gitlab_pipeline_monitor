@@ -8,7 +8,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.MessageType;
 import com.intellij.openapi.util.IconLoader;
 import com.intellij.util.concurrency.AppExecutorUtil;
-import de.sist.gitlab.config.PipelineViewerConfig;
+import de.sist.gitlab.config.ConfigProvider;
 import de.sist.gitlab.git.GitInitListener;
 import de.sist.gitlab.notifier.NotifierService;
 
@@ -35,13 +35,13 @@ public class BackgroundUpdateService {
                 List<PipelineJobStatus> statuses = gitlabService.getStatuses();
                 project.getMessageBus().syncPublisher(ReloadListener.RELOAD).reload(statuses);
             } catch (IOException e) {
-                if (PipelineViewerConfig.getInstance(project).isShowConnectionErrorNotifications()) {
-                    ServiceManager.getService(project, NotifierService.class).showError("Unable to connect got gitlab: " + e);
+                if (ConfigProvider.getInstance().isShowConnectionErrorNotifications()) {
+                    ServiceManager.getService(project, NotifierService.class).showError("Unable to connect to gitlab: " + e);
                 }
             }
         };
-        PipelineViewerConfig config = PipelineViewerConfig.getInstance(project);
-        if (config.getGitlabProjectId() == null || config.getGitlabProjectId() == 0) {
+        ConfigProvider config = ConfigProvider.getInstance();
+        if (config.getGitlabProjectId(project) == null || config.getGitlabProjectId(project) == 0) {
             NotificationGroup notificationGroup = NotificationGroup.findRegisteredGroup(DISPLAY_ID);
             if (notificationGroup == null) {
                 notificationGroup = new NotificationGroup(DISPLAY_ID, NotificationDisplayType.BALLOON, true,

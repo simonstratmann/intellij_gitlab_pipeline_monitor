@@ -24,8 +24,11 @@
     <extensions defaultExtensionNs="com.intellij">
         <toolWindow id="Gitlab pipeline viewer" secondary="true" icon="/toolWindow/gitlab-icon.png" anchor="bottom" factoryClass="de.sist.gitlab.ui.GitlabToolWindowFactory"/>
 
-        <projectConfigurable instance="de.sist.gitlab.config.GitlabConfigurable" id="de.sist.gitlab.configurable" displayName="GitLab Pipeline Viewer"/>
-        <projectService serviceImplementation="de.sist.gitlab.config.PipelineViewerConfig"/>
+        <projectConfigurable instance="de.sist.gitlab.config.GitlabProjectConfigurable" id="de.sist.gitlab.configurable" displayName="GitLab Pipeline Viewer"/>
+        <applicationConfigurable instance="de.sist.gitlab.config.GitlabApplicationConfigurable" id="de.sist.gitlab.appConfigurable" displayName="GitLab Pipeline Viewer"/>
+        <applicationService serviceImplementation="de.sist.gitlab.config.PipelineViewerConfigApp"/>
+        <projectService serviceImplementation="de.sist.gitlab.config.PipelineViewerConfigProject"/>
+        <applicationService serviceImplementation="de.sist.gitlab.config.ConfigProvider"/>
         <projectService serviceImplementation="de.sist.gitlab.lights.LightsLinux"/>
         <projectService serviceImplementation="de.sist.gitlab.lights.LightsWindows"/>
         <projectService serviceImplementation="de.sist.gitlab.lights.LightsControl"/>

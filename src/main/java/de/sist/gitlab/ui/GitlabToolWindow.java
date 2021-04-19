@@ -30,7 +30,8 @@ import de.sist.gitlab.GitlabService;
 import de.sist.gitlab.PipelineFilter;
 import de.sist.gitlab.PipelineJobStatus;
 import de.sist.gitlab.ReloadListener;
-import de.sist.gitlab.config.PipelineViewerConfig;
+import de.sist.gitlab.config.ConfigProvider;
+import de.sist.gitlab.config.PipelineViewerConfigProject;
 import de.sist.gitlab.git.GitService;
 import de.sist.gitlab.lights.LightsControl;
 import git4idea.GitUtil;
@@ -160,25 +161,25 @@ public class GitlabToolWindow {
 
     private JBPopupMenu getBranchPopupMenu(String branchName) {
         JBPopupMenu branchPopupMenu = new JBPopupMenu();
-        final PipelineViewerConfig config = PipelineViewerConfig.getInstance(project);
+        final ConfigProvider config = ConfigProvider.getInstance();
         branchPopupMenu.add(new AbstractAction("Show traffic lights for this branch") {
             @Override
             public void actionPerformed(ActionEvent e) {
-                config.setShowLightsForBranch(branchName);
+                PipelineViewerConfigProject.getInstance(project).setShowLightsForBranch(branchName);
                 runLoadPipelinesTask(project);
             }
         });
         branchPopupMenu.add(new AbstractAction("Never show results for this branch") {
             @Override
             public void actionPerformed(ActionEvent e) {
-                config.getBranchesToIgnore().add(branchName);
+                config.getBranchesToIgnore(project).add(branchName);
                 runLoadPipelinesTask(project);
             }
         });
         branchPopupMenu.add(new AbstractAction("Always show results for this branch") {
             @Override
             public void actionPerformed(ActionEvent e) {
-                config.getBranchesToWatch().add(branchName);
+                config.getBranchesToWatch(project).add(branchName);
                 runLoadPipelinesTask(project);
             }
         });
@@ -198,12 +199,12 @@ public class GitlabToolWindow {
         return branchPopupMenu;
     }
 
-    private void openMergeRequestUrlForSelectedBranch(PipelineViewerConfig config, String branchName) {
+    private void openMergeRequestUrlForSelectedBranch(ConfigProvider config, String branchName) {
         String url = NEW_MERGE_REQUEST_URL_TEMPLATE
                 .replace(GITLAB_URL_PLACEHOLDER, gitlabService.getGitlabHtmlBaseUrl())
-                .replace(PROJECT_ID_PLACEHOLDER, config.getGitlabProjectId().toString())
+                .replace(PROJECT_ID_PLACEHOLDER, config.getGitlabProjectId(project).toString())
                 .replace(SOURCE_BRANCH_PLACEHOLDER, branchName)
-                .replace(TARGET_BRANCH_PLACEHOLDER, config.getMergeRequestTargetBranch());
+                .replace(TARGET_BRANCH_PLACEHOLDER, config.getMergeRequestTargetBranch(project));
         logger.info("Opening URL " + url);
         com.intellij.ide.BrowserUtil.browse(url);
     }
@@ -471,9 +472,9 @@ public class GitlabToolWindow {
                 String branchName = (String) value;
                 JLabel jLabel = new JLabel(branchName);
 
-                if (Objects.equals(PipelineViewerConfig.getInstance(project).getShowLightsForBranch(), branchName)) {
+                if (Objects.equals(PipelineViewerConfigProject.getInstance(project).getShowLightsForBranch(), branchName)) {
                     jLabel.setIcon(IconLoader.getIcon("/trafficLights.png", GitlabToolWindow.class));
-                } else if (PipelineViewerConfig.getInstance(project).getBranchesToWatch().contains(branchName)) {
+                } else if (ConfigProvider.getInstance().getBranchesToWatch(project).contains(branchName)) {
                     jLabel.setIcon(AllIcons.General.InspectionsEye);
                 }
 
