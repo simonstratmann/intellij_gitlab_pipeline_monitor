@@ -1,10 +1,13 @@
 package de.sist.gitlab.git;
 
+import com.intellij.dvcs.DvcsUtil;
 import com.intellij.dvcs.repo.VcsRepositoryManager;
 import com.intellij.dvcs.repo.VcsRepositoryMappingListener;
+import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.project.Project;
 import de.sist.gitlab.config.ConfigProvider;
 import git4idea.GitUtil;
+import git4idea.config.GitVcsSettings;
 import git4idea.repo.GitRepository;
 import git4idea.repo.GitRepositoryChangeListener;
 import org.jetbrains.annotations.NotNull;
@@ -61,6 +64,16 @@ public class GitService {
     public List<GitRepository> getAllGitRepositories() {
         allGitRepositories = GitUtil.getRepositoryManager(project).getRepositories();
         return allGitRepositories;
+    }
+
+    public GitRepository guessCurrentRepository() {
+        final GitVcsSettings settings = GitVcsSettings.getInstance(project);
+        final GitRepository gitRepository = DvcsUtil.guessCurrentRepositoryQuick(project, GitUtil.getRepositoryManager(project), settings.getRecentRootPath());
+        return gitRepository;
+    }
+
+    public static GitService getInstance(Project project) {
+        return ServiceManager.getService(project, GitService.class);
     }
 
 }

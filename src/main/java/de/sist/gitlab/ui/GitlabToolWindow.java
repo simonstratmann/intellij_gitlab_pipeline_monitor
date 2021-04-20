@@ -10,6 +10,11 @@ import com.intellij.openapi.actionSystem.DefaultActionGroup;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.fileEditor.FileEditor;
+import com.intellij.openapi.fileEditor.FileEditorManager;
+import com.intellij.openapi.fileEditor.FileEditorManagerEvent;
+import com.intellij.openapi.fileEditor.FileEditorManagerListener;
+import com.intellij.openapi.fileEditor.FileEditorProvider;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.progress.Task;
@@ -17,6 +22,8 @@ import com.intellij.openapi.progress.impl.BackgroundableProcessIndicator;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.JBPopupMenu;
 import com.intellij.openapi.util.IconLoader;
+import com.intellij.openapi.util.Pair;
+import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.ui.AnActionButton;
 import com.intellij.ui.DocumentAdapter;
 import com.intellij.ui.JBColor;
@@ -33,14 +40,19 @@ import de.sist.gitlab.PipelineJobStatus;
 import de.sist.gitlab.ReloadListener;
 import de.sist.gitlab.config.ConfigChangedListener;
 import de.sist.gitlab.config.ConfigProvider;
+import de.sist.gitlab.config.Mapping;
 import de.sist.gitlab.config.PipelineViewerConfigProject;
+import de.sist.gitlab.git.GitService;
 import de.sist.gitlab.lights.LightsControl;
 import git4idea.GitUtil;
 import git4idea.branch.GitBrancher;
+import git4idea.repo.GitRepository;
 import net.miginfocom.swing.MigLayout;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 import javax.swing.event.DocumentEvent;
 import javax.swing.table.AbstractTableModel;
 import javax.swing.table.TableCellRenderer;
@@ -81,6 +93,8 @@ public class GitlabToolWindow {
     private JPanel tablePanel;
     private boolean initialLoad = true;
 
+    private Map<String, List<PipelineJobStatus>> pipelineInfos = new HashMap<>();
+
     private final PipelineTableModel tableModel;
 
     private final GitlabService gitlabService;
@@ -89,12 +103,14 @@ public class GitlabToolWindow {
     private final PipelineFilter statusFilter;
     private TableRowSorter<PipelineTableModel> tableSorter;
     private final Project project;
+
     private static final String GITLAB_URL_PLACEHOLDER = "%GITLAB_URL%";
     private static final String PROJECT_ID_PLACEHOLDER = "%PROJECT_ID%";
     private static final String SOURCE_BRANCH_PLACEHOLDER = "%SOURCE_BRANCH%";
     private static final String TARGET_BRANCH_PLACEHOLDER = "%TARGET_BRANCH%";
     private static final String NEW_MERGE_REQUEST_URL_TEMPLATE = "%GITLAB_URL%/-/merge_requests/new?utf8=%E2%9C%93&merge_request%5Bsource_project_id%5D=%PROJECT_ID%&merge_request%5Bsource_branch%5D=%SOURCE_BRANCH%&merge_request%5Btarget_project_id%5D=%PROJECT_ID%";
     private static final String NEW_MERGE_REQUEST_URL_TARGET_BRANCH_POSTFIX = "&merge_request%5Btarget_branch%5D=%TARGET_BRANCH%";
+    JCheckBox showForAllCheckbox;
 
 
     public GitlabToolWindow(Project project) {
@@ -105,8 +121,11 @@ public class GitlabToolWindow {
         statusFilter = ServiceManager.getService(project, PipelineFilter.class);
 
         tableModel = new PipelineTableModel();
-        messageBus.connect().subscribe(ReloadListener.RELOAD, pipelineInfos -> ApplicationManager.getApplication().invokeLater(() ->
-                showPipelines(pipelineInfos)));
+        messageBus.connect().subscribe(ReloadListener.RELOAD, pipelineInfos -> ApplicationManager.getApplication().invokeLater(() -> {
+            this.pipelineInfos = pipelineInfos;
+            updatePipelinesDisplay();
+        }));
+        updateTableWhenMonitoringMultipleRemotesButOnlyShowingPipelinesForOne();
         pipelineTable = new JBTable(tableModel) {
             @Override
             public TableCellRenderer getCellRenderer(int row, int column) {
@@ -154,8 +173,30 @@ public class GitlabToolWindow {
 
         createTablePanel(project);
         handleEnabledState(project);
-        messageBus.connect().subscribe(ConfigChangedListener.CONFIG_CHANGED, () -> handleEnabledState(project));
+        messageBus.connect().subscribe(ConfigChangedListener.CONFIG_CHANGED, () -> {
+            handleEnabledState(project);
+            showForAllCheckbox.setSelected(PipelineViewerConfigProject.getInstance(project).isShowPipelinesForAll());
+            showForAllCheckbox.setEnabled(ServiceManager.getService(project, GitService.class).getNonIgnoredRepositories().size() > 1);
+        });
 
+    }
+
+    private void updateTableWhenMonitoringMultipleRemotesButOnlyShowingPipelinesForOne() {
+        messageBus.connect().subscribe(FileEditorManagerListener.FILE_EDITOR_MANAGER, new FileEditorManagerListener() {
+            @Override
+            public void fileOpenedSync(@NotNull FileEditorManager source, @NotNull VirtualFile file, @NotNull Pair<FileEditor[], FileEditorProvider[]> editors) {
+                if (pipelineInfos.size() > 1 && !showForAllCheckbox.isSelected()) {
+                    updatePipelinesDisplay();
+                }
+            }
+
+            @Override
+            public void selectionChanged(@NotNull FileEditorManagerEvent event) {
+                if (pipelineInfos.size() > 1 && !showForAllCheckbox.isSelected()) {
+                    updatePipelinesDisplay();
+                }
+            }
+        });
     }
 
     private void handleEnabledState(Project project) {
@@ -210,6 +251,7 @@ public class GitlabToolWindow {
                 brancher.checkout(branchName, false, GitUtil.getRepositoryManager(project).getRepositories(), null);
             }
         });
+
         return branchPopupMenu;
     }
 
@@ -298,6 +340,17 @@ public class GitlabToolWindow {
                 }
             }
         });
+        showForAllCheckbox = new JCheckBox("Show pipelines for all repos");
+        showForAllCheckbox.setEnabled(ServiceManager.getService(project, GitService.class).getNonIgnoredRepositories().size() > 1);
+        showForAllCheckbox.setSelected(PipelineViewerConfigProject.getInstance(project).isShowPipelinesForAll());
+        showForAllCheckbox.addChangeListener(new ChangeListener() {
+            @Override
+            public void stateChanged(ChangeEvent e) {
+                updatePipelinesDisplay();
+                PipelineViewerConfigProject.getInstance(project).setShowPipelinesForAll(showForAllCheckbox.isSelected());
+            }
+        });
+        panel.add(showForAllCheckbox);
         panel.add(filterField);
 
         tablePanel.add(panel, BorderLayout.NORTH, 0);
@@ -327,14 +380,16 @@ public class GitlabToolWindow {
         }
     }
 
-    public void showPipelines(Map<String, List<PipelineJobStatus>> pipelineInfos) {
+    private void updatePipelinesDisplay() {
         logger.debug("Showing statuses for " + pipelineInfos.size() + " projects");
         tableScrollPane.setEnabled(true);
+        showForAllCheckbox.setEnabled(pipelineInfos.size() > 1);
 
         tableModel.rows.clear();
         tableModel.rows.addAll(getStatusesToShow(pipelineInfos));
         final TableColumn column = pipelineTable.getColumn(pipelineTable.getColumnName(0));
-        if (!tableModel.rows.isEmpty() && tableModel.rows.stream().map(x -> x.projectId).collect(Collectors.toSet()).size() == 1) {
+        final boolean multipleProjects = !tableModel.rows.isEmpty() && tableModel.rows.stream().map(x -> x.projectId).collect(Collectors.toSet()).size() == 1;
+        if (multipleProjects || !showForAllCheckbox.isSelected()) {
             column.setMinWidth(0);
             column.setMaxWidth(0);
             column.setPreferredWidth(0);
@@ -361,9 +416,19 @@ public class GitlabToolWindow {
      * @return List of filtered statuses.
      */
     private List<PipelineJobStatus> getStatusesToShow(Map<String, List<PipelineJobStatus>> pipelinesPerProject) {
-        // TODO sist 19.04.2021: Make configurable if show all or only for current module
         List<PipelineJobStatus> newRows = new ArrayList<>();
         for (Map.Entry<String, List<PipelineJobStatus>> projectAndPipelines : pipelinesPerProject.entrySet()) {
+
+            //If pipelines for multiple projects exist and pipelines are only to be shown for the current one skip all others
+            if (pipelinesPerProject.size() > 1 && !showForAllCheckbox.isSelected()) {
+                final GitRepository currentRepository = GitService.getInstance(project).guessCurrentRepository();
+                if (currentRepository != null) {
+                    final Mapping mapping = ConfigProvider.getInstance().getMappingByProjectId(projectAndPipelines.getKey());
+                    if (currentRepository.getRemotes().stream().noneMatch(remote -> remote.getUrls().stream().anyMatch(x -> x.equals(mapping.getRemote())))) {
+                        continue;
+                    }
+                }
+            }
 
             List<PipelineJobStatus> statuses = new ArrayList<>(statusFilter.filterPipelines(projectAndPipelines.getKey(), projectAndPipelines.getValue(), false));
             statuses.sort(Comparator.comparing(x -> ((PipelineJobStatus) x).creationTime).reversed());

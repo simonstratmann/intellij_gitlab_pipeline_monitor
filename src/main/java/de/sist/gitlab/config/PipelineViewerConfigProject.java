@@ -22,6 +22,8 @@ public class PipelineViewerConfigProject implements PersistentStateComponent<Pip
     private String showLightsForBranch;
     private String mergeRequestTargetBranch = "master";
     private boolean enabled;
+    //Not displayed in the settings but in the tool window
+    private boolean showPipelinesForAll = true;
 
     public List<String> getBranchesToIgnore() {
         return branchesToIgnore;
@@ -67,6 +69,14 @@ public class PipelineViewerConfigProject implements PersistentStateComponent<Pip
 
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
+    }
+
+    public boolean isShowPipelinesForAll() {
+        return showPipelinesForAll;
+    }
+
+    public void setShowPipelinesForAll(boolean showPipelinesForAll) {
+        this.showPipelinesForAll = showPipelinesForAll;
     }
 
     public @Nullable PipelineViewerConfigProject getState() {
