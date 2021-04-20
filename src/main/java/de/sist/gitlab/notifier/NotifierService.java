@@ -27,7 +27,9 @@ import de.sist.gitlab.DateTime;
 import de.sist.gitlab.PipelineFilter;
 import de.sist.gitlab.PipelineJobStatus;
 import de.sist.gitlab.ReloadListener;
+import de.sist.gitlab.config.ConfigProvider;
 import de.sist.gitlab.config.GitlabProjectConfigurable;
+import de.sist.gitlab.git.GitService;
 import de.sist.gitlab.lights.LightsControl;
 import org.jetbrains.annotations.NotNull;
 
@@ -71,7 +73,6 @@ public class NotifierService {
         errorNotificationGroup = createNotificationGroup("GitLab Pipeline Viewer - Error", NotificationDisplayType.STICKY_BALLOON);
 
         project.getMessageBus().connect().subscribe(ReloadListener.RELOAD, this::showStatusNotifications);
-        project.getMessageBus().connect().subscribe(IncompleteConfigListener.CONFIG_INCOMPLETE, this::showIncompleteConfigNotification);
     }
 
     public void showError(String error) {
@@ -135,6 +136,9 @@ public class NotifierService {
         content = status.branchName + ": <span style=\"color:" + getColorForStatus(status.result) + "\">" + status.result + "</span>"
                 + "<br>Created: " + DateTime.formatDateTime(status.creationTime)
                 + "<br>Last update: " + DateTime.formatDateTime(status.updateTime);
+        if (GitService.getInstance(project).getNonIgnoredRepositories().size() > 1) {
+            content = ConfigProvider.getInstance().getMappingByProjectId(status.getProjectId()).getProjectName() + " " + content;
+        }
 
         Notification notification = notificationGroup.createNotification("GitLab branch status", null, content, notificationType);
 
