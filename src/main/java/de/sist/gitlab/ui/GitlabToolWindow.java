@@ -1,5 +1,6 @@
 package de.sist.gitlab.ui;
 
+import com.google.common.base.Strings;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.ActionManager;
 import com.intellij.openapi.actionSystem.ActionPlaces;
@@ -33,7 +34,6 @@ import de.sist.gitlab.ReloadListener;
 import de.sist.gitlab.config.ConfigChangedListener;
 import de.sist.gitlab.config.ConfigProvider;
 import de.sist.gitlab.config.PipelineViewerConfigProject;
-import de.sist.gitlab.git.GitService;
 import de.sist.gitlab.lights.LightsControl;
 import git4idea.GitUtil;
 import git4idea.branch.GitBrancher;
@@ -70,7 +70,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-@SuppressWarnings({"ConstantConditions", "Convert2Lambda"})
+@SuppressWarnings({"Convert2Lambda"})
 public class GitlabToolWindow {
 
     Logger logger = Logger.getInstance(GitlabToolWindow.class);
@@ -84,7 +84,6 @@ public class GitlabToolWindow {
     private final PipelineTableModel tableModel;
 
     private final GitlabService gitlabService;
-    private final GitService gitService;
     private final BackgroundUpdateService backgroundUpdateService;
     private final MessageBus messageBus;
     private final PipelineFilter statusFilter;
@@ -101,16 +100,13 @@ public class GitlabToolWindow {
     public GitlabToolWindow(Project project) {
         this.project = project;
         gitlabService = ServiceManager.getService(project, GitlabService.class);
-        gitService = ServiceManager.getService(project, GitService.class);
         backgroundUpdateService = ServiceManager.getService(project, BackgroundUpdateService.class);
         messageBus = project.getMessageBus();
         statusFilter = ServiceManager.getService(project, PipelineFilter.class);
 
         tableModel = new PipelineTableModel();
-        messageBus.connect().subscribe(ReloadListener.RELOAD, pipelineInfos -> {
-            ApplicationManager.getApplication().invokeLater(() ->
-                    showPipelines(pipelineInfos));
-        });
+        messageBus.connect().subscribe(ReloadListener.RELOAD, pipelineInfos -> ApplicationManager.getApplication().invokeLater(() ->
+                showPipelines(pipelineInfos)));
         pipelineTable = new JBTable(tableModel) {
             @Override
             public TableCellRenderer getCellRenderer(int row, int column) {
@@ -157,10 +153,8 @@ public class GitlabToolWindow {
         pipelineTable.setIntercellSpacing(new Dimension(5, 0));
 
         createTablePanel(project);
-        messageBus.connect().subscribe(ConfigChangedListener.CONFIG_CHANGED, () -> {
-            handleEnabledState(project);
-
-        });
+        handleEnabledState(project);
+        messageBus.connect().subscribe(ConfigChangedListener.CONFIG_CHANGED, () -> handleEnabledState(project));
 
     }
 
@@ -222,7 +216,7 @@ public class GitlabToolWindow {
     private void openMergeRequestUrlForSelectedBranch(ConfigProvider config, String branchName) {
         String url = NEW_MERGE_REQUEST_URL_TEMPLATE
                 .replace(GITLAB_URL_PLACEHOLDER, gitlabService.getGitlabHtmlBaseUrl(null))
-                .replace(PROJECT_ID_PLACEHOLDER, config.getMappings(project).toString())
+                .replace(PROJECT_ID_PLACEHOLDER, config.getMappings().toString())
                 .replace(SOURCE_BRANCH_PLACEHOLDER, branchName);
         if (config.getMergeRequestTargetBranch(project) != null) {
             url += NEW_MERGE_REQUEST_URL_TARGET_BRANCH_POSTFIX.replace(TARGET_BRANCH_PLACEHOLDER, config.getMergeRequestTargetBranch(project));
@@ -311,7 +305,7 @@ public class GitlabToolWindow {
     }
 
     private void runLoadPipelinesTask(Project project) {
-        Task.Backgroundable task = new Task.Backgroundable(project, "Loading GitLab Pipelines") {
+        Task.Backgroundable task = new Task.Backgroundable(project, "Loading gitLab pipelines") {
             @Override
             public void run(@NotNull ProgressIndicator indicator) {
                 loadPipelines();
@@ -339,6 +333,18 @@ public class GitlabToolWindow {
 
         tableModel.rows.clear();
         tableModel.rows.addAll(getStatusesToShow(pipelineInfos));
+        final TableColumn column = pipelineTable.getColumn(pipelineTable.getColumnName(0));
+        if (!tableModel.rows.isEmpty() && tableModel.rows.stream().map(x -> x.projectId).collect(Collectors.toSet()).size() == 1) {
+            column.setMinWidth(0);
+            column.setMaxWidth(0);
+            column.setPreferredWidth(0);
+            column.setWidth(0);
+        } else {
+            column.setMinWidth(15);
+            column.setMaxWidth(200);
+            column.setPreferredWidth(75);
+            column.setWidth(75);
+        }
         tableModel.fireTableDataChanged();
 
         if (initialLoad) {
@@ -485,8 +491,10 @@ public class GitlabToolWindow {
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
                 String projectId = (String) value;
-
-                return new JLabel(gitlabService.getProjectNameById(projectId));
+                if (ConfigProvider.getInstance().getMappingByProjectId(projectId) != null) {
+                    return new JLabel(Strings.nullToEmpty(ConfigProvider.getInstance().getMappingByProjectId(projectId).getProjectName()));
+                }
+                return new JBLabel();
             }
         };
     }

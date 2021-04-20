@@ -3,23 +3,20 @@ package de.sist.gitlab.config;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.ui.ComponentValidator;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.ui.CollectionListModel;
-import com.intellij.ui.DocumentAdapter;
 import com.intellij.ui.IdeBorderFactory;
 import com.intellij.ui.ToolbarDecorator;
 import com.intellij.ui.components.JBList;
 import de.sist.gitlab.BackgroundUpdateService;
 import de.sist.gitlab.lights.LightsControl;
-import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
-import javax.swing.event.DocumentEvent;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 @SuppressWarnings("unused")
 public class ConfigForm {
@@ -33,9 +30,7 @@ public class ConfigForm {
 
     private JList<String> branchesToIgnoreList;
 
-    private JPanel projectIdPanel;
-    private JTextField gitlabUrlField;
-    private JTextField authTokenField;
+    private JPanel projectConfigPanel;
     private JLabel lightsLabel;
     private JTextField lightsBranch;
     private JTextField mergeRequestTargetBranch;
@@ -49,29 +44,16 @@ public class ConfigForm {
         createBranchesToIgnorePanel();
         createBranchesToWatchPanel();
 
-        projectIdPanel.setBorder(IdeBorderFactory.createTitledBorder("GitLab Settings (Project Scope)"));
+        projectConfigPanel.setBorder(IdeBorderFactory.createTitledBorder("GitLab Settings (Project Scope)"));
     }
 
     public void init(Project project) {
         this.project = project;
         projectConfig = PipelineViewerConfigProject.getInstance(project);
         loadSettings();
-
-        ConfigFormApp.createValidator(gitlabUrlField);
-
-        gitlabUrlField.getDocument().addDocumentListener(new DocumentAdapter() {
-            @Override
-            protected void textChanged(@NotNull DocumentEvent e) {
-                ComponentValidator.getInstance(gitlabUrlField).ifPresent(ComponentValidator::revalidate);
-            }
-        });
-
     }
 
-
     public void apply() {
-        projectConfig.setGitlabUrl(gitlabUrlField.getText());
-        projectConfig.setGitlabAuthToken(authTokenField.getText());
         projectConfig.setBranchesToIgnore(branchesToIgnoreListModel.toList());
         projectConfig.setBranchesToWatch(branchesToWatchListModel.toList());
         projectConfig.setMergeRequestTargetBranch(mergeRequestTargetBranch.getText());
@@ -88,24 +70,21 @@ public class ConfigForm {
     }
 
     public void loadSettings() {
-        gitlabUrlField.setText(projectConfig.getGitlabUrl());
-        authTokenField.setText(projectConfig.getGitlabAuthToken());
-        branchesToWatchListModel.replaceAll(projectConfig.getBranchesToWatch());
-        branchesToIgnoreListModel.replaceAll(projectConfig.getBranchesToIgnore());
+        branchesToWatchListModel.replaceAll(projectConfig.getBranchesToWatch().stream().sorted().collect(Collectors.toList()));
+        branchesToIgnoreListModel.replaceAll(projectConfig.getBranchesToIgnore().stream().sorted().collect(Collectors.toList()));
+        mergeRequestTargetBranch.setText(projectConfig.getMergeRequestTargetBranch());
         enabledCheckbox.setSelected(projectConfig.isEnabled());
 
         lightsBranch.setText(projectConfig.getShowLightsForBranch());
-        mergeRequestTargetBranch.setText(projectConfig.getMergeRequestTargetBranch());
     }
 
     public boolean isModified() {
-        return !Objects.equals(gitlabUrlField.getText(), projectConfig.getGitlabUrl())
-                || !Objects.equals(projectConfig.getGitlabAuthToken(), authTokenField.getText())
-                || !Objects.equals(projectConfig.getShowLightsForBranch(), lightsBranch.getText())
-                || !Objects.equals(projectConfig.getMergeRequestTargetBranch(), mergeRequestTargetBranch.getText())
-                || !new HashSet<>(branchesToWatchListModel.getItems()).equals(new HashSet<>(projectConfig.getBranchesToWatch()))
-                || !new HashSet<>(branchesToIgnoreListModel.getItems()).equals(new HashSet<>(projectConfig.getBranchesToIgnore()))
-                || enabledCheckbox.isSelected() != projectConfig.isEnabled()
+        return
+                !Objects.equals(projectConfig.getShowLightsForBranch(), lightsBranch.getText())
+                        || !Objects.equals(projectConfig.getMergeRequestTargetBranch(), mergeRequestTargetBranch.getText())
+                        || !new HashSet<>(branchesToWatchListModel.getItems()).equals(new HashSet<>(projectConfig.getBranchesToWatch()))
+                        || !new HashSet<>(branchesToIgnoreListModel.getItems()).equals(new HashSet<>(projectConfig.getBranchesToIgnore()))
+                        || enabledCheckbox.isSelected() != projectConfig.isEnabled()
                 ;
     }
 

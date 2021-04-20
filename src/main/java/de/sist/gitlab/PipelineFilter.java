@@ -1,9 +1,10 @@
 package de.sist.gitlab;
 
+import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.project.Project;
 import de.sist.gitlab.config.ConfigProvider;
 import de.sist.gitlab.config.Mapping;
-import de.sist.gitlab.git.GitInitListener;
+import de.sist.gitlab.git.GitService;
 import git4idea.GitLocalBranch;
 import git4idea.repo.GitRepository;
 
@@ -17,20 +18,18 @@ public class PipelineFilter {
 
     private final ConfigProvider config;
     private final Project project;
-    private List<GitRepository> gitRepositories;
     private PipelineJobStatus latestShown;
 
     public PipelineFilter(Project project) {
         config = ConfigProvider.getInstance();
-        project.getMessageBus().connect().subscribe(GitInitListener.GIT_INITIALIZED, gitRepositories -> {
-            this.gitRepositories = gitRepositories;
-        });
+
         this.project = project;
     }
 
     public List<PipelineJobStatus> filterPipelines(String projectId, List<PipelineJobStatus> toFilter, boolean forNotification) {
+        final List<GitRepository> gitRepositories = ServiceManager.getService(project, GitService.class).getNonIgnoredRepositories();
         final Set<String> trackedBranches = new HashSet<>();
-        final Mapping mapping = config.getMappings(project).stream().filter(x -> x.getGitlabProjectId().equals(projectId)).findFirst().orElseThrow(() -> new RuntimeException("Unable to find mapping for project ID " + projectId));
+        final Mapping mapping = config.getMappings().stream().filter(x -> x.getGitlabProjectId().equals(projectId)).findFirst().orElseThrow(() -> new RuntimeException("Unable to find mapping for project ID " + projectId));
 
         final List<GitRepository> matchingRepositories = gitRepositories.stream().filter(x -> x.getRemotes().stream().anyMatch(remote -> remote.getUrls().stream().anyMatch(url -> url.equals(mapping.getRemote())))).collect(Collectors.toList());
 
@@ -43,14 +42,14 @@ public class PipelineFilter {
         }
 
         final List<PipelineJobStatus> statuses = toFilter.stream().filter(x -> {
-            if (config.getBranchesToIgnore(project).contains(x.branchName)) {
-                return false;
-            }
-            if (trackedBranches.contains(x.branchName)) {
-                return true;
-            }
-            if (config.getBranchesToWatch(project).contains(x.branchName) && (!forNotification || config.isShowNotificationForWatchedBranches())) {
-                return true;
+                    if (config.getBranchesToIgnore(project).contains(x.branchName)) {
+                        return false;
+                    }
+                    if (trackedBranches.contains(x.branchName)) {
+                        return true;
+                    }
+                    if (config.getBranchesToWatch(project).contains(x.branchName) && (!forNotification || config.isShowNotificationForWatchedBranches())) {
+                        return true;
                     }
 
                     return false;

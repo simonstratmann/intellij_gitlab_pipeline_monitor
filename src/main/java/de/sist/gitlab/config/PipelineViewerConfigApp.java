@@ -10,16 +10,11 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashSet;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @State(name = "PipelineViewerConfigApp", storages = {@Storage("PipelineViewerConfigApp.xml")})
 public class PipelineViewerConfigApp implements PersistentStateComponent<PipelineViewerConfigApp> {
 
-    private String gitlabUrl;
-    private String gitlabAuthToken;
     private List<Mapping> mappings = new ArrayList<>();
     private String mergeRequestTargetBranch = "master";
     private List<String> statusesToWatch = new ArrayList<>();
@@ -27,28 +22,12 @@ public class PipelineViewerConfigApp implements PersistentStateComponent<Pipelin
     private boolean showConnectionErrors = true;
     private List<String> ignoredRemotes = new ArrayList<>();
 
-    public String getGitlabUrl() {
-        return Strings.emptyToNull(gitlabUrl);
-    }
-
-    public void setGitlabUrl(String gitlabUrl) {
-        this.gitlabUrl = gitlabUrl;
-    }
-
-    public String getGitlabAuthToken() {
-        return Strings.emptyToNull(gitlabAuthToken);
-    }
-
-    public void setGitlabAuthToken(String gitlabAuthToken) {
-        this.gitlabAuthToken = gitlabAuthToken;
-    }
-
     public List<Mapping> getMappings() {
         return mappings;
     }
 
     public void setMappings(List<Mapping> mappings) {
-        this.mappings = new ArrayList<>(new HashSet<>(mappings));
+        this.mappings = mappings;
     }
 
     public boolean isShowConnectionErrors() {
@@ -83,17 +62,16 @@ public class PipelineViewerConfigApp implements PersistentStateComponent<Pipelin
         return statusesToWatch;
     }
 
-
     public void setStatusesToWatch(List<String> statusesToWatch) {
         this.statusesToWatch = statusesToWatch;
     }
 
-    public List<String> getIgnoredRemotes() {
-        return new HashSet<>(ignoredRemotes).stream().sorted(Comparator.naturalOrder()).collect(Collectors.toList());
+    public synchronized List<String> getIgnoredRemotes() {
+        return ignoredRemotes;
     }
 
-    public void setIgnoredRemotes(List<String> ignoredRemotes) {
-        this.ignoredRemotes = new HashSet<>(ignoredRemotes).stream().sorted(Comparator.naturalOrder()).collect(Collectors.toList());
+    public synchronized void setIgnoredRemotes(List<String> ignoredRemotes) {
+        this.ignoredRemotes = ignoredRemotes;
     }
 
     @Override

@@ -7,42 +7,31 @@ import com.intellij.openapi.project.Project;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
-import java.util.Optional;
 
 /**
  * @author PPI AG
  */
 public class ConfigProvider {
 
-    public String getGitlabUrl(Project project) {
-        final String gitlabUrl = PipelineViewerConfigProject.getInstance(project).getGitlabUrl();
-        return !Strings.isNullOrEmpty(gitlabUrl) ? gitlabUrl : PipelineViewerConfigApp.getInstance().getGitlabUrl();
-    }
-
-
-    public String getGitlabAuthToken(Project project) {
-        final String gitlabUrl = PipelineViewerConfigProject.getInstance(project).getGitlabAuthToken();
-        return !Strings.isNullOrEmpty(gitlabUrl) ? gitlabUrl : PipelineViewerConfigApp.getInstance().getGitlabAuthToken();
-    }
-
-
-    public List<Mapping> getMappings(Project project) {
+    public List<Mapping> getMappings() {
         return PipelineViewerConfigApp.getInstance().getMappings();
     }
 
-    public Optional<Mapping> getMappingByRemote(Project project, String remote) {
-        return getMappings(project).stream().filter(x -> x.getRemote().equals(remote)).findFirst();
+    public Mapping getMappingByRemote(String remote) {
+        return getMappings().stream().filter(x -> x.getRemote().equals(remote)).findFirst().orElse(null);
     }
 
-    public Optional<Mapping> getMappingByProjectId(Project project, String projectId) {
-        return getMappings(project).stream().filter(x -> x.getGitlabProjectId().equals(projectId)).findFirst();
+    public Mapping getMappingByProjectId(String projectId) {
+        return getMappings().stream().filter(x -> x.getGitlabProjectId().equals(projectId)).findFirst().orElse(null);
     }
-
 
     public List<String> getBranchesToIgnore(Project project) {
         return PipelineViewerConfigProject.getInstance(project).getBranchesToIgnore();
     }
 
+    public List<String> getIgnoredRemotes() {
+        return PipelineViewerConfigApp.getInstance().getIgnoredRemotes();
+    }
 
     @NotNull
     public List<String> getBranchesToWatch(Project project) {

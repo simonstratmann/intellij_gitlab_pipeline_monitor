@@ -28,13 +28,13 @@ patchPluginXml {
     changeNotes """
     <p>2.0</p>
     <ul>
-        <li>Changed the workflow and config to support multiple gitlab projects in one IntelliJ project. The plugin will now recognize all git remotes used in a project and attempt to show pipelines for all of them.</li>
-        <li>Store settings on application level where sensible so you only have to configure the gitlab URL and access token only once if you use the same instance in different projects.</li>
+        <li>Drastically changed workflow. The plugin will recognize all remotes used in an IntelliJ project and ask which should be monitored. It will then automatically retrieve all necessary data from gitlab. This a) reduces how much you need to configure and b) allows to decouple IntelliJ projects from Gitlab projects.</li>
         <li>Use gitlab default target branch for merge requests if none is configured.</li>
         <li>Display times in local time zone.</li>
         <li>Don't remove path of configured gitlab URL.</li>
         <li>Show config validation errors as warnings.</li>
         <li>Add action to open last pipeline in browser (located in Git main menu group).</li>
+        <li>Changed minumum IntelliJ version to 2020.1.</li>
     </ul>
     
     <br/>

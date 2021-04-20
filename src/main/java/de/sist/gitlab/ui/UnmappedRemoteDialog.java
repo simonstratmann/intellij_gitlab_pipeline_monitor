@@ -1,11 +1,5 @@
 package de.sist.gitlab.ui;
 
-import com.google.common.base.Strings;
-import com.intellij.openapi.Disposable;
-import com.intellij.openapi.ui.ComponentValidator;
-import com.intellij.openapi.ui.ValidationInfo;
-import de.sist.gitlab.validator.UrlValidator;
-
 import javax.swing.*;
 import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
@@ -14,17 +8,17 @@ import java.awt.event.WindowEvent;
 public class UnmappedRemoteDialog extends JDialog {
     private JPanel contentPane;
     private JButton buttonOK;
-    private JButton buttonCancel;
-    private JTextField mappingInput;
+    private JTextField accessTokenInput;
     private JLabel label;
     private JRadioButton radioAskAgain;
     private JRadioButton radioNoAskRemote;
     private JRadioButton radioNoAskProject;
-    private JLabel projectIdLabel;
+    private JLabel accessTokenLabel;
+    private JRadioButton radioDoMonitor;
 
     private Response response;
 
-    public UnmappedRemoteDialog(String remoteUrl, Disposable disposable) {
+    public UnmappedRemoteDialog(String remoteUrl) {
         setContentPane(contentPane);
         setModal(true);
         getRootPane().setDefaultButton(buttonOK);
@@ -33,24 +27,18 @@ public class UnmappedRemoteDialog extends JDialog {
         buttonGroup.add(radioAskAgain);
         buttonGroup.add(radioNoAskRemote);
         buttonGroup.add(radioNoAskProject);
+        buttonGroup.add(radioDoMonitor);
         radioAskAgain.setSelected(true);
-        projectIdLabel.setText("Gitlab project ID for " + remoteUrl);
+        accessTokenLabel.setText("Access token ");
 
-        label.setText("<html>The remote '" + remoteUrl + "' is not mapped to a gitlab project which means the pipeline viewer is unable<br> to retrieve pipelines for its branches.<br><br>" +
-                "Please enter the ID of the gitlab project which builds pipelines for these branches.<br>" +
-                "You may still add or modify this mapping in the settings later." +
+        label.setText("<html>The remote '" + remoteUrl + "' is not tracked by the gitlab pipeline viewer.<br>" +
+                "Do you want to monitor pipelines built for this branch?<br>" +
+                "If an access token is needed for corresponding gitlab instance please enter it below.<br>" +
+                "You may still add or modify this in the settings later." +
                 "</html>");
 
         buttonOK.addActionListener(e -> onOK());
-        new ComponentValidator(disposable).withValidator(() -> {
-            boolean valid = Strings.isNullOrEmpty(mappingInput.getText()) || UrlValidator.getInstance().isValid(mappingInput.getText());
-            if (!valid) {
-                return new ValidationInfo("Please enter a value", mappingInput);
-            }
-            return null;
-        }).installOn(mappingInput);
 
-        buttonCancel.addActionListener(e -> onCancel());
 
         // call onCancel() when cross is clicked
         setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
@@ -65,31 +53,28 @@ public class UnmappedRemoteDialog extends JDialog {
     }
 
     private void onOK() {
-        //Nothing to do, will return content of input
-        if (Strings.isNullOrEmpty(mappingInput.getText())) {
-            ComponentValidator.getInstance(mappingInput).ifPresent(ComponentValidator::revalidate);
-            return;
+        if (radioAskAgain.isSelected()) {
+            response = new Response(Cancel.ASK_AGAIN, null);
+        } else if (radioNoAskRemote.isSelected()) {
+            response = new Response(Cancel.IGNORE_REMOTE, null);
+        } else if (radioNoAskProject.isSelected()) {
+            response = new Response(Cancel.IGNORE_PROJECT, null);
+        } else if (radioDoMonitor.isSelected()) {
+            response = new Response(null, accessTokenInput.getText());
         }
-        response = new Response(null, mappingInput.getText());
         dispose();
     }
 
     private void onCancel() {
-        mappingInput.setText(null);
-        if (radioAskAgain.isSelected()) {
-            response = new Response(Cancel.ASK_AGAIN, null);
-        }
-        if (radioNoAskRemote.isSelected()) {
-            response = new Response(Cancel.IGNORE_REMOTE, null);
-        } else if (radioNoAskProject.isSelected()) {
-            response = new Response(Cancel.IGNORE_PROJECT, null);
-        }
+        accessTokenInput.setText(null);
+        response = new Response(Cancel.ASK_AGAIN, null);
         dispose();
     }
 
     public Response showDialog() {
         this.setLocationRelativeTo(null);
         pack();
+        setTitle("Gitlab Pipeline Viewer - Unknown remote found");
         setVisible(true);
         setModalityType(ModalityType.DOCUMENT_MODAL);
         return response;
@@ -104,20 +89,19 @@ public class UnmappedRemoteDialog extends JDialog {
     public static class Response {
 
         private final Cancel cancel;
-        private final String projectId;
+        private final String accessToken;
 
-
-        public Response(Cancel cancel, String projectId) {
+        public Response(Cancel cancel, String accessToken) {
             this.cancel = cancel;
-            this.projectId = projectId;
+            this.accessToken = accessToken;
         }
 
         public Cancel getCancel() {
             return cancel;
         }
 
-        public String getProjectId() {
-            return projectId;
+        public String getAccessToken() {
+            return accessToken;
         }
     }
 }

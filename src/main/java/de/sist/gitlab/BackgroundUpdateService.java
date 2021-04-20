@@ -42,7 +42,6 @@ public class BackgroundUpdateService {
                 return;
             }
             try {
-                gitlabService.retrieveProjectNames();
                 final Map<String, List<PipelineJobStatus>> pipelineInfos = gitlabService.getPipelineInfos();
                 project.getMessageBus().syncPublisher(ReloadListener.RELOAD).reload(pipelineInfos);
             } catch (IOException e) {
@@ -63,7 +62,7 @@ public class BackgroundUpdateService {
             return;
         }
         ConfigProvider config = ConfigProvider.getInstance();
-        if (config.getMappings(project) == null || config.getMappings(project).isEmpty()) {
+        if (config.getMappings() == null || config.getMappings().isEmpty()) {
             NotificationGroup notificationGroup = NotificationGroup.findRegisteredGroup(DISPLAY_ID);
             if (notificationGroup == null) {
                 notificationGroup = new NotificationGroup(DISPLAY_ID, NotificationDisplayType.BALLOON, true,

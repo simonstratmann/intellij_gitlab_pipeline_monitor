@@ -15,7 +15,7 @@ public class StartupInitialization implements StartupActivity {
         //Get service so it's initialized
         ServiceManager.getService(project, NotifierService.class);
         ServiceManager.getService(project, LightsControl.class);
-        ServiceManager.getService(project, GitService.class);
+        ServiceManager.getService(project, GitService.class).reloadGitRepositories();
 
     }
 }

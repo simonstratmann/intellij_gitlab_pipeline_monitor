@@ -17,44 +17,19 @@ import java.util.List;
 @State(name = "PipelineViewerConfigProject", storages = {@Storage("PipelineViewerConfig.xml")})
 public class PipelineViewerConfigProject implements PersistentStateComponent<PipelineViewerConfigProject> {
 
-    private String gitlabUrl;
-    private String gitlabAuthToken;
     private List<String> branchesToIgnore = new ArrayList<>();
     private List<String> branchesToWatch = new ArrayList<>();
     private String showLightsForBranch;
     private String mergeRequestTargetBranch = "master";
     private boolean enabled;
 
-
-    public String getGitlabUrl() {
-        return Strings.emptyToNull(gitlabUrl);
-    }
-
-
-    public void setGitlabUrl(String gitlabUrl) {
-        this.gitlabUrl = gitlabUrl;
-    }
-
-
-    public String getGitlabAuthToken() {
-        return Strings.emptyToNull(gitlabAuthToken);
-    }
-
-
-    public void setGitlabAuthToken(String gitlabAuthToken) {
-        this.gitlabAuthToken = gitlabAuthToken;
-    }
-
-
     public List<String> getBranchesToIgnore() {
         return branchesToIgnore;
     }
 
-
     public void setBranchesToIgnore(List<String> branchesToIgnore) {
         this.branchesToIgnore = new ArrayList<>(new HashSet<>(branchesToIgnore));
     }
-
 
     @NotNull
     public List<String> getBranchesToWatch() {
