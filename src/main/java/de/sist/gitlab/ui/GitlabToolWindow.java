@@ -270,10 +270,10 @@ public class GitlabToolWindow {
 
     private String getSelectedBranch(Point pointClicked) {
         SelectedCell cell = getSelectedTableCell(pointClicked);
-        if (cell.columnIndex != 0 || cell.rowIndex == -1) {
+        if (cell.rowIndex == -1 || cell.rowIndex > tableModel.rows.size()) {
             return null;
         }
-        return (String) cell.cellContent;
+        return tableModel.rows.get(cell.rowIndex).branchName;
     }
 
     private SelectedCell getSelectedTableCell(Point pointClicked) {
@@ -476,10 +476,6 @@ public class GitlabToolWindow {
             @Override
             public void mouseClicked(MouseEvent e) {
                 if (e.getButton() == MouseEvent.BUTTON3) {
-                    int selectedColumn = pipelineTable.columnAtPoint(e.getPoint());
-                    if (selectedColumn != 1) {
-                        return;
-                    }
                     String branchName;
                     try {
                         branchName = getSelectedBranch(e.getPoint());
