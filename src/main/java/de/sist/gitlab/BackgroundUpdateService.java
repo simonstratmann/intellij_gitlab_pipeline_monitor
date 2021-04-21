@@ -1,12 +1,8 @@
 package de.sist.gitlab;
 
-import com.intellij.notification.NotificationDisplayType;
-import com.intellij.notification.NotificationGroup;
 import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.ui.MessageType;
-import com.intellij.openapi.util.IconLoader;
 import com.intellij.util.concurrency.AppExecutorUtil;
 import de.sist.gitlab.config.ConfigChangedListener;
 import de.sist.gitlab.config.ConfigProvider;
@@ -22,10 +18,10 @@ import java.util.concurrent.TimeUnit;
 
 public class BackgroundUpdateService {
 
+    private static final Logger logger = Logger.getInstance(Logger.class);
+
     private static final int INITIAL_DELAY = 0;
     private static final int UPDATE_DELAY = 30;
-    private static final String DISPLAY_ID = "GitLab Pipeline Viewer - Error";
-    Logger logger = Logger.getInstance(BackgroundUpdateService.class);
 
     private boolean isRunning = false;
     private final Runnable backgroundTask;
@@ -51,25 +47,18 @@ public class BackgroundUpdateService {
             }
         };
 
-        project.getMessageBus().connect().subscribe(GitInitListener.GIT_INITIALIZED, gitRepository -> startBackgroundTask());
+        project.getMessageBus().connect().subscribe(GitInitListener.GIT_INITIALIZED, gitRepository -> {
+            logger.debug("Retrieved GIT_INITIALIZED event. Starting background task if needed");
+            startBackgroundTask();
+        });
         project.getMessageBus().connect().subscribe(ConfigChangedListener.CONFIG_CHANGED, () -> {
             if (!PipelineViewerConfigProject.getInstance(project).isEnabled()) {
+                logger.debug("Retrieved CONFIG_CHANGED event. Project is disabled. Stopping background task if needed");
                 stopBackgroundTask();
+            } else {
+                logger.debug("Retrieved CONFIG_CHANGED event. Project is enabled. Starting background task if needed");
             }
         });
-
-        if (!PipelineViewerConfigProject.getInstance(project).isEnabled()) {
-            return;
-        }
-        ConfigProvider config = ConfigProvider.getInstance();
-        if (config.getMappings() == null || config.getMappings().isEmpty()) {
-            NotificationGroup notificationGroup = NotificationGroup.findRegisteredGroup(DISPLAY_ID);
-            if (notificationGroup == null) {
-                notificationGroup = new NotificationGroup(DISPLAY_ID, NotificationDisplayType.BALLOON, true,
-                        "GitLab pipeline viewer", IconLoader.getIcon("/toolWindow/gitlab-icon.png", BackgroundUpdateService.class));
-            }
-            notificationGroup.createNotification("No gitlab project ID set", MessageType.ERROR);
-        }
     }
 
     public synchronized void startBackgroundTask() {

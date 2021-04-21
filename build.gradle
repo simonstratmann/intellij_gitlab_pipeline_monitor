@@ -4,7 +4,11 @@ plugins {
 }
 
 group 'de.sist'
-version '1.29'
+version '1.99.2'
+
+publishPlugin {
+    token intellijPublishToken
+}
 
 sourceCompatibility = 1.8
 
@@ -21,7 +25,7 @@ dependencies {
 // See https://github.com/JetBrains/gradle-intellij-plugin/
 intellij {
     version '203.7717.32'
-     updateSinceUntilBuild = false
+    updateSinceUntilBuild = false
     setPlugins("git4idea")
 }
 patchPluginXml {
@@ -223,8 +227,4 @@ patchPluginXml {
         <li>Support for custom gitlab instances.</li>
     </ul>
       """
-}
-
-publishPlugin {
-    token intellijPublishToken
 }

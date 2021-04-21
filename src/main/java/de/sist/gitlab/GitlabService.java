@@ -40,6 +40,7 @@ import java.util.stream.Collectors;
 public class GitlabService {
 
     private static final Logger logger = Logger.getInstance(GitlabService.class);
+
     private static final String PROJECTS_SUFFIX = "/api/v4/projects/%s/";
     private static final String PIPELINES_SUFFIX = "pipelines/";
     private static final Pattern REMOTE_GIT_SSH_PATTERN = Pattern.compile("git@(?<host>.*):(?<projectPath>.*)\\.git");
@@ -68,6 +69,7 @@ public class GitlabService {
     }
 
     private synchronized void checkForUnmappedRemotes(List<GitRepository> gitRepositories) {
+        logger.debug("Checking for unmapped remotes");
         final Set<String> handledMappings = new HashSet<>();
         for (GitRepository gitRepository : gitRepositories) {
             for (GitRemote remote : gitRepository.getRemotes()) {
@@ -92,16 +94,21 @@ public class GitlabService {
     }
 
     private void handleUnknownRemote(String url) {
+        logger.info("Found unkown remote " + url);
+
         final UnmappedRemoteDialog.Response response = new UnmappedRemoteDialog(url).showDialog();
 
         if (response.getCancel() == UnmappedRemoteDialog.Cancel.IGNORE_REMOTE) {
             ConfigProvider.getInstance().getIgnoredRemotes().add(url);
+            logger.info("Added " + url + " to list of ignored remotes");
             return;
         } else if (response.getCancel() == UnmappedRemoteDialog.Cancel.IGNORE_PROJECT) {
             PipelineViewerConfigProject.getInstance(project).setEnabled(false);
+            logger.info("Disabling pipeline viewer for project " + project.getName());
             ApplicationManager.getApplication().getMessageBus().syncPublisher(ConfigChangedListener.CONFIG_CHANGED).configChanged();
             return;
         } else if (response.getCancel() == UnmappedRemoteDialog.Cancel.ASK_AGAIN) {
+            logger.debug("User chose to be asked again about url " + url);
             return;
         }
 
@@ -109,6 +116,7 @@ public class GitlabService {
         mapping.setRemote(url);
 
         if (!Strings.isNullOrEmpty(response.getAccessToken())) {
+            logger.info("Saved access token for URL " + url);
             PasswordSafe.getInstance().set(new CredentialAttributes(ACCESS_TOKEN_CREDENTIALS_ATTRIBUTE, url), new Credentials(url, response.getAccessToken()));
         }
 
@@ -130,7 +138,6 @@ public class GitlabService {
 
     @SuppressWarnings("unchecked")
     private void fillMappingWithProjectNameAndId(String url, Mapping mapping) {
-        // TODO sist 20.04.2021: Handle access tokens
         final String graphQlUrl = mapping.getHost() + "/api/graphql";
 
         final String graphQlQuery = String.format("{\"query\": \"query {  project(fullPath:\\\"%s\\\") {    name    id  }}\"}", mapping.getProjectPath());
@@ -201,6 +208,7 @@ public class GitlabService {
                     .addParameter("per_page", "100");
             final String accessToken = PasswordSafe.getInstance().getPassword(new CredentialAttributes(ACCESS_TOKEN_CREDENTIALS_ATTRIBUTE, mapping.getRemote()));
             if (accessToken != null) {
+                logger.debug("Using access tokeen for access to " + uriBuilder);
                 uriBuilder.addParameter("private_token", accessToken);
             }
 

@@ -21,7 +21,7 @@ public class PipelineViewerConfigProject implements PersistentStateComponent<Pip
     private List<String> branchesToWatch = new ArrayList<>();
     private String showLightsForBranch;
     private String mergeRequestTargetBranch = "master";
-    private boolean enabled;
+    private boolean enabled = true;
     //Not displayed in the settings but in the tool window
     private boolean showPipelinesForAll = true;
 

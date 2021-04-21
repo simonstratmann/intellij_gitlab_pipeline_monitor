@@ -201,6 +201,7 @@ public class GitlabToolWindow {
 
     private void handleEnabledState(Project project) {
         final boolean enabled = PipelineViewerConfigProject.getInstance(project).isEnabled();
+        logger.debug("Enabled for project: " + enabled);
         ApplicationManager.getApplication().invokeLater(() -> {
             toolWindowContent.setEnabled(enabled);
             pipelineTable.setEnabled(enabled);
