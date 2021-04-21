@@ -13,7 +13,6 @@ public class UnmappedRemoteDialog extends JDialog {
     private JRadioButton radioAskAgain;
     private JRadioButton radioNoAskRemote;
     private JRadioButton radioNoAskProject;
-    private JLabel accessTokenLabel;
     private JRadioButton radioDoMonitor;
 
     private Response response;
@@ -29,16 +28,13 @@ public class UnmappedRemoteDialog extends JDialog {
         buttonGroup.add(radioNoAskProject);
         buttonGroup.add(radioDoMonitor);
         radioAskAgain.setSelected(true);
-        accessTokenLabel.setText("Access token ");
 
         label.setText("<html>The remote '" + remoteUrl + "' is not tracked by the gitlab pipeline viewer.<br>" +
                 "Do you want to monitor pipelines built for this branch?<br>" +
-                "If an access token is needed for corresponding gitlab instance please enter it below.<br>" +
                 "You may still add or modify this in the settings later." +
                 "</html>");
 
         buttonOK.addActionListener(e -> onOK());
-
 
         // call onCancel() when cross is clicked
         setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
