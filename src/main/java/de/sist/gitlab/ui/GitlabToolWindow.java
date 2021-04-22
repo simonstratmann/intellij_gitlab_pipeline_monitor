@@ -215,52 +215,52 @@ public class GitlabToolWindow {
         });
     }
 
-    private JBPopupMenu getBranchPopupMenu(String branchName) {
+    private JBPopupMenu getBranchPopupMenu(PipelineJobStatus selectedPipelineStatus) {
         JBPopupMenu branchPopupMenu = new JBPopupMenu();
         final ConfigProvider config = ConfigProvider.getInstance();
         branchPopupMenu.add(new AbstractAction("Show traffic lights for this branch") {
             @Override
             public void actionPerformed(ActionEvent e) {
-                PipelineViewerConfigProject.getInstance(project).setShowLightsForBranch(branchName);
+                PipelineViewerConfigProject.getInstance(project).setShowLightsForBranch(selectedPipelineStatus.getBranchName());
                 runLoadPipelinesTask(project);
             }
         });
         branchPopupMenu.add(new AbstractAction("Never show results for this branch") {
             @Override
             public void actionPerformed(ActionEvent e) {
-                config.getBranchesToIgnore(project).add(branchName);
+                config.getBranchesToIgnore(project).add(selectedPipelineStatus.getBranchName());
                 runLoadPipelinesTask(project);
             }
         });
         branchPopupMenu.add(new AbstractAction("Always show results for this branch") {
             @Override
             public void actionPerformed(ActionEvent e) {
-                config.getBranchesToWatch(project).add(branchName);
+                config.getBranchesToWatch(project).add(selectedPipelineStatus.getBranchName());
                 runLoadPipelinesTask(project);
             }
         });
         branchPopupMenu.add(new AbstractAction("Create merge request for this branch") {
             @Override
             public void actionPerformed(ActionEvent e) {
-                openMergeRequestUrlForSelectedBranch(config, branchName);
+                openMergeRequestUrlForSelectedBranch(config, selectedPipelineStatus);
             }
         });
         branchPopupMenu.add(new AbstractAction("Checkout this branch") {
             @Override
             public void actionPerformed(ActionEvent e) {
                 GitBrancher brancher = GitBrancher.getInstance(project);
-                brancher.checkout(branchName, false, GitUtil.getRepositoryManager(project).getRepositories(), null);
+                brancher.checkout(selectedPipelineStatus.getBranchName(), false, GitUtil.getRepositoryManager(project).getRepositories(), null);
             }
         });
 
         return branchPopupMenu;
     }
 
-    private void openMergeRequestUrlForSelectedBranch(ConfigProvider config, String branchName) {
+    private void openMergeRequestUrlForSelectedBranch(ConfigProvider config, PipelineJobStatus pipelineJobStatus) {
         String url = NEW_MERGE_REQUEST_URL_TEMPLATE
                 .replace(GITLAB_URL_PLACEHOLDER, gitlabService.getGitlabHtmlBaseUrl(null))
-                .replace(PROJECT_ID_PLACEHOLDER, config.getMappings().toString())
-                .replace(SOURCE_BRANCH_PLACEHOLDER, branchName);
+                .replace(PROJECT_ID_PLACEHOLDER, pipelineJobStatus.getProjectId())
+                .replace(SOURCE_BRANCH_PLACEHOLDER, pipelineJobStatus.getBranchName());
         if (config.getMergeRequestTargetBranch(project) != null) {
             url += NEW_MERGE_REQUEST_URL_TARGET_BRANCH_POSTFIX.replace(TARGET_BRANCH_PLACEHOLDER, config.getMergeRequestTargetBranch(project));
         }
@@ -268,12 +268,12 @@ public class GitlabToolWindow {
         com.intellij.ide.BrowserUtil.browse(url);
     }
 
-    private String getSelectedBranch(Point pointClicked) {
+    private PipelineJobStatus getSelectedBranch(Point pointClicked) {
         SelectedCell cell = getSelectedTableCell(pointClicked);
         if (cell.rowIndex == -1 || cell.rowIndex > tableModel.rows.size()) {
             return null;
         }
-        return tableModel.rows.get(cell.rowIndex).branchName;
+        return tableModel.rows.get(cell.rowIndex);
     }
 
     private SelectedCell getSelectedTableCell(Point pointClicked) {
@@ -476,22 +476,21 @@ public class GitlabToolWindow {
             @Override
             public void mouseClicked(MouseEvent e) {
                 if (e.getButton() == MouseEvent.BUTTON3) {
-                    String branchName;
+                    PipelineJobStatus selectedPipelineStatus;
                     try {
-                        branchName = getSelectedBranch(e.getPoint());
+                        selectedPipelineStatus = getSelectedBranch(e.getPoint());
                     } catch (Exception ex) {
                         //Can happen in some (unknown) cases, probably when the table is updated while the mouse is clicked
                         logger.debug(ex);
                         return;
                     }
-                    if (branchName == null) {
+                    if (selectedPipelineStatus == null) {
                         return;
                     }
-                    getBranchPopupMenu(branchName).show(e.getComponent(), e.getX(), e.getY());
+                    getBranchPopupMenu(selectedPipelineStatus).show(e.getComponent(), e.getX(), e.getY());
                 }
 
                 if (e.getButton() == MouseEvent.BUTTON1) {
-
                     int viewRow = pipelineTable.getSelectedRow();
                     if (viewRow == -1) {
                         return;
