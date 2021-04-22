@@ -39,7 +39,7 @@ patchPluginXml {
         <li>Don't remove path of configured gitlab URL.</li>
         <li>Show config validation errors as warnings.</li>
         <li>Add action to open last pipeline in browser (located in Git main menu group).</li>
-        <li>Changed minumum IntelliJ version to 2020.1.</li>
+        <li>Changed minimum IntelliJ version to 2020.1.</li>
     </ul>
     
     <br/>
@@ -53,7 +53,7 @@ patchPluginXml {
     
     <p>1.27</p>
     <ul>
-        <li>Fix exception when copying commit hash to clipboard</li>
+        <li>Fix exception when copying commit hash to clipboard.</li>
         <li>(Hopefully) fix exception when sorting branches without update time.</li>
     </ul>
     

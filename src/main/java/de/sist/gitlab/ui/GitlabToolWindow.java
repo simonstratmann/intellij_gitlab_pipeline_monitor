@@ -64,6 +64,9 @@ import java.awt.Component;
 import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.Point;
+import java.awt.Toolkit;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.StringSelection;
 import java.awt.event.ActionEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -310,8 +313,21 @@ public class GitlabToolWindow {
             }
         };
 
+        AnActionButton copyCurrentGitHash = new AnActionButton("Copy current git hash to clipboard", "Copy current git hash to clipboard", null) {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+                clipboard.setContents(new StringSelection(GitService.getInstance(project).getCurrentHash()), null);
+            }
 
-        DefaultActionGroup actionGroup = new DefaultActionGroup(refreshActionButton, turnOffLightsAction);
+            @Override
+            public JComponent getContextComponent() {
+                return pipelineTable;
+            }
+        };
+
+
+        DefaultActionGroup actionGroup = new DefaultActionGroup(refreshActionButton, turnOffLightsAction, copyCurrentGitHash);
 
         ActionToolbar actionToolbar = ActionManager.getInstance().createActionToolbar(ActionPlaces.TOOLBAR, actionGroup, true);
 
