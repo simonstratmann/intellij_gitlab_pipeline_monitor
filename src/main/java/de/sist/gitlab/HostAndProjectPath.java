@@ -2,7 +2,6 @@
 package de.sist.gitlab;
 
 /**
- * @author PPI AG
  */
 public class HostAndProjectPath {
     private final String host;

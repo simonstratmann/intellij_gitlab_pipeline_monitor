@@ -4,7 +4,7 @@ plugins {
 }
 
 group 'de.sist'
-version '1.99.5'
+version '1.99.6'
 
 publishPlugin {
     token intellijPublishToken

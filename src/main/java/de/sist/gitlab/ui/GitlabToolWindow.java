@@ -363,6 +363,9 @@ public class GitlabToolWindow {
         showForAllCheckbox.addChangeListener(new ChangeListener() {
             @Override
             public void stateChanged(ChangeEvent e) {
+                if (ConfigProvider.getInstance().isConfigOpen()) {
+                    return;
+                }
                 updatePipelinesDisplay();
                 PipelineViewerConfigProject.getInstance(project).setShowPipelinesForAll(showForAllCheckbox.isSelected());
             }

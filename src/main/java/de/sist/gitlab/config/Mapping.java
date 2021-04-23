@@ -5,7 +5,6 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Objects;
 
 /**
- * @author PPI AG
  */
 public class Mapping {
 

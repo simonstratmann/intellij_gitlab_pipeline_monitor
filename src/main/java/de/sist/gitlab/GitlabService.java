@@ -69,6 +69,7 @@ public class GitlabService {
     }
 
     private synchronized void checkForUnmappedRemotes(List<GitRepository> gitRepositories) {
+        ConfigProvider.getInstance().aquireLock();
         logger.debug("Checking for unmapped remotes");
         final Set<String> handledMappings = new HashSet<>();
         for (GitRepository gitRepository : gitRepositories) {
