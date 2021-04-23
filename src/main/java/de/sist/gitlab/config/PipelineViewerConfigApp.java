@@ -16,7 +16,7 @@ import java.util.List;
 public class PipelineViewerConfigApp implements PersistentStateComponent<PipelineViewerConfigApp> {
 
     private List<Mapping> mappings = new ArrayList<>();
-    private String mergeRequestTargetBranch = "master";
+    private String mergeRequestTargetBranch;
     private List<String> statusesToWatch = new ArrayList<>();
     private boolean showNotificationForWatchedBranches = true;
     private boolean showConnectionErrors = true;
