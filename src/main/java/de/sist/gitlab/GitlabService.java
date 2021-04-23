@@ -203,7 +203,7 @@ public class GitlabService {
     private List<PipelineTo> makePipelinesUrlCall(int page, Mapping mapping) throws IOException {
         String url;
         try {
-            URIBuilder uriBuilder = getProjectsBaseUriBuilder(true, mapping.getGitlabProjectId());
+            URIBuilder uriBuilder = new URIBuilder(mapping.getHost() + "/api/v4/projects/" + mapping.getGitlabProjectId() + "/pipelines");
 
             uriBuilder.addParameter("page", String.valueOf(page))
                     .addParameter("per_page", "100");
@@ -227,43 +227,13 @@ public class GitlabService {
             }
         }
 
-        //While we're at it we load the gitlab HTML base URL
-        getGitlabHtmlBaseUrl(mapping.getGitlabProjectId());
-
         return Jackson.OBJECT_MAPPER.readValue(json, new TypeReference<List<PipelineTo>>() {
         });
     }
 
     public String getGitlabHtmlBaseUrl(String projectId) {
-        if (gitlabHtmlBaseUrl == null) {
-            try {
-                URIBuilder uriBuilder = getProjectsBaseUriBuilder(false, projectId);
-                String json = HttpRequests.request(uriBuilder.build().toString()).readString();
-                Map<String, Object> map = Jackson.OBJECT_MAPPER.readValue(json, new TypeReference<Map<String, Object>>() {
-                });
-                gitlabHtmlBaseUrl = (String) map.get("web_url");
-            } catch (IOException | URISyntaxException e) {
-                throw new RuntimeException(e);
-            }
-        }
-        return gitlabHtmlBaseUrl;
-    }
-
-    private URIBuilder getProjectsBaseUriBuilder(boolean pipelines, String projectId) {
-        String path = String.format(PROJECTS_SUFFIX, projectId);
-        if (pipelines) {
-            path += PIPELINES_SUFFIX;
-        }
-        //Fucking URIBuilder does not allow appending paths
-        URIBuilder uriBuilder;
-        try {
-            uriBuilder = new URIBuilder(config.getMappingByProjectId(projectId).getHost());
-        } catch (URISyntaxException e) {
-            throw new RuntimeException(e);
-        }
-        path = (Strings.nullToEmpty(uriBuilder.getPath()) + "/" + path).replace("//", "/");
-        uriBuilder = uriBuilder.setPath(path);
-        return uriBuilder;
+        final Mapping mapping = ConfigProvider.getInstance().getMappingByProjectId(projectId);
+        return mapping.getHost() + "/" + mapping.getProjectPath();
     }
 
     protected static Optional<HostAndProjectPath> getHostProjectPathFromRemote(String remote) {

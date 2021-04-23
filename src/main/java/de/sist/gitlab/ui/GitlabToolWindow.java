@@ -88,7 +88,14 @@ import java.util.stream.Stream;
 @SuppressWarnings({"Convert2Lambda"})
 public class GitlabToolWindow {
 
-    Logger logger = Logger.getInstance(GitlabToolWindow.class);
+    private static Logger logger = Logger.getInstance(GitlabToolWindow.class);
+
+    private static final String GITLAB_URL_PLACEHOLDER = "%GITLAB_URL%";
+    private static final String PROJECT_ID_PLACEHOLDER = "%PROJECT_ID%";
+    private static final String SOURCE_BRANCH_PLACEHOLDER = "%SOURCE_BRANCH%";
+    private static final String TARGET_BRANCH_PLACEHOLDER = "%TARGET_BRANCH%";
+    private static final String NEW_MERGE_REQUEST_URL_TEMPLATE = "%GITLAB_URL%/-/merge_requests/new?utf8=%E2%9C%93&merge_request%5Bsource_project_id%5D=%PROJECT_ID%&merge_request%5Bsource_branch%5D=%SOURCE_BRANCH%&merge_request%5Btarget_project_id%5D=%PROJECT_ID%";
+    private static final String NEW_MERGE_REQUEST_URL_TARGET_BRANCH_POSTFIX = "&merge_request%5Btarget_branch%5D=%TARGET_BRANCH%";
 
     private JPanel toolWindowContent;
     private final JTable pipelineTable;
@@ -107,13 +114,7 @@ public class GitlabToolWindow {
     private TableRowSorter<PipelineTableModel> tableSorter;
     private final Project project;
 
-    private static final String GITLAB_URL_PLACEHOLDER = "%GITLAB_URL%";
-    private static final String PROJECT_ID_PLACEHOLDER = "%PROJECT_ID%";
-    private static final String SOURCE_BRANCH_PLACEHOLDER = "%SOURCE_BRANCH%";
-    private static final String TARGET_BRANCH_PLACEHOLDER = "%TARGET_BRANCH%";
-    private static final String NEW_MERGE_REQUEST_URL_TEMPLATE = "%GITLAB_URL%/-/merge_requests/new?utf8=%E2%9C%93&merge_request%5Bsource_project_id%5D=%PROJECT_ID%&merge_request%5Bsource_branch%5D=%SOURCE_BRANCH%&merge_request%5Btarget_project_id%5D=%PROJECT_ID%";
-    private static final String NEW_MERGE_REQUEST_URL_TARGET_BRANCH_POSTFIX = "&merge_request%5Btarget_branch%5D=%TARGET_BRANCH%";
-    JCheckBox showForAllCheckbox;
+    private JCheckBox showForAllCheckbox;
 
 
     public GitlabToolWindow(Project project) {
@@ -181,7 +182,7 @@ public class GitlabToolWindow {
             showForAllCheckbox.setSelected(PipelineViewerConfigProject.getInstance(project).isShowPipelinesForAll());
             showForAllCheckbox.setEnabled(ServiceManager.getService(project, GitService.class).getNonIgnoredRepositories().size() > 1);
         });
-
+        showForAllCheckbox.setEnabled(ServiceManager.getService(project, GitService.class).getNonIgnoredRepositories().size() > 1);
     }
 
     private void updateTableWhenMonitoringMultipleRemotesButOnlyShowingPipelinesForOne() {
@@ -261,7 +262,7 @@ public class GitlabToolWindow {
 
     private void openMergeRequestUrlForSelectedBranch(ConfigProvider config, PipelineJobStatus pipelineJobStatus) {
         String url = NEW_MERGE_REQUEST_URL_TEMPLATE
-                .replace(GITLAB_URL_PLACEHOLDER, gitlabService.getGitlabHtmlBaseUrl(null))
+                .replace(GITLAB_URL_PLACEHOLDER, gitlabService.getGitlabHtmlBaseUrl(pipelineJobStatus.getProjectId()))
                 .replace(PROJECT_ID_PLACEHOLDER, pipelineJobStatus.getProjectId())
                 .replace(SOURCE_BRANCH_PLACEHOLDER, pipelineJobStatus.getBranchName());
         if (config.getMergeRequestTargetBranch(project) != null) {
@@ -403,7 +404,7 @@ public class GitlabToolWindow {
     private void updatePipelinesDisplay() {
         logger.debug("Showing statuses for " + pipelineInfos.size() + " projects");
         tableScrollPane.setEnabled(true);
-        showForAllCheckbox.setEnabled(pipelineInfos.size() > 1);
+        showForAllCheckbox.setEnabled(ServiceManager.getService(project, GitService.class).getNonIgnoredRepositories().size() > 1);
 
         tableModel.rows.clear();
         tableModel.rows.addAll(getStatusesToShow(pipelineInfos));
