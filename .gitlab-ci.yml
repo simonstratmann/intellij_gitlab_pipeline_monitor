@@ -1,6 +1,6 @@
 image: gradle:latest
 
-java:
+test-tags:
   only:
     refs:
         - tags
