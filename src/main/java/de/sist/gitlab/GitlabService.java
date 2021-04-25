@@ -25,6 +25,7 @@ import org.apache.http.client.utils.URIBuilder;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -44,6 +45,7 @@ public class GitlabService {
     private static final Pattern REMOTE_GIT_SSH_PATTERN = Pattern.compile("git@(?<host>.*):(?<projectPath>.*)\\.git");
     private static final Pattern REMOTE_GIT_HTTP_PATTERN = Pattern.compile("(?<scheme>https?:\\/\\/)(?<url>.*)\\.git");
     private static final String ACCESS_TOKEN_CREDENTIALS_ATTRIBUTE = CredentialAttributesKt.generateServiceName("GitlabService", "accessToken");
+    private static List<String> INCOMPATIBLE_REMOTES = Arrays.asList("github.com", "bitbucket.com");
 
     private final ConfigProvider config = ServiceManager.getService(ConfigProvider.class);
     private final Project project;
@@ -80,7 +82,9 @@ public class GitlabService {
                     if (ConfigProvider.getInstance().getIgnoredRemotes().contains(url)) {
                         continue;
                     }
-
+                    if (INCOMPATIBLE_REMOTES.stream().anyMatch(x -> url.toLowerCase().contains(x))) {
+                        continue;
+                    }
                     if (!handledMappings.contains(url)) {
                         if (config.getMappingByRemote(url) == null) {
                             handleUnknownRemote(url);
