@@ -4,8 +4,6 @@ test-tags:
   only:
     refs:
         - tags
-    variables:
-        - $CI_COMMIT_TAG =~ /^.*$/
 
   stage: test
   script:
