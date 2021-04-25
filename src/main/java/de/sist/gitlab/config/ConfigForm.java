@@ -112,7 +112,7 @@ public class ConfigForm {
             }
         });
         branchesToWatchPanel.add(decorator.createPanel());
-        branchesToWatchPanel.setBorder(IdeBorderFactory.createTitledBorder("Branches To Always Watch"));
+        branchesToWatchPanel.setBorder(IdeBorderFactory.createTitledBorder("Branches / Tags to Always Watch"));
 
     }
 
@@ -133,7 +133,7 @@ public class ConfigForm {
             }
         });
         branchesToIgnorePanel.add(decorator.createPanel());
-        branchesToIgnorePanel.setBorder(IdeBorderFactory.createTitledBorder("Branches To Ignore"));
+        branchesToIgnorePanel.setBorder(IdeBorderFactory.createTitledBorder("Branches / Tags to Ignore"));
     }
 
 }
