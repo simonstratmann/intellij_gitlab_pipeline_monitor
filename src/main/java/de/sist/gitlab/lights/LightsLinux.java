@@ -1,4 +1,3 @@
-// (C) 2020 PPI AG
 package de.sist.gitlab.lights;
 
 import com.intellij.openapi.diagnostic.Logger;

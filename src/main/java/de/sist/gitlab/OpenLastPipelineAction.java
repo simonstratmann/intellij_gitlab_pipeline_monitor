@@ -1,4 +1,4 @@
-// (C) 2021 PPI AG
+
 package de.sist.gitlab;
 
 import com.intellij.openapi.actionSystem.AnAction;

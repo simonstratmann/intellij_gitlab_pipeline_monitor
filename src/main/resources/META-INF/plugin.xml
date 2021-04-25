@@ -28,6 +28,7 @@
         <applicationConfigurable instance="de.sist.gitlab.config.GitlabApplicationConfigurable" id="de.sist.gitlab.appConfigurable" displayName="GitLab Pipeline Viewer"/>
         <applicationService serviceImplementation="de.sist.gitlab.config.PipelineViewerConfigApp"/>
         <projectService serviceImplementation="de.sist.gitlab.config.PipelineViewerConfigProject"/>
+        <applicationService serviceImplementation="de.sist.gitlab.update.UpdateNotificationPersistance"/>
         <applicationService serviceImplementation="de.sist.gitlab.config.ConfigProvider"/>
         <projectService serviceImplementation="de.sist.gitlab.lights.LightsLinux"/>
         <projectService serviceImplementation="de.sist.gitlab.lights.LightsWindows"/>
@@ -39,7 +40,7 @@
         <!-- Define after NotifierService so events are only fired when it has already registered       -->
         <projectService serviceImplementation="de.sist.gitlab.BackgroundUpdateService"/>
         <postStartupActivity implementation="de.sist.gitlab.StartupInitialization"/>
-
+        <postStartupActivity implementation="de.sist.gitlab.update.AfterUpdateNotifier"/>
     </extensions>
 
     <actions>

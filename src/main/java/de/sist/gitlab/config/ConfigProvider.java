@@ -1,4 +1,4 @@
-// (C) 2021 PPI AG
+
 package de.sist.gitlab.config;
 
 import com.google.common.base.Strings;
