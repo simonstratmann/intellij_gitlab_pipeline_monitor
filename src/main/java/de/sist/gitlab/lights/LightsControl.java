@@ -11,6 +11,7 @@ import com.intellij.openapi.project.Project;
 import de.sist.gitlab.PipelineJobStatus;
 import de.sist.gitlab.ReloadListener;
 import de.sist.gitlab.config.ConfigProvider;
+import de.sist.gitlab.config.Mapping;
 
 import java.io.File;
 import java.io.IOException;
@@ -62,7 +63,7 @@ public class LightsControl {
         }
     }
 
-    public void showState(Map<String, List<PipelineJobStatus>> statuses) {
+    public void showState(Map<Mapping, List<PipelineJobStatus>> statuses) {
         String lightsForBranch = ConfigProvider.getInstance().getShowLightsForBranch(project);
         if (Strings.isNullOrEmpty(lightsForBranch)) {
             //IntelliJ doesn't seem to allow to unsubscribe from an event, so if the user changed the config not to watch a branch this will still be called
@@ -80,8 +81,8 @@ public class LightsControl {
         }
 
         Optional<PipelineJobStatus> status = Optional.empty();
-        for (Map.Entry<String, List<PipelineJobStatus>> entry : statuses.entrySet()) {
-            if (projectId != null && !projectId.equals(entry.getKey())) {
+        for (Map.Entry<Mapping, List<PipelineJobStatus>> entry : statuses.entrySet()) {
+            if (projectId != null && !projectId.equals(entry.getKey().getGitlabProjectId())) {
                 continue;
             }
             for (PipelineJobStatus pipelineJobStatus : entry.getValue()) {

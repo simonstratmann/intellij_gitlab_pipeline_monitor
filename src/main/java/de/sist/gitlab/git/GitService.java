@@ -2,14 +2,14 @@ package de.sist.gitlab.git;
 
 import com.intellij.dvcs.DvcsUtil;
 import com.intellij.dvcs.repo.VcsRepositoryManager;
+import com.intellij.execution.process.ProcessOutputTypes;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.vcs.VcsException;
+import com.intellij.openapi.vfs.VirtualFile;
 import de.sist.gitlab.config.ConfigProvider;
 import git4idea.GitUtil;
-import git4idea.branch.GitBranchUtil;
 import git4idea.commands.Git;
 import git4idea.commands.GitCommand;
 import git4idea.commands.GitCommandResult;
@@ -24,8 +24,8 @@ import java.awt.datatransfer.StringSelection;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 public class GitService {
@@ -106,22 +106,39 @@ public class GitService {
         });
     }
 
-    public @NotNull List<String> getTags() {
-        try {
-            return ApplicationManager.getApplication().executeOnPooledThread((Callable<List<String>>) () -> {
-                try {
-                    return GitBranchUtil.getAllTags(project, guessCurrentRepository().getRoot());
-                } catch (VcsException e) {
-                    logger.error("Unable to get all tags", e);
-                    return Collections.emptyList();
+    public GitRepository getRepositoryByRemoteUrl(String url) {
+        return getAllGitRepositories().stream().filter(repo -> repo.getRemotes().stream().anyMatch(remote -> remote.getUrls().stream().anyMatch(x -> x.equals(url)))).findFirst().orElse(null);
+    }
+
+    public @NotNull List<String> getTags(GitRepository gitRepository) {
+        logger.debug("Loading tags for " + gitRepository);
+        final VirtualFile root = gitRepository.getRoot();
+        final Future<List<String>> future = ApplicationManager.getApplication().executeOnPooledThread(() -> {
+            GitLineHandler h = new GitLineHandler(project, root, GitCommand.TAG);
+            h.addParameters("-l");
+            h.setSilent(true);
+
+            List<String> tags = new ArrayList<>();
+            h.addLineListener((line, outputType) -> {
+                if (outputType != ProcessOutputTypes.STDOUT) {
+                    return;
                 }
-            }).get();
-        } catch (InterruptedException | ExecutionException e) {
-            logger.error("Unable to get all tags", e);
+                if (line.length() != 0) {
+                    tags.add(line);
+                }
+            });
+
+            GitCommandResult result = Git.getInstance().runCommandWithoutCollectingOutput(h);
+            result.throwOnError();
+
+            return tags;
+        });
+        try {
+            return future.get(3, TimeUnit.SECONDS);
+        } catch (Exception e) {
+            logger.error("Error loading tags", e);
             return Collections.emptyList();
         }
-
-
     }
 
     public static GitService getInstance(Project project) {

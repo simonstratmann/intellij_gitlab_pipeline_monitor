@@ -68,7 +68,6 @@ import java.awt.event.ActionEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.font.TextAttribute;
-import java.io.IOException;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -100,7 +99,7 @@ public class GitlabToolWindow {
     private JPanel tablePanel;
     private boolean initialLoad = true;
 
-    private Map<String, List<PipelineJobStatus>> pipelineInfos = new HashMap<>();
+    private Map<Mapping, List<PipelineJobStatus>> pipelineInfos = new HashMap<>();
 
     private final PipelineTableModel tableModel;
 
@@ -177,9 +176,9 @@ public class GitlabToolWindow {
         messageBus.connect().subscribe(ConfigChangedListener.CONFIG_CHANGED, () -> {
             handleEnabledState(project);
             showForAllCheckbox.setSelected(PipelineViewerConfigProject.getInstance(project).isShowPipelinesForAll());
-            showForAllCheckbox.setEnabled(ServiceManager.getService(project, GitService.class).getNonIgnoredRepositories().size() > 1);
+            showForAllCheckbox.setVisible(ServiceManager.getService(project, GitService.class).getNonIgnoredRepositories().size() > 1);
         });
-        showForAllCheckbox.setEnabled(ServiceManager.getService(project, GitService.class).getNonIgnoredRepositories().size() > 1);
+        showForAllCheckbox.setVisible(ServiceManager.getService(project, GitService.class).getNonIgnoredRepositories().size() > 1);
     }
 
     private void updateTableWhenMonitoringMultipleRemotesButOnlyShowingPipelinesForOne() {
@@ -355,7 +354,7 @@ public class GitlabToolWindow {
             }
         });
         showForAllCheckbox = new JCheckBox("Show pipelines for all repos");
-        showForAllCheckbox.setEnabled(ServiceManager.getService(project, GitService.class).getNonIgnoredRepositories().size() > 1);
+        showForAllCheckbox.setVisible(ServiceManager.getService(project, GitService.class).getNonIgnoredRepositories().size() > 1);
         showForAllCheckbox.setSelected(PipelineViewerConfigProject.getInstance(project).isShowPipelinesForAll());
         showForAllCheckbox.addChangeListener(new ChangeListener() {
             @Override
@@ -386,21 +385,16 @@ public class GitlabToolWindow {
 
 
     private void loadPipelines() {
-        Map<String, List<PipelineJobStatus>> pipelineInfos;
-        try {
-            pipelineInfos = gitlabService.getPipelineInfos();
-            messageBus.syncPublisher(ReloadListener.RELOAD).reload(pipelineInfos);
-            backgroundUpdateService.startBackgroundTask();
-        } catch (IOException ex) {
-            logger.error("Unable to load pipelines", ex);
-            backgroundUpdateService.stopBackgroundTask();
+        final boolean started = backgroundUpdateService.startBackgroundTask();
+        if (!started) {
+            backgroundUpdateService.update(project);
         }
     }
 
     private void updatePipelinesDisplay() {
         logger.debug("Showing statuses for " + pipelineInfos.size() + " projects");
         tableScrollPane.setEnabled(true);
-        showForAllCheckbox.setEnabled(ServiceManager.getService(project, GitService.class).getNonIgnoredRepositories().size() > 1);
+        showForAllCheckbox.setVisible(ServiceManager.getService(project, GitService.class).getNonIgnoredRepositories().size() > 1);
 
         tableModel.rows.clear();
         tableModel.rows.addAll(getStatusesToShow(pipelineInfos));
@@ -429,25 +423,23 @@ public class GitlabToolWindow {
     /**
      * Returns a list of statuses containing for each branch either all statuses up to the last final run (failed or successful) if such a run exists or otherwise just the latest run.
      *
-     * @param pipelinesPerProject Project ID to pipelines
+     * @param pipelinesPerMapping Mapping to pipelines
      * @return List of filtered statuses.
      */
-    private List<PipelineJobStatus> getStatusesToShow(Map<String, List<PipelineJobStatus>> pipelinesPerProject) {
+    private List<PipelineJobStatus> getStatusesToShow(Map<Mapping, List<PipelineJobStatus>> pipelinesPerMapping) {
         List<PipelineJobStatus> newRows = new ArrayList<>();
-        for (Map.Entry<String, List<PipelineJobStatus>> projectAndPipelines : pipelinesPerProject.entrySet()) {
+        for (Map.Entry<Mapping, List<PipelineJobStatus>> mappingAndPipelines : pipelinesPerMapping.entrySet()) {
 
             //If pipelines for multiple projects exist and pipelines are only to be shown for the current one skip all others
-            if (pipelinesPerProject.size() > 1 && !showForAllCheckbox.isSelected()) {
+            final Mapping mapping = mappingAndPipelines.getKey();
+            if (pipelinesPerMapping.size() > 1 && !showForAllCheckbox.isSelected()) {
                 final GitRepository currentRepository = GitService.getInstance(project).guessCurrentRepository();
-                if (currentRepository != null) {
-                    final Mapping mapping = ConfigProvider.getInstance().getMappingByProjectId(projectAndPipelines.getKey());
-                    if (currentRepository.getRemotes().stream().noneMatch(remote -> remote.getUrls().stream().anyMatch(x -> x.equals(mapping.getRemote())))) {
-                        continue;
-                    }
+                if (!Objects.equals(GitService.getInstance(project).getRepositoryByRemoteUrl(mapping.getRemote()), currentRepository)) {
+                    continue;
                 }
             }
 
-            List<PipelineJobStatus> statuses = new ArrayList<>(statusFilter.filterPipelines(projectAndPipelines.getKey(), projectAndPipelines.getValue(), false));
+            List<PipelineJobStatus> statuses = new ArrayList<>(statusFilter.filterPipelines(mapping, mappingAndPipelines.getValue(), false));
             statuses.sort(Comparator.comparing(x -> ((PipelineJobStatus) x).creationTime).reversed());
             Map<String, List<PipelineJobStatus>> branchesToStatuses = statuses.stream().collect(Collectors.groupingBy(x -> x.branchName));
             for (Map.Entry<String, List<PipelineJobStatus>> entry : branchesToStatuses.entrySet()) {

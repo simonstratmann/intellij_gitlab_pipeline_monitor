@@ -70,7 +70,7 @@ public class ConfigProvider {
         return PipelineViewerConfigApp.getInstance().getMappings();
     }
 
-    public Mapping getMappingByRemote(String remote) {
+    public Mapping getMappingByRemoteUrl(String remote) {
         return getMappings().stream().filter(x -> x.getRemote().equals(remote)).findFirst().orElse(null);
     }
 
@@ -90,7 +90,6 @@ public class ConfigProvider {
     public List<String> getBranchesToWatch(Project project) {
         return PipelineViewerConfigProject.getInstance(project).getBranchesToWatch();
     }
-
 
     public String getShowLightsForBranch(Project project) {
         return PipelineViewerConfigProject.getInstance(project).getShowLightsForBranch();

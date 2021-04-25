@@ -6,6 +6,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.util.concurrency.AppExecutorUtil;
 import de.sist.gitlab.config.ConfigChangedListener;
 import de.sist.gitlab.config.ConfigProvider;
+import de.sist.gitlab.config.Mapping;
 import de.sist.gitlab.config.PipelineViewerConfigProject;
 import de.sist.gitlab.git.GitInitListener;
 import de.sist.gitlab.notifier.NotifierService;
@@ -31,20 +32,12 @@ public class BackgroundUpdateService {
     public BackgroundUpdateService(Project project) {
         this.project = project;
 
-        GitlabService gitlabService = ServiceManager.getService(project, GitlabService.class);
         backgroundTask = () -> {
             if (!PipelineViewerConfigProject.getInstance(project).isEnabled()) {
                 stopBackgroundTask();
                 return;
             }
-            try {
-                final Map<String, List<PipelineJobStatus>> pipelineInfos = gitlabService.getPipelineInfos();
-                project.getMessageBus().syncPublisher(ReloadListener.RELOAD).reload(pipelineInfos);
-            } catch (IOException e) {
-                if (ConfigProvider.getInstance().isShowConnectionErrorNotifications()) {
-                    ServiceManager.getService(project, NotifierService.class).showError("Unable to connect to gitlab: " + e);
-                }
-            }
+            update(project);
         };
 
         project.getMessageBus().connect().subscribe(GitInitListener.GIT_INITIALIZED, gitRepository -> {
@@ -61,17 +54,29 @@ public class BackgroundUpdateService {
         });
     }
 
-    public synchronized void startBackgroundTask() {
+    public void update(Project project) {
+        try {
+            final Map<Mapping, List<PipelineJobStatus>> pipelineInfos = ServiceManager.getService(project, GitlabService.class).getPipelineInfos();
+            project.getMessageBus().syncPublisher(ReloadListener.RELOAD).reload(pipelineInfos);
+        } catch (IOException e) {
+            if (ConfigProvider.getInstance().isShowConnectionErrorNotifications()) {
+                ServiceManager.getService(project, NotifierService.class).showError("Unable to connect to gitlab: " + e);
+            }
+        }
+    }
+
+    public synchronized boolean startBackgroundTask() {
         if (isRunning) {
             logger.debug("Background task already running");
-            return;
+            return false;
         }
         if (!PipelineViewerConfigProject.getInstance(project).isEnabled()) {
-            return;
+            return false;
         }
         logger.debug("Starting background task");
         scheduledFuture = AppExecutorUtil.getAppScheduledExecutorService().scheduleWithFixedDelay(backgroundTask, INITIAL_DELAY, UPDATE_DELAY, TimeUnit.SECONDS);
         isRunning = true;
+        return true;
     }
 
     public synchronized void stopBackgroundTask() {

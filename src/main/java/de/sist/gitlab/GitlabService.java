@@ -26,7 +26,6 @@ import org.apache.http.client.utils.URIBuilder;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -45,7 +44,7 @@ public class GitlabService {
     private static final Pattern REMOTE_GIT_SSH_PATTERN = Pattern.compile("git@(?<host>.*):(?<projectPath>.*)\\.git");
     private static final Pattern REMOTE_GIT_HTTP_PATTERN = Pattern.compile("(?<scheme>https?:\\/\\/)(?<url>.*)\\.git");
     private static final String ACCESS_TOKEN_CREDENTIALS_ATTRIBUTE = CredentialAttributesKt.generateServiceName("GitlabService", "accessToken");
-    private static List<String> INCOMPATIBLE_REMOTES = Arrays.asList("github.com", "bitbucket.com");
+    private static final List<String> INCOMPATIBLE_REMOTES = Arrays.asList("github.com", "bitbucket.com");
 
     private final ConfigProvider config = ServiceManager.getService(ConfigProvider.class);
     private final Project project;
@@ -54,18 +53,18 @@ public class GitlabService {
         this.project = project;
     }
 
-    public Map<String, List<PipelineJobStatus>> getPipelineInfos() throws IOException {
+    public Map<Mapping, List<PipelineJobStatus>> getPipelineInfos() throws IOException {
         checkForUnmappedRemotes(ServiceManager.getService(project, GitService.class).getAllGitRepositories());
 
-        Map<String, List<PipelineJobStatus>> gitlabProjectToPipelines = new HashMap<>();
-        for (Map.Entry<String, List<PipelineTo>> entry : getPipelines().entrySet()) {
+        Map<Mapping, List<PipelineJobStatus>> mappingToPipelines = new HashMap<>();
+        for (Map.Entry<Mapping, List<PipelineTo>> entry : getPipelines().entrySet()) {
             final List<PipelineJobStatus> jobStatuses = entry.getValue().stream()
-                    .map(pipeline -> new PipelineJobStatus(pipeline.getRef(), entry.getKey(), pipeline.getCreatedAt(), pipeline.getUpdatedAt(), pipeline.getStatus(), pipeline.getWebUrl()))
+                    .map(pipeline -> new PipelineJobStatus(pipeline.getRef(), entry.getKey().getGitlabProjectId(), pipeline.getCreatedAt(), pipeline.getUpdatedAt(), pipeline.getStatus(), pipeline.getWebUrl()))
                     .sorted(Comparator.comparing(PipelineJobStatus::getUpdateTime, Comparator.nullsFirst(Comparator.naturalOrder())).reversed())
                     .collect(Collectors.toList());
-            gitlabProjectToPipelines.put(entry.getKey(), jobStatuses);
+            mappingToPipelines.put(entry.getKey(), jobStatuses);
         }
-        return gitlabProjectToPipelines;
+        return mappingToPipelines;
     }
 
     private synchronized void checkForUnmappedRemotes(List<GitRepository> gitRepositories) {
@@ -86,7 +85,7 @@ public class GitlabService {
                         continue;
                     }
                     if (!handledMappings.contains(url)) {
-                        if (config.getMappingByRemote(url) == null) {
+                        if (config.getMappingByRemoteUrl(url) == null) {
                             handleUnknownRemote(url);
                         }
                         handledMappings.add(url);
@@ -187,27 +186,23 @@ public class GitlabService {
         }
     }
 
-    private Map<String, List<PipelineTo>> getPipelines() throws IOException {
-        ConfigProvider config = ConfigProvider.getInstance();
-        final Set<String> remoteUrlsToCheck = new HashSet<>();
+    private Map<Mapping, List<PipelineTo>> getPipelines() throws IOException {
+        final Map<Mapping, List<PipelineTo>> projectToPipelines = new HashMap<>();
         for (GitRepository nonIgnoredRepository : GitService.getInstance(project).getNonIgnoredRepositories()) {
             for (GitRemote remote : nonIgnoredRepository.getRemotes()) {
-                remoteUrlsToCheck.addAll(remote.getUrls());
+                for (String url : remote.getUrls()) {
+                    final Mapping mapping = ConfigProvider.getInstance().getMappingByRemoteUrl(url);
+                    if (mapping == null) {
+                        continue;
+                    }
+                    List<PipelineTo> pipelines = makePipelinesUrlCall(1, mapping);
+                    pipelines.addAll(makePipelinesUrlCall(2, mapping));
+                    projectToPipelines.put(mapping, pipelines);
+                }
+
             }
         }
-        final List<Mapping> mappingsToCheck = config.getMappings().stream()
-                .filter(x -> remoteUrlsToCheck.contains(x.getRemote())).collect(Collectors.toList());
-        if (mappingsToCheck.isEmpty()) {
-            logger.debug("No mappings to check for project " + project);
-            return Collections.emptyMap();
-        }
-        logger.debug("URLs to check: " + remoteUrlsToCheck);
-        final Map<String, List<PipelineTo>> projectToPipelines = new HashMap<>();
-        for (Mapping mapping : mappingsToCheck) {
-            List<PipelineTo> pipelines = makePipelinesUrlCall(1, mapping);
-            pipelines.addAll(makePipelinesUrlCall(2, mapping));
-            projectToPipelines.put(mapping.getGitlabProjectId(), pipelines);
-        }
+
         return projectToPipelines;
     }
 

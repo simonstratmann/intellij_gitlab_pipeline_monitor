@@ -29,6 +29,7 @@ import de.sist.gitlab.PipelineJobStatus;
 import de.sist.gitlab.ReloadListener;
 import de.sist.gitlab.config.ConfigProvider;
 import de.sist.gitlab.config.GitlabProjectConfigurable;
+import de.sist.gitlab.config.Mapping;
 import de.sist.gitlab.git.GitService;
 import de.sist.gitlab.lights.LightsControl;
 import org.jetbrains.annotations.NotNull;
@@ -80,16 +81,16 @@ public class NotifierService {
         Notifications.Bus.notify(notification, project);
     }
 
-    private void showStatusNotifications(Map<String, List<PipelineJobStatus>> projectToPipelines) {
+    private void showStatusNotifications(Map<Mapping, List<PipelineJobStatus>> mappingToPipelines) {
 //        enableDebugModeIfApplicable();
         if (shownNotifications == null) {
             //Don't show notifications for pipeline statuses from before the program was started
-            shownNotifications = projectToPipelines.values().stream().flatMap(Collection::stream).collect(Collectors.toSet());
+            shownNotifications = mappingToPipelines.values().stream().flatMap(Collection::stream).collect(Collectors.toSet());
             return;
         }
 
         List<PipelineJobStatus> filteredStatuses = new ArrayList<>();
-        for (Map.Entry<String, List<PipelineJobStatus>> entry : projectToPipelines.entrySet()) {
+        for (Map.Entry<Mapping, List<PipelineJobStatus>> entry : mappingToPipelines.entrySet()) {
             statusFilter.filterPipelines(entry.getKey(), entry.getValue(), true)
                     .stream().filter(x ->
                     !shownNotifications.contains(x)

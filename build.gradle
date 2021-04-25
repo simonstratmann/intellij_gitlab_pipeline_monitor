@@ -4,7 +4,7 @@ plugins {
 }
 
 group 'de.sist'
-version '1.99.8'
+version '1.99.9'
 
 publishPlugin {
     token intellijPublishToken
@@ -37,7 +37,6 @@ patchPluginXml {
         <li>Use gitlab default target branch for merge requests if none is configured.</li>
         <li>Display times in local time zone.</li>
         <li>Don't remove path of configured gitlab URL.</li>
-        <li>Show config validation errors as warnings.</li>
         <li>Add action to open last pipeline in browser (located in Git main menu group).</li>
         <li>Changed minimum IntelliJ version to 2020.1.</li>
     </ul>
