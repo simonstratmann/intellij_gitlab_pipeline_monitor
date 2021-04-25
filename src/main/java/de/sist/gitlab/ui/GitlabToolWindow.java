@@ -15,10 +15,6 @@ import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.fileEditor.FileEditorManagerEvent;
 import com.intellij.openapi.fileEditor.FileEditorManagerListener;
 import com.intellij.openapi.fileEditor.FileEditorProvider;
-import com.intellij.openapi.progress.ProgressIndicator;
-import com.intellij.openapi.progress.ProgressManager;
-import com.intellij.openapi.progress.Task;
-import com.intellij.openapi.progress.impl.BackgroundableProcessIndicator;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.JBPopupMenu;
 import com.intellij.openapi.util.IconLoader;
@@ -374,22 +370,12 @@ public class GitlabToolWindow {
     }
 
     private void runLoadPipelinesTask(Project project) {
-        Task.Backgroundable task = new Task.Backgroundable(project, "Loading gitLab pipelines") {
-            @Override
-            public void run(@NotNull ProgressIndicator indicator) {
-                loadPipelines();
-            }
-        };
-        ProgressManager.getInstance().runProcessWithProgressAsynchronously(task, new BackgroundableProcessIndicator(task));
-    }
-
-
-    private void loadPipelines() {
         final boolean started = backgroundUpdateService.startBackgroundTask();
         if (!started) {
-            backgroundUpdateService.update(project);
+            backgroundUpdateService.update(this.project);
         }
     }
+
 
     private void updatePipelinesDisplay() {
         logger.debug("Showing statuses for " + pipelineInfos.size() + " projects");

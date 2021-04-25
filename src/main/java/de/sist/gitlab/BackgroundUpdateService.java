@@ -2,6 +2,10 @@ package de.sist.gitlab;
 
 import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.progress.ProgressIndicator;
+import com.intellij.openapi.progress.ProgressManager;
+import com.intellij.openapi.progress.Task;
+import com.intellij.openapi.progress.impl.BackgroundableProcessIndicator;
 import com.intellij.openapi.project.Project;
 import com.intellij.util.concurrency.AppExecutorUtil;
 import de.sist.gitlab.config.ConfigChangedListener;
@@ -10,6 +14,7 @@ import de.sist.gitlab.config.Mapping;
 import de.sist.gitlab.config.PipelineViewerConfigProject;
 import de.sist.gitlab.git.GitInitListener;
 import de.sist.gitlab.notifier.NotifierService;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.util.List;
@@ -55,14 +60,20 @@ public class BackgroundUpdateService {
     }
 
     public void update(Project project) {
-        try {
-            final Map<Mapping, List<PipelineJobStatus>> pipelineInfos = ServiceManager.getService(project, GitlabService.class).getPipelineInfos();
-            project.getMessageBus().syncPublisher(ReloadListener.RELOAD).reload(pipelineInfos);
-        } catch (IOException e) {
-            if (ConfigProvider.getInstance().isShowConnectionErrorNotifications()) {
-                ServiceManager.getService(project, NotifierService.class).showError("Unable to connect to gitlab: " + e);
+        Task.Backgroundable task = new Task.Backgroundable(project, "Loading gitLab pipelines") {
+            @Override
+            public void run(@NotNull ProgressIndicator indicator) {
+                try {
+                    final Map<Mapping, List<PipelineJobStatus>> pipelineInfos = ServiceManager.getService(project, GitlabService.class).getPipelineInfos();
+                    project.getMessageBus().syncPublisher(ReloadListener.RELOAD).reload(pipelineInfos);
+                } catch (IOException e) {
+                    if (ConfigProvider.getInstance().isShowConnectionErrorNotifications()) {
+                        ServiceManager.getService(project, NotifierService.class).showError("Unable to connect to gitlab: " + e);
+                    }
+                }
             }
-        }
+        };
+        ProgressManager.getInstance().runProcessWithProgressAsynchronously(task, new BackgroundableProcessIndicator(task));
     }
 
     public synchronized boolean startBackgroundTask() {

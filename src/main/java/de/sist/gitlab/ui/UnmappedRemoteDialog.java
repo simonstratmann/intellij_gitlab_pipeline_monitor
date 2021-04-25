@@ -29,7 +29,7 @@ public class UnmappedRemoteDialog extends JDialog {
         buttonGroup.add(radioDoMonitor);
         radioAskAgain.setSelected(true);
 
-        label.setText("<html>The remote '" + remoteUrl + "' is not tracked by the gitlab pipeline viewer.<br>" +
+        label.setText("<html>The remote <b>" + remoteUrl + "</b> is not tracked by the gitlab pipeline viewer.<br>" +
                 "Do you want to monitor pipelines built for this branch?<br>" +
                 "You may still add or modify this in the settings later." +
                 "</html>");
