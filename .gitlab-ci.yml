@@ -1,4 +1,4 @@
-image: gradle:latest
+image: gradle:11-jdk-openj9
 
 test-tags:
   only:
