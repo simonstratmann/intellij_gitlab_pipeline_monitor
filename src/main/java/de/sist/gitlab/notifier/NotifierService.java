@@ -27,7 +27,9 @@ import de.sist.gitlab.DateTime;
 import de.sist.gitlab.PipelineFilter;
 import de.sist.gitlab.PipelineJobStatus;
 import de.sist.gitlab.ReloadListener;
+import de.sist.gitlab.config.ConfigProvider;
 import de.sist.gitlab.config.GitlabProjectConfigurable;
+import de.sist.gitlab.git.GitService;
 import de.sist.gitlab.lights.LightsControl;
 import org.jetbrains.annotations.NotNull;
 
@@ -36,6 +38,7 @@ import java.awt.Point;
 import java.awt.Rectangle;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -70,7 +73,6 @@ public class NotifierService {
         errorNotificationGroup = createNotificationGroup("GitLab Pipeline Viewer - Error", NotificationDisplayType.STICKY_BALLOON);
 
         project.getMessageBus().connect().subscribe(ReloadListener.RELOAD, this::showStatusNotifications);
-        project.getMessageBus().connect().subscribe(IncompleteConfigListener.CONFIG_INCOMPLETE, this::showIncompleteConfigNotification);
     }
 
     public void showError(String error) {
@@ -78,19 +80,22 @@ public class NotifierService {
         Notifications.Bus.notify(notification, project);
     }
 
-    private void showStatusNotifications(List<PipelineJobStatus> statuses) {
+    private void showStatusNotifications(Map<String, List<PipelineJobStatus>> projectToPipelines) {
 //        enableDebugModeIfApplicable();
         if (shownNotifications == null) {
             //Don't show notifications for pipeline statuses from before the program was started
-            shownNotifications = new HashSet<>(statuses);
+            shownNotifications = projectToPipelines.values().stream().flatMap(Collection::stream).collect(Collectors.toSet());
             return;
         }
 
-        List<PipelineJobStatus> filteredStatuses = statusFilter.filterPipelines(statuses, true)
-                .stream().filter(x ->
-                        !shownNotifications.contains(x)
-                                && getDisplayTypeForStatus(x.result) != NotificationDisplayType.NONE
-                ).collect(Collectors.toList());
+        List<PipelineJobStatus> filteredStatuses = new ArrayList<>();
+        for (Map.Entry<String, List<PipelineJobStatus>> entry : projectToPipelines.entrySet()) {
+            statusFilter.filterPipelines(entry.getKey(), entry.getValue(), true)
+                    .stream().filter(x ->
+                    !shownNotifications.contains(x)
+                            && getDisplayTypeForStatus(x.result) != NotificationDisplayType.NONE
+            ).forEach(filteredStatuses::add);
+        }
         //Don't spam the GUI, never show more than the newest 3
         List<PipelineJobStatus> statusesToShow = filteredStatuses.subList(Math.max(0, filteredStatuses.size() - 3), filteredStatuses.size());
         for (int i = 0; i < statusesToShow.size(); i++) {
@@ -131,6 +136,9 @@ public class NotifierService {
         content = status.branchName + ": <span style=\"color:" + getColorForStatus(status.result) + "\">" + status.result + "</span>"
                 + "<br>Created: " + DateTime.formatDateTime(status.creationTime)
                 + "<br>Last update: " + DateTime.formatDateTime(status.updateTime);
+        if (GitService.getInstance(project).getNonIgnoredRepositories().size() > 1) {
+            content = ConfigProvider.getInstance().getMappingByProjectId(status.getProjectId()).getProjectName() + " " + content;
+        }
 
         Notification notification = notificationGroup.createNotification("GitLab branch status", null, content, notificationType);
 

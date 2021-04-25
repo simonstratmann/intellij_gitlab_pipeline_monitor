@@ -4,7 +4,12 @@ plugins {
 }
 
 group 'de.sist'
-version '1.29'
+version '1.99.7'
+
+publishPlugin {
+    token intellijPublishToken
+    channels 'beta'
+}
 
 sourceCompatibility = 1.8
 
@@ -21,19 +26,20 @@ dependencies {
 // See https://github.com/JetBrains/gradle-intellij-plugin/
 intellij {
     version '203.7717.32'
-     updateSinceUntilBuild = false
+    updateSinceUntilBuild = false
     setPlugins("git4idea")
 }
 patchPluginXml {
     changeNotes """
-    <p>1.29</p>
+    <p>2.0</p>
     <ul>
-        <li>Introduce application and project scoped settings. Unfortunately some of the settings can not be migrated and may need to be entered again (once, this time).</li>
+        <li>Drastically changed workflow. The plugin will recognize all remotes used in an IntelliJ project and ask which should be monitored. It will then automatically retrieve all necessary data from gitlab. This a) reduces how much you need to configure and b) allows to decouple IntelliJ projects from Gitlab projects.</li>
         <li>Use gitlab default target branch for merge requests if none is configured.</li>
         <li>Display times in local time zone.</li>
         <li>Don't remove path of configured gitlab URL.</li>
         <li>Show config validation errors as warnings.</li>
         <li>Add action to open last pipeline in browser (located in Git main menu group).</li>
+        <li>Changed minimum IntelliJ version to 2020.1.</li>
     </ul>
     
     <br/>
@@ -47,7 +53,7 @@ patchPluginXml {
     
     <p>1.27</p>
     <ul>
-        <li>Fix exception when copying commit hash to clipboard</li>
+        <li>Fix exception when copying commit hash to clipboard.</li>
         <li>(Hopefully) fix exception when sorting branches without update time.</li>
     </ul>
     
@@ -222,8 +228,4 @@ patchPluginXml {
         <li>Support for custom gitlab instances.</li>
     </ul>
       """
-}
-
-publishPlugin {
-    token intellijPublishToken
 }

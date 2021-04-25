@@ -9,7 +9,6 @@ import com.intellij.openapi.project.Project;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * @author PPI AG
  */
 public class OpenLastPipelineAction extends AnAction {
 

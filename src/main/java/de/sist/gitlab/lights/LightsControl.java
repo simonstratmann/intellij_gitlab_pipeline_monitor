@@ -16,6 +16,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -57,11 +58,11 @@ public class LightsControl {
         String lightsForBranch = ConfigProvider.getInstance().getShowLightsForBranch(project);
         if (!Strings.isNullOrEmpty(lightsForBranch)) {
             //Only subscribe if a branch should be watched
-            project.getMessageBus().connect().subscribe(ReloadListener.RELOAD, statuses -> ApplicationManager.getApplication().invokeLater(() -> showState(statuses)));
+            project.getMessageBus().connect().subscribe(ReloadListener.RELOAD, map -> ApplicationManager.getApplication().invokeLater(() -> showState(map)));
         }
     }
 
-    public void showState(List<PipelineJobStatus> statuses) {
+    public void showState(Map<String, List<PipelineJobStatus>> statuses) {
         String lightsForBranch = ConfigProvider.getInstance().getShowLightsForBranch(project);
         if (Strings.isNullOrEmpty(lightsForBranch)) {
             //IntelliJ doesn't seem to allow to unsubscribe from an event, so if the user changed the config not to watch a branch this will still be called
@@ -71,10 +72,26 @@ public class LightsControl {
         if (lightsApi == null) {
             return;
         }
+        String projectId = null;
+        if (lightsForBranch.contains(";")) {
+            final String[] split = lightsForBranch.split(";");
+            lightsForBranch = split[0];
+            projectId = split[1];
+        }
 
-        Optional<PipelineJobStatus> status = statuses.stream()
-                .filter(x -> x.branchName.equals(lightsForBranch))
-                .findFirst();
+        Optional<PipelineJobStatus> status = Optional.empty();
+        for (Map.Entry<String, List<PipelineJobStatus>> entry : statuses.entrySet()) {
+            if (projectId != null && !projectId.equals(entry.getKey())) {
+                continue;
+            }
+            for (PipelineJobStatus pipelineJobStatus : entry.getValue()) {
+                if (pipelineJobStatus.branchName.equals(lightsForBranch)) {
+                    status = Optional.of(pipelineJobStatus);
+                    break;
+                }
+            }
+        }
+
 
         if (status.isPresent()) {
             //Don't enable any lights twice so that when the user turned the light off it doesn't get turned on again for the same run

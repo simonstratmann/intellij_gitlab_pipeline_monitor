@@ -22,6 +22,7 @@ public class GitlabApplicationConfigurable implements Configurable {
     @Override
     public JComponent createComponent() {
         configForm = new ConfigFormApp();
+        ConfigProvider.getInstance().setConfigOpen();
         configForm.init();
         return configForm.getMainPanel();
     }
@@ -43,6 +44,7 @@ public class GitlabApplicationConfigurable implements Configurable {
 
     @Override
     public void disposeUIResources() {
+        ConfigProvider.getInstance().setConfigClosed();
         configForm = null;
     }
 
