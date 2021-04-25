@@ -1,0 +1,16 @@
+image: gradle:latest
+
+test-tags:
+  only:
+    refs:
+        - tags
+    variables:
+        - $CI_COMMIT_TAG =~ /^.*$/
+
+  stage: test
+  script:
+    - gradle test
+  artifacts:
+    when: always
+    reports:
+      junit: build/test-results/test/**/TEST-*.xml
