@@ -4,6 +4,7 @@ import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.project.Project;
 import de.sist.gitlab.config.ConfigProvider;
 import de.sist.gitlab.config.Mapping;
+import de.sist.gitlab.config.PipelineViewerConfigApp;
 import de.sist.gitlab.git.GitService;
 import git4idea.GitLocalBranch;
 import git4idea.repo.GitRepository;
@@ -41,6 +42,11 @@ public class PipelineFilter {
             }
         }
 
+        final Set<String> tags = new HashSet<>();
+        if (PipelineViewerConfigApp.getInstance().isShowForTags()) {
+            tags.addAll(GitService.getInstance(project).getTags());
+        }
+
         final List<PipelineJobStatus> statuses = toFilter.stream().filter(x -> {
                     if (config.getBranchesToIgnore(project).contains(x.branchName)) {
                         return false;
@@ -49,6 +55,9 @@ public class PipelineFilter {
                         return true;
                     }
                     if (config.getBranchesToWatch(project).contains(x.branchName) && (!forNotification || config.isShowNotificationForWatchedBranches())) {
+                        return true;
+                    }
+                    if (tags.contains(x.branchName)) {
                         return true;
                     }
 

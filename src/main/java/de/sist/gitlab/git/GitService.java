@@ -6,18 +6,26 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.util.Computable;
+import com.intellij.openapi.vcs.VcsException;
 import de.sist.gitlab.config.ConfigProvider;
 import git4idea.GitUtil;
+import git4idea.branch.GitBranchUtil;
 import git4idea.commands.Git;
 import git4idea.commands.GitCommand;
 import git4idea.commands.GitCommandResult;
 import git4idea.commands.GitLineHandler;
 import git4idea.config.GitVcsSettings;
 import git4idea.repo.GitRepository;
+import org.jetbrains.annotations.NotNull;
 
+import java.awt.Toolkit;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.StringSelection;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 public class GitService {
@@ -55,7 +63,11 @@ public class GitService {
     }
 
     private List<GitRepository> filterNonIgnoredRepos(List<GitRepository> gitRepositories) {
-        return gitRepositories.stream().filter(x -> x.getRemotes().stream().noneMatch(gitRemote -> gitRemote.getUrls().stream().anyMatch(url -> ConfigProvider.getInstance().getIgnoredRemotes().contains(url)))).collect(Collectors.toList());
+        return gitRepositories.stream().filter(x ->
+                x.getRemotes().stream().noneMatch(gitRemote ->
+                        gitRemote.getUrls().stream().anyMatch(url -> ConfigProvider.getInstance().getIgnoredRemotes().contains(url)))
+
+        ).collect(Collectors.toList());
     }
 
     public List<GitRepository> getNonIgnoredRepositories() {
@@ -77,16 +89,38 @@ public class GitService {
         return DvcsUtil.guessCurrentRepositoryQuick(project, GitUtil.getRepositoryManager(project), settings.getRecentRootPath());
     }
 
-    public String getCurrentHash() {
-        final GitLineHandler gitLineHandler = new GitLineHandler(project, guessCurrentRepository().getRoot(), GitCommand.LOG);
-        gitLineHandler.addParameters("--pretty=format:%h -n 1");
+    public void copyHashToClipboard() {
+        ApplicationManager.getApplication().executeOnPooledThread(new Runnable() {
+            @Override
+            public void run() {
 
-        return ApplicationManager.getApplication().runReadAction((Computable<String>) () -> {
-            final GitCommandResult gitCommandResult = Git.getInstance().runCommand(gitLineHandler);
-            String hash = gitCommandResult.getOutput().get(0).trim().replace("-n 1", "").trim();
-            logger.debug("Found local hash: " + hash);
-            return hash;
+                final GitLineHandler gitLineHandler = new GitLineHandler(project, guessCurrentRepository().getRoot(), GitCommand.LOG);
+                gitLineHandler.addParameters("--pretty=format:%h -n 1");
+
+                final GitCommandResult gitCommandResult = Git.getInstance().runCommand(gitLineHandler);
+                String hash = gitCommandResult.getOutput().get(0).trim().replace("-n 1", "").trim();
+                logger.debug("Found local hash: " + hash);
+                Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+                clipboard.setContents(new StringSelection(hash), null);
+            }
         });
+    }
+
+    public @NotNull List<String> getTags() {
+        try {
+            return ApplicationManager.getApplication().executeOnPooledThread((Callable<List<String>>) () -> {
+                try {
+                    return GitBranchUtil.getAllTags(project, guessCurrentRepository().getRoot());
+                } catch (VcsException e) {
+                    logger.error("Unable to get all tags", e);
+                    return Collections.emptyList();
+                }
+            }).get();
+        } catch (InterruptedException | ExecutionException e) {
+            logger.error("Unable to get all tags", e);
+            return Collections.emptyList();
+        }
+
 
     }
 

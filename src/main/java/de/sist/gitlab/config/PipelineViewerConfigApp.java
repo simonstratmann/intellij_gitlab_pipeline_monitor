@@ -21,6 +21,7 @@ public class PipelineViewerConfigApp implements PersistentStateComponent<Pipelin
     private boolean showNotificationForWatchedBranches = true;
     private boolean showConnectionErrors = true;
     private List<String> ignoredRemotes = new ArrayList<>();
+    private boolean showForTags = true;
 
     public List<Mapping> getMappings() {
         return mappings;
@@ -72,6 +73,14 @@ public class PipelineViewerConfigApp implements PersistentStateComponent<Pipelin
 
     public synchronized void setIgnoredRemotes(List<String> ignoredRemotes) {
         this.ignoredRemotes = ignoredRemotes;
+    }
+
+    public boolean isShowForTags() {
+        return showForTags;
+    }
+
+    public void setShowForTags(boolean showForTags) {
+        this.showForTags = showForTags;
     }
 
     @Override

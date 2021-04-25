@@ -32,6 +32,7 @@ public class ConfigFormApp {
     private JCheckBox showConnectionErrorsCheckbox;
     private JPanel mappingsPanel;
     private JPanel ignoredRemotesPanel;
+    private JCheckBox showForTagsCheckBox;
     private final CollectionListModel<String> mappingsModel = new CollectionListModel<>();
     private final CollectionListModel<String> ignoredRemotesModel = new CollectionListModel<>();
 
@@ -51,6 +52,7 @@ public class ConfigFormApp {
         config.setMergeRequestTargetBranch(mergeRequestTargetBranch.getText());
         config.setShowNotificationForWatchedBranches(watchedBranchesNotificationCheckbox.isSelected());
         config.setShowConnectionErrors(showConnectionErrorsCheckbox.isSelected());
+        config.setShowForTags(showForTagsCheckBox.isSelected());
         config.getMappings().clear();
         config.getMappings().addAll(mappingsModel.getItems().stream().map(Mapping::toMapping).collect(Collectors.toList()));
         config.getIgnoredRemotes().clear();
@@ -72,6 +74,7 @@ public class ConfigFormApp {
         watchedBranchesNotificationCheckbox.setSelected(config.isShowNotificationForWatchedBranches());
         showConnectionErrorsCheckbox.setSelected(config.isShowConnectionErrorNotifications());
         mergeRequestTargetBranch.setText(config.getMergeRequestTargetBranch());
+        showForTagsCheckBox.setSelected(config.isShowForTags());
 
         mappingsModel.replaceAll(config.getMappings().stream()
                 .map(Mapping::toSerializable)
@@ -85,6 +88,7 @@ public class ConfigFormApp {
                 || !Objects.equals(config.getMergeRequestTargetBranch(), mergeRequestTargetBranch.getText())
                 || !Objects.equals(config.isShowNotificationForWatchedBranches(), watchedBranchesNotificationCheckbox.isSelected())
                 || !Objects.equals(config.isShowConnectionErrorNotifications(), showConnectionErrorsCheckbox.isSelected())
+                || !Objects.equals(config.isShowForTags(), showForTagsCheckBox.isSelected())
                 || !Objects.equals(new HashSet<>(ConfigProvider.getInstance().getIgnoredRemotes()), new HashSet<>(ignoredRemotesModel.getItems()))
                 ;
     }
