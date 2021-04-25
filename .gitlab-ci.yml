@@ -1,9 +1,8 @@
 image: gradle:11-jdk-openj9
 
 test-tags:
-  only:
-    - tags
-
+#  only:
+  #    - tags
   stage: test
   script:
     - gradle test
