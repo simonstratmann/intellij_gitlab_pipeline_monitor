@@ -95,7 +95,7 @@ public class GitlabToolWindow {
     private JPanel tablePanel;
     private boolean initialLoad = true;
 
-    private Map<Mapping, List<PipelineJobStatus>> pipelineInfos = new HashMap<>();
+    private Map<Mapping, List<PipelineJobStatus>> pipelineInfos;
 
     private final PipelineTableModel tableModel;
 
@@ -175,6 +175,10 @@ public class GitlabToolWindow {
             showForAllCheckbox.setVisible(ServiceManager.getService(project, GitService.class).getNonIgnoredRepositories().size() > 1);
         });
         showForAllCheckbox.setVisible(ServiceManager.getService(project, GitService.class).getNonIgnoredRepositories().size() > 1);
+        if (pipelineInfos == null) {
+            //When the window was not visible on startup and it's then displayed it hasn't received an update event yet, so we trigger it manually
+            backgroundUpdateService.restartBackgroundTask();
+        }
     }
 
     private void updateTableWhenMonitoringMultipleRemotesButOnlyShowingPipelinesForOne() {
