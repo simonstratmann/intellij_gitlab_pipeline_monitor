@@ -48,23 +48,34 @@ public class GitlabService {
 
     private final ConfigProvider config = ServiceManager.getService(ConfigProvider.class);
     private final Project project;
+    private final Map<Mapping, List<PipelineJobStatus>> pipelineInfos = new HashMap<>();
+
 
     public GitlabService(Project project) {
         this.project = project;
     }
 
-    public Map<Mapping, List<PipelineJobStatus>> getPipelineInfos() throws IOException {
-        checkForUnmappedRemotes(ServiceManager.getService(project, GitService.class).getAllGitRepositories());
+    public void updatePipelineInfos() throws IOException {
+        synchronized (pipelineInfos) {
+            checkForUnmappedRemotes(ServiceManager.getService(project, GitService.class).getAllGitRepositories());
 
-        Map<Mapping, List<PipelineJobStatus>> mappingToPipelines = new HashMap<>();
-        for (Map.Entry<Mapping, List<PipelineTo>> entry : getPipelines().entrySet()) {
-            final List<PipelineJobStatus> jobStatuses = entry.getValue().stream()
-                    .map(pipeline -> new PipelineJobStatus(pipeline.getRef(), entry.getKey().getGitlabProjectId(), pipeline.getCreatedAt(), pipeline.getUpdatedAt(), pipeline.getStatus(), pipeline.getWebUrl()))
-                    .sorted(Comparator.comparing(PipelineJobStatus::getUpdateTime, Comparator.nullsFirst(Comparator.naturalOrder())).reversed())
-                    .collect(Collectors.toList());
-            mappingToPipelines.put(entry.getKey(), jobStatuses);
+            final Map<Mapping, List<PipelineJobStatus>> newMappingToPipelines = new HashMap<>();
+            for (Map.Entry<Mapping, List<PipelineTo>> entry : getPipelines().entrySet()) {
+                final List<PipelineJobStatus> jobStatuses = entry.getValue().stream()
+                        .map(pipeline -> new PipelineJobStatus(pipeline.getRef(), entry.getKey().getGitlabProjectId(), pipeline.getCreatedAt(), pipeline.getUpdatedAt(), pipeline.getStatus(), pipeline.getWebUrl()))
+                        .sorted(Comparator.comparing(PipelineJobStatus::getUpdateTime, Comparator.nullsFirst(Comparator.naturalOrder())).reversed())
+                        .collect(Collectors.toList());
+                newMappingToPipelines.put(entry.getKey(), jobStatuses);
+            }
+            pipelineInfos.clear();
+            pipelineInfos.putAll(newMappingToPipelines);
         }
-        return mappingToPipelines;
+    }
+
+    public Map<Mapping, List<PipelineJobStatus>> getPipelineInfos() {
+        synchronized (pipelineInfos) {
+            return pipelineInfos;
+        }
     }
 
     private synchronized void checkForUnmappedRemotes(List<GitRepository> gitRepositories) {
@@ -195,11 +206,13 @@ public class GitlabService {
                     if (mapping == null) {
                         continue;
                     }
+                    logger.debug("Loading pipelines for remote " + mapping.getRemote());
                     List<PipelineTo> pipelines = makePipelinesUrlCall(1, mapping);
                     pipelines.addAll(makePipelinesUrlCall(2, mapping));
+                    logger.debug("Loaded " + pipelines.size() + " pipelines for remote " + mapping.getRemote());
+
                     projectToPipelines.put(mapping, pipelines);
                 }
-
             }
         }
 

@@ -10,25 +10,23 @@ import com.intellij.openapi.project.Project;
 import com.intellij.util.concurrency.AppExecutorUtil;
 import de.sist.gitlab.config.ConfigChangedListener;
 import de.sist.gitlab.config.ConfigProvider;
-import de.sist.gitlab.config.Mapping;
 import de.sist.gitlab.config.PipelineViewerConfigProject;
 import de.sist.gitlab.git.GitInitListener;
 import de.sist.gitlab.notifier.NotifierService;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
-import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 public class BackgroundUpdateService {
 
-    private static final Logger logger = Logger.getInstance(Logger.class);
+    private static final Logger logger = Logger.getInstance(BackgroundUpdateService.class);
 
     private static final int INITIAL_DELAY = 0;
     private static final int UPDATE_DELAY = 30;
 
+    private boolean isActive = false;
     private boolean isRunning = false;
     private final Runnable backgroundTask;
     private ScheduledFuture<?> scheduledFuture;
@@ -47,7 +45,17 @@ public class BackgroundUpdateService {
 
         project.getMessageBus().connect().subscribe(GitInitListener.GIT_INITIALIZED, gitRepository -> {
             logger.debug("Retrieved GIT_INITIALIZED event. Starting background task if needed");
-            startBackgroundTask();
+            //If the background task is started at once for some reason the progress indicator is never closed
+            if (isActive) {
+                logger.debug("Background task already running");
+                return;
+            }
+            if (!PipelineViewerConfigProject.getInstance(this.project).isEnabled()) {
+                return;
+            }
+            logger.debug("Starting background task");
+            scheduledFuture = AppExecutorUtil.getAppScheduledExecutorService().scheduleWithFixedDelay(backgroundTask, 5, UPDATE_DELAY, TimeUnit.SECONDS);
+            isActive = true;
         });
         project.getMessageBus().connect().subscribe(ConfigChangedListener.CONFIG_CHANGED, () -> {
             if (!PipelineViewerConfigProject.getInstance(project).isEnabled()) {
@@ -59,17 +67,27 @@ public class BackgroundUpdateService {
         });
     }
 
-    public void update(Project project) {
-        Task.Backgroundable task = new Task.Backgroundable(project, "Loading gitLab pipelines") {
+    public synchronized void update(Project project) {
+        Task.Backgroundable task = new Task.Backgroundable(project, "Loading gitLab pipelines", false) {
             @Override
             public void run(@NotNull ProgressIndicator indicator) {
+                if (isRunning) {
+                    return;
+                }
+                isRunning = true;
                 try {
-                    final Map<Mapping, List<PipelineJobStatus>> pipelineInfos = ServiceManager.getService(project, GitlabService.class).getPipelineInfos();
-                    project.getMessageBus().syncPublisher(ReloadListener.RELOAD).reload(pipelineInfos);
+                    logger.debug("Starting IntelliJ background task");
+                    final GitlabService gitlabService = ServiceManager.getService(project, GitlabService.class);
+                    gitlabService.updatePipelineInfos();
+                    project.getMessageBus().syncPublisher(ReloadListener.RELOAD).reload(gitlabService.getPipelineInfos());
+                    logger.debug("Finished IntelliJ background task");
                 } catch (IOException e) {
+                    logger.debug("Connection error: " + e.getMessage());
                     if (ConfigProvider.getInstance().isShowConnectionErrorNotifications()) {
                         ServiceManager.getService(project, NotifierService.class).showError("Unable to connect to gitlab: " + e);
                     }
+                } finally {
+                    isRunning = false;
                 }
             }
         };
@@ -77,7 +95,7 @@ public class BackgroundUpdateService {
     }
 
     public synchronized boolean startBackgroundTask() {
-        if (isRunning) {
+        if (isActive) {
             logger.debug("Background task already running");
             return false;
         }
@@ -86,12 +104,12 @@ public class BackgroundUpdateService {
         }
         logger.debug("Starting background task");
         scheduledFuture = AppExecutorUtil.getAppScheduledExecutorService().scheduleWithFixedDelay(backgroundTask, INITIAL_DELAY, UPDATE_DELAY, TimeUnit.SECONDS);
-        isRunning = true;
+        isActive = true;
         return true;
     }
 
     public synchronized void stopBackgroundTask() {
-        if (!isRunning) {
+        if (!isActive) {
             logger.debug("Background task already stopped");
         }
         if (scheduledFuture == null) {
@@ -100,19 +118,23 @@ public class BackgroundUpdateService {
         }
         logger.debug("Stopping background task");
         boolean cancelled = scheduledFuture.cancel(false);
-        isRunning = !cancelled;
+        isActive = !cancelled;
         logger.debug("Background task cancelled: " + cancelled);
+    }
+
+    public synchronized boolean isActive() {
+        return isActive;
     }
 
     public synchronized void restartBackgroundTask() {
         logger.debug("Restarting background task");
-        if (isRunning) {
+        if (isActive) {
             boolean cancelled = scheduledFuture.cancel(false);
-            isRunning = !cancelled;
+            isActive = !cancelled;
             logger.debug("Background task cancelled: " + cancelled);
         }
-        scheduledFuture = AppExecutorUtil.getAppScheduledExecutorService().scheduleWithFixedDelay(backgroundTask, 0, UPDATE_DELAY, TimeUnit.SECONDS);
-        isRunning = true;
+        scheduledFuture = AppExecutorUtil.getAppScheduledExecutorService().scheduleWithFixedDelay(backgroundTask, INITIAL_DELAY, UPDATE_DELAY, TimeUnit.SECONDS);
+        isActive = true;
     }
 
 }

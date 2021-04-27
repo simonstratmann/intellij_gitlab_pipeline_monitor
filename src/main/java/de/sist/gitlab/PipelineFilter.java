@@ -1,5 +1,6 @@
 package de.sist.gitlab;
 
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import de.sist.gitlab.config.ConfigProvider;
 import de.sist.gitlab.config.Mapping;
@@ -19,12 +20,15 @@ import java.util.stream.Collectors;
 @SuppressWarnings("RedundantIfStatement")
 public class PipelineFilter {
 
+    private static final Logger logger = Logger.getInstance(PipelineFilter.class);
+
+    private static final int TAG_INTERVAL = 180;
     private final ConfigProvider config;
     private final Project project;
     final GitService gitService;
     private PipelineJobStatus latestShown;
-    private Map<GitRepository, Instant> lastTagUpdate = new HashMap<>();
-    private Map<GitRepository, List<String>> repoToTags = new HashMap<>();
+    private final Map<GitRepository, Instant> lastTagUpdate = new HashMap<>();
+    private final Map<GitRepository, List<String>> repoToTags = new HashMap<>();
 
     public PipelineFilter(Project project) {
         config = ConfigProvider.getInstance();
@@ -44,7 +48,7 @@ public class PipelineFilter {
             }
         }
         if (PipelineViewerConfigApp.getInstance().isShowForTags()) {
-            final boolean outdated = lastTagUpdate.computeIfAbsent(gitRepository, x -> Instant.MIN.plusSeconds(30)).isBefore(Instant.now().minusSeconds(30));
+            final boolean outdated = lastTagUpdate.computeIfAbsent(gitRepository, x -> Instant.MIN.plusSeconds(TAG_INTERVAL)).isBefore(Instant.now().minusSeconds(TAG_INTERVAL));
             if (outdated) {
                 repoToTags.put(gitRepository, gitService.getTags(gitRepository));
                 lastTagUpdate.put(gitRepository, Instant.now());
@@ -72,6 +76,8 @@ public class PipelineFilter {
         if (!statuses.isEmpty() && !forNotification) {
             latestShown = statuses.get(0);
         }
+        logger.debug(String.format("Filtered %d out of %d pipelines %s", statuses.size(), toFilter.size(), forNotification ? "for notifications" : "for display"));
+
         return statuses;
     }
 
