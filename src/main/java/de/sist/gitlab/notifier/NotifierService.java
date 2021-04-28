@@ -146,7 +146,7 @@ public class NotifierService {
         notification.addAction(new NotificationAction("Open in Browser") {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e, @NotNull Notification notification) {
-                com.intellij.ide.BrowserUtil.browse(status.pipelineLink);
+                de.sist.gitlab.UrlOpener.openUrl(status.pipelineLink);
                 notification.expire();
                 LightsControl.turnOffAllLights();
             }

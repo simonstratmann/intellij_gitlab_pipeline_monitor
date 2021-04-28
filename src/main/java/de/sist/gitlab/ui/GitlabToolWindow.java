@@ -261,7 +261,7 @@ public class GitlabToolWindow {
             url += NEW_MERGE_REQUEST_URL_TARGET_BRANCH_POSTFIX.replace(TARGET_BRANCH_PLACEHOLDER, config.getMergeRequestTargetBranch(project));
         }
         logger.info("Opening URL " + url);
-        com.intellij.ide.BrowserUtil.browse(url);
+        de.sist.gitlab.UrlOpener.openUrl(url);
     }
 
     private PipelineJobStatus getSelectedBranch(Point pointClicked) {
@@ -498,7 +498,7 @@ public class GitlabToolWindow {
                     String url = (String) tableModel.getValueAt(modelRow, selectedColumn);
 
                     logger.debug("Opening URL " + url);
-                    com.intellij.ide.BrowserUtil.browse(url);
+                    de.sist.gitlab.UrlOpener.openUrl(url);
                 }
             }
 

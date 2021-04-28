@@ -38,6 +38,7 @@ patchPluginXml {
         <li>Display times in local time zone.</li>
         <li>Don't remove path of configured gitlab URL.</li>
         <li>Add action to open last pipeline in browser (located in Git main menu group).</li>
+        <li>Add option to define custom command for opening URLs.</li>
         <li>Changed minimum IntelliJ version to 2020.1.</li>
     </ul>
     

@@ -33,6 +33,7 @@ public class ConfigFormApp {
     private JPanel mappingsPanel;
     private JPanel ignoredRemotesPanel;
     private JCheckBox showForTagsCheckBox;
+    private JTextField urlOpenerTextbox;
     private final CollectionListModel<String> mappingsModel = new CollectionListModel<>();
     private final CollectionListModel<String> ignoredRemotesModel = new CollectionListModel<>();
 
@@ -57,6 +58,7 @@ public class ConfigFormApp {
         config.getMappings().addAll(mappingsModel.getItems().stream().map(Mapping::toMapping).collect(Collectors.toList()));
         config.getIgnoredRemotes().clear();
         config.getIgnoredRemotes().addAll(ignoredRemotesModel.getItems());
+        config.setUrlOpenerCommand(urlOpenerTextbox.getText());
         List<String> statusesToWatch = new ArrayList<>();
 
         config.setStatusesToWatch(statusesToWatch);
@@ -75,6 +77,7 @@ public class ConfigFormApp {
         showConnectionErrorsCheckbox.setSelected(config.isShowConnectionErrorNotifications());
         mergeRequestTargetBranch.setText(config.getMergeRequestTargetBranch());
         showForTagsCheckBox.setSelected(config.isShowForTags());
+        urlOpenerTextbox.setText(config.getUrlOpenerCommand());
 
         mappingsModel.replaceAll(config.getMappings().stream()
                 .map(Mapping::toSerializable)
@@ -89,6 +92,7 @@ public class ConfigFormApp {
                 || !Objects.equals(config.isShowNotificationForWatchedBranches(), watchedBranchesNotificationCheckbox.isSelected())
                 || !Objects.equals(config.isShowConnectionErrorNotifications(), showConnectionErrorsCheckbox.isSelected())
                 || !Objects.equals(config.isShowForTags(), showForTagsCheckBox.isSelected())
+                || !Objects.equals(config.getUrlOpenerCommand(), urlOpenerTextbox.getText())
                 || !Objects.equals(new HashSet<>(ConfigProvider.getInstance().getIgnoredRemotes()), new HashSet<>(ignoredRemotesModel.getItems()))
                 ;
     }

@@ -22,6 +22,7 @@ public class PipelineViewerConfigApp implements PersistentStateComponent<Pipelin
     private boolean showConnectionErrors = true;
     private List<String> ignoredRemotes = new ArrayList<>();
     private boolean showForTags = true;
+    private String urlOpenerCommand;
 
     public List<Mapping> getMappings() {
         return mappings;
@@ -81,6 +82,14 @@ public class PipelineViewerConfigApp implements PersistentStateComponent<Pipelin
 
     public void setShowForTags(boolean showForTags) {
         this.showForTags = showForTags;
+    }
+
+    public String getUrlOpenerCommand() {
+        return urlOpenerCommand;
+    }
+
+    public void setUrlOpenerCommand(String urlOpenerCommand) {
+        this.urlOpenerCommand = urlOpenerCommand;
     }
 
     @Override

@@ -25,7 +25,7 @@ public class OpenLastPipelineAction extends AnAction {
         final PipelineJobStatus latestShown = ServiceManager.getService(project, PipelineFilter.class).getLatestShown();
         if (latestShown != null) {
             logger.info("Opening URL " + latestShown.getPipelineLink());
-            com.intellij.ide.BrowserUtil.browse(latestShown.getPipelineLink());
+            de.sist.gitlab.UrlOpener.openUrl(latestShown.getPipelineLink());
         }
     }
 }
