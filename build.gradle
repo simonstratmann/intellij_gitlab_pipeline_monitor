@@ -4,11 +4,10 @@ plugins {
 }
 
 group 'de.sist'
-version '1.99.10'
+version '2.0.0'
 
 publishPlugin {
     token intellijPublishToken
-    channels 'beta'
 }
 
 sourceCompatibility = 1.8
@@ -35,6 +34,7 @@ patchPluginXml {
     <ul>
         <li>Drastically changed workflow. The plugin will recognize all remotes used in an IntelliJ project and ask which should be monitored. It will then automatically retrieve all necessary data from gitlab. This a) reduces how much you need to configure and b) allows to decouple IntelliJ projects from Gitlab projects.</li>
         <li>Use gitlab default target branch for merge requests if none is configured.</li>
+        <li>Option to show pipelines for tags.</li>
         <li>Display times in local time zone.</li>
         <li>Don't remove path of configured gitlab URL.</li>
         <li>Add action to open last pipeline in browser (located in Git main menu group).</li>

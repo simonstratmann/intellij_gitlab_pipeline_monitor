@@ -2,7 +2,6 @@ package de.sist.gitlab.git;
 
 import com.intellij.dvcs.DvcsUtil;
 import com.intellij.dvcs.repo.VcsRepositoryManager;
-import com.intellij.execution.process.ProcessOutputTypes;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
@@ -10,6 +9,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
 import de.sist.gitlab.config.ConfigProvider;
 import git4idea.GitUtil;
+import git4idea.branch.GitBranchUtil;
 import git4idea.commands.Git;
 import git4idea.commands.GitCommand;
 import git4idea.commands.GitCommandResult;
@@ -113,26 +113,7 @@ public class GitService {
     public @NotNull List<String> getTags(GitRepository gitRepository) {
         logger.debug("Loading tags for " + gitRepository);
         final VirtualFile root = gitRepository.getRoot();
-        final Future<List<String>> future = ApplicationManager.getApplication().executeOnPooledThread(() -> {
-            GitLineHandler h = new GitLineHandler(project, root, GitCommand.TAG);
-            h.addParameters("-l");
-            h.setSilent(true);
-
-            List<String> tags = new ArrayList<>();
-            h.addLineListener((line, outputType) -> {
-                if (outputType != ProcessOutputTypes.STDOUT) {
-                    return;
-                }
-                if (line.length() != 0) {
-                    tags.add(line);
-                }
-            });
-
-            GitCommandResult result = Git.getInstance().runCommandWithoutCollectingOutput(h);
-            result.throwOnError();
-
-            return tags;
-        });
+        final Future<List<String>> future = ApplicationManager.getApplication().executeOnPooledThread(() -> GitBranchUtil.getAllTags(project, root));
         try {
             return future.get(3, TimeUnit.SECONDS);
         } catch (Exception e) {
