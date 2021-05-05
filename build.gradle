@@ -4,7 +4,7 @@ plugins {
 }
 
 group 'de.sist'
-version '2.0.0'
+version '2.0.2'
 
 publishPlugin {
     token intellijPublishToken
@@ -30,6 +30,16 @@ intellij {
 }
 patchPluginXml {
     changeNotes """
+    <p>2.0.2</p>
+    <ul>
+        <li>Only remotes may be tracked where the UI is reachable under the remote's host. This will be changed in a future release.</li>
+    </ul>
+    
+    <p>2.0.1</p>
+    <ul>
+        <li>Unfortunately due to a bug in IntelliJ with the progress indicator I released 2.0.0 with a last-minute update which caused a serious issue with a modal window freezing. This should be fixed for now but some progress indicators may be left dangling. I'm working on it. Sorry for the botched release :-/</li>
+    </ul>
+    
     <p>2.0</p>
     <ul>
         <li>Drastically changed workflow. The plugin will recognize all remotes used in an IntelliJ project and ask which should be monitored. It will then automatically retrieve all necessary data from gitlab. This a) reduces how much you need to configure and b) allows to decouple IntelliJ projects from Gitlab projects.</li>

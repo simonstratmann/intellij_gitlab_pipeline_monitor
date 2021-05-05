@@ -32,6 +32,7 @@ public class UnmappedRemoteDialog extends JDialog {
         label.setText("<html>The remote <b>" + remoteUrl + "</b> is not tracked by the gitlab pipeline viewer.<br>" +
                 "Do you want to monitor pipelines built for this branch?<br>" +
                 "You may still add or modify this in the settings later." +
+                "Please make sure the gitlab UI can be reached under the remote's host.<br>" +
                 "</html>");
 
         buttonOK.addActionListener(e -> onOK());

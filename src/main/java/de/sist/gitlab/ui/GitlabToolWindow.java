@@ -15,10 +15,6 @@ import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.fileEditor.FileEditorManagerEvent;
 import com.intellij.openapi.fileEditor.FileEditorManagerListener;
 import com.intellij.openapi.fileEditor.FileEditorProvider;
-import com.intellij.openapi.progress.ProgressIndicator;
-import com.intellij.openapi.progress.ProgressManager;
-import com.intellij.openapi.progress.Task;
-import com.intellij.openapi.progress.impl.BackgroundableProcessIndicator;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.JBPopupMenu;
 import com.intellij.openapi.util.IconLoader;
@@ -288,7 +284,7 @@ public class GitlabToolWindow {
         AnActionButton refreshActionButton = new AnActionButton("Refresh", AllIcons.Actions.Refresh) {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
-                updateWithProgressIndicator(project);
+                backgroundUpdateService.update(project);
             }
 
             @Override
@@ -381,13 +377,7 @@ public class GitlabToolWindow {
     }
 
     private void updateWithProgressIndicator(Project project) {
-        Task.Backgroundable task = new Task.Backgroundable(project, "Loading gitLab pipelines", false) {
-            @Override
-            public void run(@NotNull ProgressIndicator indicator) {
-                backgroundUpdateService.update(project);
-            }
-        };
-        ProgressManager.getInstance().runProcessWithProgressAsynchronously(task, new BackgroundableProcessIndicator(task));
+        backgroundUpdateService.update(project);
     }
 
 
