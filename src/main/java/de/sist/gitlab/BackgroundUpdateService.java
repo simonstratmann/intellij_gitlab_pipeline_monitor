@@ -1,5 +1,6 @@
 package de.sist.gitlab;
 
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProgressIndicator;
@@ -12,6 +13,7 @@ import de.sist.gitlab.config.ConfigChangedListener;
 import de.sist.gitlab.config.ConfigProvider;
 import de.sist.gitlab.config.PipelineViewerConfigProject;
 import de.sist.gitlab.git.GitInitListener;
+import de.sist.gitlab.git.GitService;
 import de.sist.gitlab.notifier.NotifierService;
 import org.jetbrains.annotations.NotNull;
 
@@ -68,7 +70,7 @@ public class BackgroundUpdateService {
     }
 
     public synchronized void update(Project project) {
-        Task.Backgroundable task = new Task.Backgroundable(project, "Loading gitLab pipelines", false) {
+        Task.Backgroundable updateTask = new Task.Backgroundable(project, "Loading gitLab pipelines", false) {
             @Override
             public void run(@NotNull ProgressIndicator indicator) {
                 if (isRunning) {
@@ -92,8 +94,14 @@ public class BackgroundUpdateService {
                 }
             }
         };
-        final BackgroundableProcessIndicator progressIndicator = new BackgroundableProcessIndicator(task);
-        ProgressManager.getInstance().runProcessWithProgressAsynchronously(task, progressIndicator);
+
+        ApplicationManager.getApplication().invokeLater(() -> {
+            ServiceManager.getService(project, GitlabService.class).checkForUnmappedRemotes(ServiceManager.getService(project, GitService.class).getAllGitRepositories());
+            final BackgroundableProcessIndicator updateProgressIndicator = new BackgroundableProcessIndicator(updateTask);
+            ProgressManager.getInstance().runProcessWithProgressAsynchronously(updateTask, updateProgressIndicator);
+        });
+
+
     }
 
     public synchronized boolean startBackgroundTask() {

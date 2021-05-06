@@ -2,6 +2,7 @@
 package de.sist.gitlab.config;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 
 /**
@@ -15,11 +16,6 @@ public class Mapping {
     private String projectName;
 
     public Mapping() {
-    }
-
-    public Mapping(String remote, String gitlabProjectId) {
-        this.remote = remote;
-        this.gitlabProjectId = gitlabProjectId;
     }
 
     public String getRemote() {
@@ -88,6 +84,10 @@ public class Mapping {
         return mapping;
     }
 
+    public static boolean isValid(String string) {
+        return string != null && string.split(";").length == 5;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -103,5 +103,16 @@ public class Mapping {
     @Override
     public int hashCode() {
         return Objects.hashCode(remote, host, projectPath, gitlabProjectId, projectName);
+    }
+
+    @Override
+    public String toString() {
+        return MoreObjects.toStringHelper(this)
+                .add("remote", remote)
+                .add("host", host)
+                .add("projectPath", projectPath)
+                .add("gitlabProjectId", gitlabProjectId)
+                .add("projectName", projectName)
+                .toString();
     }
 }

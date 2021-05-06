@@ -57,7 +57,6 @@ public class GitlabService {
 
     public void updatePipelineInfos() throws IOException {
         synchronized (pipelineInfos) {
-            checkForUnmappedRemotes(ServiceManager.getService(project, GitService.class).getAllGitRepositories());
 
             final Map<Mapping, List<PipelineJobStatus>> newMappingToPipelines = new HashMap<>();
             for (Map.Entry<Mapping, List<PipelineTo>> entry : getPipelines().entrySet()) {
@@ -78,7 +77,7 @@ public class GitlabService {
         }
     }
 
-    private synchronized void checkForUnmappedRemotes(List<GitRepository> gitRepositories) {
+    public synchronized void checkForUnmappedRemotes(List<GitRepository> gitRepositories) {
         ConfigProvider.getInstance().aquireLock();
         logger.debug("Checking for unmapped remotes");
         final Set<String> handledMappings = new HashSet<>();
@@ -144,9 +143,8 @@ public class GitlabService {
         if (mapping.getProjectName() == null) {
             return;
         }
+        logger.info("Adding mapping " + mapping);
         ConfigProvider.getInstance().getMappings().add(mapping);
-
-
     }
 
     @SuppressWarnings("unchecked")
@@ -159,7 +157,9 @@ public class GitlabService {
 
             final Map<String, Object> graphQlResponse = HttpRequests.post(graphQlUrl, "application/json")
                     .connect(request -> {
-                        request.getConnection().setRequestProperty("Authorization", "Bearer " + accessToken);
+                        if (accessToken != null) {
+                            request.getConnection().setRequestProperty("Authorization", "Bearer " + accessToken);
+                        }
                         request.write(graphQlQuery);
                         return Jackson.OBJECT_MAPPER.readValue(request.getInputStream(), new TypeReference<Map<String, Object>>() {
                         });
