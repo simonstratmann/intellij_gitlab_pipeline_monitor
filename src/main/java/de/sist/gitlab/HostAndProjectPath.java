@@ -1,7 +1,10 @@
 
 package de.sist.gitlab;
 
+import java.util.StringJoiner;
+
 /**
+ *
  */
 public class HostAndProjectPath {
     private final String host;
@@ -18,5 +21,13 @@ public class HostAndProjectPath {
 
     public String getProjectPath() {
         return projectPath;
+    }
+
+    @Override
+    public String toString() {
+        return new StringJoiner(", ", HostAndProjectPath.class.getSimpleName() + "[", "]")
+                .add("host='" + host + "'")
+                .add("projectPath='" + projectPath + "'")
+                .toString();
     }
 }

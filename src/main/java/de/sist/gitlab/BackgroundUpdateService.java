@@ -101,7 +101,6 @@ public class BackgroundUpdateService {
             ProgressManager.getInstance().runProcessWithProgressAsynchronously(updateTask, updateProgressIndicator);
         });
 
-
     }
 
     public synchronized boolean startBackgroundTask() {

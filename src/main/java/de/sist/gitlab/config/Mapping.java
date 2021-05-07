@@ -4,6 +4,7 @@ package de.sist.gitlab.config;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
+import com.google.common.base.Strings;
 
 /**
  */
@@ -86,6 +87,14 @@ public class Mapping {
 
     public static boolean isValid(String string) {
         return string != null && string.split(";").length == 5;
+    }
+
+    public boolean isValid() {
+        return !Strings.isNullOrEmpty(remote)
+                && !Strings.isNullOrEmpty(host)
+                && !Strings.isNullOrEmpty(projectPath)
+                && !Strings.isNullOrEmpty(projectName)
+                && !Strings.isNullOrEmpty(gitlabProjectId);
     }
 
     @Override
