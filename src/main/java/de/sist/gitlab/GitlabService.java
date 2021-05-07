@@ -12,7 +12,6 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.util.io.HttpRequests;
-import com.intellij.util.io.RequestBuilder;
 import de.sist.gitlab.config.ConfigChangedListener;
 import de.sist.gitlab.config.ConfigProvider;
 import de.sist.gitlab.config.Mapping;
@@ -21,6 +20,7 @@ import de.sist.gitlab.git.GitService;
 import de.sist.gitlab.ui.UnmappedRemoteDialog;
 import git4idea.repo.GitRemote;
 import git4idea.repo.GitRepository;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.utils.URIBuilder;
 
 import java.io.IOException;
@@ -33,6 +33,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.Future;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -49,6 +52,7 @@ public class GitlabService {
     private final ConfigProvider config = ServiceManager.getService(ConfigProvider.class);
     private final Project project;
     private final Map<Mapping, List<PipelineJobStatus>> pipelineInfos = new HashMap<>();
+    private static final Lock lock = new ReentrantLock();
 
 
     public GitlabService(Project project) {
@@ -77,31 +81,36 @@ public class GitlabService {
         }
     }
 
-    public synchronized void checkForUnmappedRemotes(List<GitRepository> gitRepositories) {
-        ConfigProvider.getInstance().aquireLock();
-        logger.debug("Checking for unmapped remotes");
-        final Set<String> handledMappings = new HashSet<>();
-        for (GitRepository gitRepository : gitRepositories) {
-            for (GitRemote remote : gitRepository.getRemotes()) {
-                for (String url : remote.getUrls()) {
-                    if (!PipelineViewerConfigProject.getInstance(project).isEnabled()) {
-                        //Make sure no further remotes are processed if multiple are found and the user chose to disable for the project
-                        return;
-                    }
-                    if (ConfigProvider.getInstance().getIgnoredRemotes().contains(url)) {
-                        continue;
-                    }
-                    if (INCOMPATIBLE_REMOTES.stream().anyMatch(x -> url.toLowerCase().contains(x))) {
-                        continue;
-                    }
-                    if (!handledMappings.contains(url)) {
-                        if (config.getMappingByRemoteUrl(url) == null) {
-                            handleUnknownRemote(url);
+    public void checkForUnmappedRemotes(List<GitRepository> gitRepositories) {
+        lock.lock();
+        try {
+            ConfigProvider.getInstance().aquireLock();
+            logger.debug("Checking for unmapped remotes");
+            final Set<String> handledMappings = new HashSet<>();
+            for (GitRepository gitRepository : gitRepositories) {
+                for (GitRemote remote : gitRepository.getRemotes()) {
+                    for (String url : remote.getUrls()) {
+                        if (!PipelineViewerConfigProject.getInstance(project).isEnabled()) {
+                            //Make sure no further remotes are processed if multiple are found and the user chose to disable for the project
+                            return;
                         }
-                        handledMappings.add(url);
+                        if (ConfigProvider.getInstance().getIgnoredRemotes().contains(url)) {
+                            continue;
+                        }
+                        if (INCOMPATIBLE_REMOTES.stream().anyMatch(x -> url.toLowerCase().contains(x))) {
+                            continue;
+                        }
+                        if (!handledMappings.contains(url)) {
+                            if (config.getMappingByRemoteUrl(url) == null) {
+                                handleUnknownRemote(url);
+                            }
+                            handledMappings.add(url);
+                        }
                     }
                 }
             }
+        } finally {
+            lock.unlock();
         }
     }
 
@@ -155,16 +164,20 @@ public class GitlabService {
         try {
             final String accessToken = PasswordSafe.getInstance().getPassword(new CredentialAttributes(ACCESS_TOKEN_CREDENTIALS_ATTRIBUTE, mapping.getRemote()));
 
-            final Map<String, Object> graphQlResponse = HttpRequests.post(graphQlUrl, "application/json")
-                    .connect(request -> {
-                        if (accessToken != null) {
-                            request.getConnection().setRequestProperty("Authorization", "Bearer " + accessToken);
-                        }
-                        request.write(graphQlQuery);
-                        return Jackson.OBJECT_MAPPER.readValue(request.getInputStream(), new TypeReference<Map<String, Object>>() {
-                        });
-                    });
-            final Map<String, Object> data = (Map<String, Object>) graphQlResponse.get("data");
+            final Future<Map<String, Object>> graphQlResponse = ApplicationManager.getApplication().executeOnPooledThread(() ->
+                    HttpRequests.post(graphQlUrl, "application/json")
+                            .connect(request -> {
+                                if (accessToken != null) {
+                                    request.getConnection().setRequestProperty("Authorization", "Bearer " + accessToken);
+                                }
+                                request.write(graphQlQuery);
+                                final String response = request.readString();
+                                logger.debug("Got response from " + url + "\n:" + response);
+                                return Jackson.OBJECT_MAPPER.readValue(response, new TypeReference<Map<String, Object>>() {
+                                });
+                            }));
+
+            final Map<String, Object> data = (Map<String, Object>) graphQlResponse.get().get("data");
             final Map<String, Object> project = (Map<String, Object>) data.get("project");
             final String name = (String) project.get("name");
             String id = (String) project.get("id");
@@ -174,8 +187,7 @@ public class GitlabService {
             logger.info("Determined project name " + name + " and id " + id + " for remote " + url);
             mapping.setGitlabProjectId(id);
             mapping.setProjectName(name);
-        } catch (
-                IOException e) {
+        } catch (Exception e) {
             logger.error("Error reading project data using URL " + graphQlUrl + " and query " + graphQlQuery);
         }
     }
@@ -265,25 +277,26 @@ public class GitlabService {
         final Matcher httpMatcher = REMOTE_GIT_HTTP_PATTERN.matcher(remote);
         if (httpMatcher.matches()) {
             if (remote.startsWith("https://gitlab.com")) {
-                return Optional.of(new HostAndProjectPath("https://gitlab.com", remote.substring("https://gitlab.com".length())));
+                final String host = "https://gitlab.com";
+                final String projectPath = getCleanProjectPath(remote.substring("https://gitlab.com/".length()));
+                return Optional.of(new HostAndProjectPath(host, projectPath));
             }
             //For self hosted instances it's impossible to determine which part of the path is part of the host or the project.
             //So we try each part of the path and see if we get a response that looks like gitlab
             final String fullUrl = httpMatcher.group("url");
-            String testUrl = httpMatcher.group("scheme");
+            StringBuilder testUrl = new StringBuilder(httpMatcher.group("scheme"));
             for (String part : fullUrl.split("/")) {
-                testUrl += part + "/";
-                final RequestBuilder request = HttpRequests.request(testUrl);
+                testUrl.append(part).append("/");
 
                 final String response;
                 try {
-                    response = request.readString();
-                } catch (IOException e) {
+                    response = ApplicationManager.getApplication().executeOnPooledThread(() -> HttpRequests.request(testUrl.toString()).readString()).get();
+                } catch (Exception e) {
                     logger.error("Unable to retrieve host and project path from remote " + remote, e);
                     return Optional.empty();
                 }
                 if (response.toLowerCase().contains("gitlab")) {
-                    final HostAndProjectPath hostAndProjectPath = new HostAndProjectPath(testUrl, fullUrl.substring(testUrl.length()));
+                    final HostAndProjectPath hostAndProjectPath = new HostAndProjectPath(testUrl.toString(), getCleanProjectPath(fullUrl.substring(part.length())));
                     logger.info("Determined host " + hostAndProjectPath.getHost() + " and project path " + hostAndProjectPath.getProjectPath() + " from http remote " + remote);
                     return Optional.of(hostAndProjectPath);
                 }
@@ -291,6 +304,10 @@ public class GitlabService {
         }
         logger.error("Unable to parse remote " + remote);
         return Optional.empty();
+    }
+
+    private static String getCleanProjectPath(String projectPath) {
+        return StringUtils.removeStart(StringUtils.removeEndIgnoreCase(projectPath, ".git"), "/");
     }
 
 }
