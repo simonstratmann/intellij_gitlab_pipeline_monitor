@@ -1,16 +1,23 @@
 package de.sist.gitlab.config;
 
+import com.intellij.credentialStore.CredentialAttributes;
+import com.intellij.credentialStore.Credentials;
+import com.intellij.ide.passwordSafe.PasswordSafe;
+import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.ui.Messages;
+import com.intellij.ui.AnActionButton;
 import com.intellij.ui.CollectionListModel;
 import com.intellij.ui.IdeBorderFactory;
 import com.intellij.ui.ToolbarDecorator;
 import com.intellij.ui.components.JBList;
 import de.sist.gitlab.BackgroundUpdateService;
+import de.sist.gitlab.GitlabService;
 import de.sist.gitlab.lights.LightsControl;
+import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import java.util.ArrayList;
@@ -127,6 +134,25 @@ public class ConfigFormApp {
                 mappingsModel.add(newValue);
             }
         });
+
+
+        final AnActionButton tokenButton = new AnActionButton("Set Access Token") {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                for (String mappingString : mappingList.getSelectedValuesList()) {
+                    final Mapping mapping = Mapping.toMapping(mappingString);
+                    final String oldAccessToken = PasswordSafe.getInstance().getPassword(new CredentialAttributes(GitlabService.ACCESS_TOKEN_CREDENTIALS_ATTRIBUTE, mapping.getRemote()));
+                    final String newAccessToken = Messages.showInputDialog("Please enter the access token for " + mapping.getHost(), "Gitlab Pipeline Viewer", null, oldAccessToken, null);
+                    if (newAccessToken != null) {
+                        //Cancel
+                        PasswordSafe.getInstance().set(Mapping.toCredentialsAttributes(mapping), new Credentials(mapping.getRemote(), newAccessToken));
+                    }
+                }
+            }
+
+        };
+        tokenButton.addCustomUpdater(e -> !mappingList.getSelectedValuesList().isEmpty());
+        decorator.addExtraAction(tokenButton);
         mappingsPanel.add(decorator.createPanel());
         mappingsPanel.setBorder(IdeBorderFactory.createTitledBorder("Git Remote To Gitlab Project Mapping"));
     }

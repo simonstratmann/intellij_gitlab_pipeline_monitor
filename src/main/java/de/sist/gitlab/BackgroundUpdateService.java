@@ -84,7 +84,7 @@ public class BackgroundUpdateService {
                     project.getMessageBus().syncPublisher(ReloadListener.RELOAD).reload(gitlabService.getPipelineInfos());
                     logger.debug("Finished IntelliJ background task");
                 } catch (IOException e) {
-                    logger.debug("Connection error: " + e.getMessage());
+                    logger.info("Connection error: " + e.getMessage());
                     if (ConfigProvider.getInstance().isShowConnectionErrorNotifications()) {
                         ServiceManager.getService(project, NotifierService.class).showError("Unable to connect to gitlab: " + e);
                     }

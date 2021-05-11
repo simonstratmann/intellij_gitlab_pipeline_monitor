@@ -5,6 +5,8 @@ import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.base.Strings;
+import com.intellij.credentialStore.CredentialAttributes;
+import de.sist.gitlab.GitlabService;
 
 /**
  */
@@ -83,6 +85,10 @@ public class Mapping {
         mapping.setGitlabProjectId(split[3]);
         mapping.setProjectName(split[4]);
         return mapping;
+    }
+
+    public static CredentialAttributes toCredentialsAttributes(Mapping mapping) {
+        return new CredentialAttributes(GitlabService.ACCESS_TOKEN_CREDENTIALS_ATTRIBUTE, mapping.getRemote());
     }
 
     public static boolean isValid(String string) {

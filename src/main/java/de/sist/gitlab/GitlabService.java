@@ -2,7 +2,6 @@ package de.sist.gitlab;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.base.Strings;
-import com.intellij.credentialStore.CredentialAttributes;
 import com.intellij.credentialStore.CredentialAttributesKt;
 import com.intellij.credentialStore.Credentials;
 import com.intellij.ide.passwordSafe.PasswordSafe;
@@ -25,7 +24,9 @@ import org.apache.http.client.utils.URIBuilder;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -42,11 +43,12 @@ import java.util.stream.Collectors;
 
 public class GitlabService {
 
+    public static final String ACCESS_TOKEN_CREDENTIALS_ATTRIBUTE = CredentialAttributesKt.generateServiceName("GitlabService", "accessToken");
+
     private static final Logger logger = Logger.getInstance(GitlabService.class);
 
     private static final Pattern REMOTE_GIT_SSH_PATTERN = Pattern.compile("git@(?<host>.*):(?<projectPath>.*)(\\.git)?");
     private static final Pattern REMOTE_GIT_HTTP_PATTERN = Pattern.compile("(?<scheme>https?:\\/\\/)(?<url>.*)(\\.git)?");
-    private static final String ACCESS_TOKEN_CREDENTIALS_ATTRIBUTE = CredentialAttributesKt.generateServiceName("GitlabService", "accessToken");
     private static final List<String> INCOMPATIBLE_REMOTES = Arrays.asList("github.com", "bitbucket.com");
 
     private final ConfigProvider config = ServiceManager.getService(ConfigProvider.class);
@@ -135,10 +137,9 @@ public class GitlabService {
 
         final Mapping mapping = new Mapping();
         mapping.setRemote(url);
-
         if (!Strings.isNullOrEmpty(response.getAccessToken())) {
             logger.info("Saved access token for URL " + url);
-            PasswordSafe.getInstance().set(new CredentialAttributes(ACCESS_TOKEN_CREDENTIALS_ATTRIBUTE, url), new Credentials(url, response.getAccessToken()));
+            PasswordSafe.getInstance().set(Mapping.toCredentialsAttributes(mapping), new Credentials(mapping.getRemote(), response.getAccessToken()));
         }
 
         //Retrieve host and project path
@@ -158,6 +159,7 @@ public class GitlabService {
             logger.info("Aborting with incomplete mapping " + mapping);
             return;
         }
+
         logger.info("Adding mapping " + mapping);
         ConfigProvider.getInstance().getMappings().add(mapping);
     }
@@ -169,7 +171,7 @@ public class GitlabService {
         final String graphQlQuery = String.format("{\"query\": \"query {  project(fullPath:\\\"%s\\\") {    name    id  }}\"}", mapping.getProjectPath());
         try {
             logger.debug("Reading project data using URL " + graphQlUrl + " and query " + graphQlQuery);
-            final String accessToken = PasswordSafe.getInstance().getPassword(new CredentialAttributes(ACCESS_TOKEN_CREDENTIALS_ATTRIBUTE, mapping.getRemote()));
+            final String accessToken = PasswordSafe.getInstance().getPassword(Mapping.toCredentialsAttributes(mapping));
 
             final Future<Map<String, Object>> graphQlResponse = ApplicationManager.getApplication().executeOnPooledThread(() ->
                     HttpRequests.post(graphQlUrl, "application/json")
@@ -189,6 +191,10 @@ public class GitlabService {
 
             final Map<String, Object> data = (Map<String, Object>) graphQlResponse.get().get("data");
             final Map<String, Object> project = (Map<String, Object>) data.get("project");
+            if (project == null) {
+                logger.error("Unable to read project data using URL " + graphQlUrl + " and query " + graphQlQuery + ". Probably an auth error");
+                throw new LoginException();
+            }
             final String name = (String) project.get("name");
             String id = (String) project.get("id");
             if (id.startsWith("gid://")) {
@@ -229,8 +235,7 @@ public class GitlabService {
                         continue;
                     }
                     logger.debug("Loading pipelines for remote " + mapping.getRemote());
-                    List<PipelineTo> pipelines = makePipelinesUrlCall(1, mapping);
-                    pipelines.addAll(makePipelinesUrlCall(2, mapping));
+                    final List<PipelineTo> pipelines = loadPipelines(mapping);
                     logger.debug("Loaded " + pipelines.size() + " pipelines for remote " + mapping.getRemote());
 
                     projectToPipelines.put(mapping, pipelines);
@@ -241,30 +246,60 @@ public class GitlabService {
         return projectToPipelines;
     }
 
-    private List<PipelineTo> makePipelinesUrlCall(int page, Mapping mapping) throws IOException {
+    private List<PipelineTo> loadPipelines(Mapping mapping) throws IOException {
+        final List<PipelineTo> pipelines = new ArrayList<>();
+        try {
+            pipelines.addAll(makePipelinesUrlCall(1, mapping));
+            pipelines.addAll(makePipelinesUrlCall(2, mapping));
+        } catch (LoginException e) {
+            ApplicationManager.getApplication().invokeLater(() -> {
+
+                String oldToken = PasswordSafe.getInstance().getPassword(Mapping.toCredentialsAttributes(mapping));
+                oldToken = Strings.isNullOrEmpty(oldToken) ? "<empty>" : oldToken;
+                final String accessToken = Messages.showInputDialog(project, "Unable log in to gitlab. Please enter the access token for access to " + mapping.getHost() + ". Current token: " + oldToken, "Gitlab Pipeline Viewer", null, null, null);
+                if (Strings.isNullOrEmpty(accessToken)) {
+                    PasswordSafe.getInstance().setPassword(Mapping.toCredentialsAttributes(mapping), null);
+                } else {
+                    PasswordSafe.getInstance().setPassword(Mapping.toCredentialsAttributes(mapping), accessToken);
+                    ServiceManager.getService(project, BackgroundUpdateService.class).update(project);
+                }
+
+            });
+            return Collections.emptyList();
+        }
+        return pipelines;
+    }
+
+    private List<PipelineTo> makePipelinesUrlCall(int page, Mapping mapping) throws IOException, LoginException {
+        final String accessToken = PasswordSafe.getInstance().getPassword(Mapping.toCredentialsAttributes(mapping));
         String url;
         try {
             URIBuilder uriBuilder = new URIBuilder(mapping.getHost() + "/api/v4/projects/" + mapping.getGitlabProjectId() + "/pipelines");
 
             uriBuilder.addParameter("page", String.valueOf(page))
                     .addParameter("per_page", "100");
-            final String accessToken = PasswordSafe.getInstance().getPassword(new CredentialAttributes(ACCESS_TOKEN_CREDENTIALS_ATTRIBUTE, mapping.getRemote()));
+
             if (accessToken != null) {
-                logger.debug("Using access tokeen for access to " + uriBuilder);
+                logger.debug("Using access token for access to " + uriBuilder);
                 uriBuilder.addParameter("private_token", accessToken);
+            } else {
+                logger.debug("No access token set for remote " + mapping.getRemote());
             }
 
             url = uriBuilder.build().toString();
         } catch (URISyntaxException e) {
             throw new RuntimeException(e);
         }
-        String json = null;
+        String json;
         try {
+            logger.debug("Calling URL " + url.replace(Strings.nullToEmpty(accessToken), "<accessToken>"));
             json = HttpRequests.request(url).readString();
         } catch (HttpRequests.HttpStatusException e) {
-            if (e.getStatusCode() == 401) {
-                logger.error("Unable to login to url " + url + ". Deleting saved access token");
-                PasswordSafe.getInstance().setPassword(new CredentialAttributes(ACCESS_TOKEN_CREDENTIALS_ATTRIBUTE, mapping.getRemote()), null);
+            //Unfortunately gitlab returns a 404 if the project was found but could not be accessed. We must interpret 404 like 401
+            if (e.getStatusCode() == 401 || e.getStatusCode() == 404) {
+                throw new LoginException();
+            } else {
+                throw new IOException("Unable to load pipelines from " + url + ". Status code: " + e.getStatusCode() + ". Status message: " + e.getMessage());
             }
         }
 
@@ -280,7 +315,7 @@ public class GitlabService {
     protected static Optional<HostAndProjectPath> getHostProjectPathFromRemote(String remote) {
         final Matcher sshMatcher = REMOTE_GIT_SSH_PATTERN.matcher(remote);
         if (sshMatcher.matches()) {
-            final HostAndProjectPath hostAndProjectPath = new HostAndProjectPath(sshMatcher.group("host"), sshMatcher.group("projectPath"));
+            final HostAndProjectPath hostAndProjectPath = new HostAndProjectPath(sshMatcher.group("host"), StringUtils.removeEnd(sshMatcher.group("projectPath"), ".git"));
             logger.info("Determined host " + hostAndProjectPath.getHost() + " and project path " + hostAndProjectPath.getProjectPath() + " from ssh remote " + remote);
             return Optional.of(hostAndProjectPath);
         }
@@ -322,5 +357,9 @@ public class GitlabService {
     private static String getCleanProjectPath(String projectPath) {
         return StringUtils.removeStart(StringUtils.removeEndIgnoreCase(projectPath, ".git"), "/");
     }
+
+    private static class LoginException extends Exception {
+    }
+
 
 }
