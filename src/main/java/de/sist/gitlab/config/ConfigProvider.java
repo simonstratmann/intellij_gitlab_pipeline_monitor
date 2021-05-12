@@ -2,9 +2,12 @@
 package de.sist.gitlab.config;
 
 import com.google.common.base.Strings;
+import com.intellij.credentialStore.CredentialAttributes;
+import com.intellij.ide.passwordSafe.PasswordSafe;
 import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
+import de.sist.gitlab.GitlabService;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -21,6 +24,7 @@ public class ConfigProvider {
 
     private boolean isConfigOpen;
     private final Lock lock = new ReentrantLock();
+    private static final Lock saveLock = new ReentrantLock();
     private final Condition configOpenCondition = lock.newCondition();
 
     /**
@@ -113,6 +117,23 @@ public class ConfigProvider {
 
     public static ConfigProvider getInstance() {
         return ServiceManager.getService(ConfigProvider.class);
+    }
+
+    public static void saveToken(Mapping mapping, String token) {
+        saveLock.lock();
+        logger.debug("Saving token with length " + (token == null ? 0 : token.length()) + " for remote " + mapping.getRemote());
+        final CredentialAttributes credentialAttributes = new CredentialAttributes(GitlabService.ACCESS_TOKEN_CREDENTIALS_ATTRIBUTE + mapping.getRemote(), mapping.getRemote());
+        PasswordSafe.getInstance().setPassword(credentialAttributes, token);
+        saveLock.unlock();
+    }
+
+    public static String getToken(Mapping mapping) {
+        saveLock.lock();
+        final CredentialAttributes credentialAttributes = new CredentialAttributes(GitlabService.ACCESS_TOKEN_CREDENTIALS_ATTRIBUTE + mapping.getRemote(), mapping.getRemote());
+        final String token = PasswordSafe.getInstance().getPassword(credentialAttributes);
+        logger.debug("Found token with length " + (token == null ? 0 : token.length()) + " for remote " + mapping.getRemote());
+        saveLock.unlock();
+        return token;
     }
 
 
