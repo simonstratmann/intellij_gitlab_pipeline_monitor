@@ -1,0 +1,24 @@
+{
+  "data": {
+    "project": {
+      "name": "myProject",
+      "id": "gid://gitlab/Project/210",
+      "mergeRequests": {
+        "edges": [
+          {
+            "node": {
+              "sourceBranch": "gitlabCI/HAL-0000-kehren",
+              "webUrl": "https://gitlab.sso.int/HAL/prod/myProject/-/merge_requests/11344"
+            }
+          },
+          {
+            "node": {
+              "sourceBranch": "gitlabCI/HAL-0000-kehren",
+              "webUrl": "https://gitlab.sso.int/HAL/prod/myProject/-/merge_requests/11334"
+            }
+          }
+        ]
+      }
+    }
+  }
+}

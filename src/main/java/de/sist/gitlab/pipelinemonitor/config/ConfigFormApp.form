@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<form xmlns="http://www.intellij.com/uidesigner/form/" version="1" bind-to-class="de.sist.gitlab.pipelinemonitor.config.ConfigFormApp">
+  <grid id="27dc6" binding="mainPanel" layout-manager="GridLayoutManager" row-count="3" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+    <margin top="0" left="0" bottom="0" right="0"/>
+    <constraints>
+      <xy x="20" y="20" width="730" height="510"/>
+    </constraints>
+    <properties/>
+    <border type="none"/>
+    <children>
+      <grid id="ca261" binding="appConfigPanel" layout-manager="GridLayoutManager" row-count="5" column-count="2" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+        <margin top="0" left="0" bottom="0" right="0"/>
+        <constraints>
+          <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+        </constraints>
+        <properties/>
+        <border type="none"/>
+        <children>
+          <component id="b2b06" class="javax.swing.JLabel">
+            <constraints>
+              <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+            </constraints>
+            <properties>
+              <text value="Merge request target branch"/>
+            </properties>
+          </component>
+          <component id="d575f" class="javax.swing.JTextField" binding="mergeRequestTargetBranch">
+            <constraints>
+              <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="6" anchor="8" fill="0" indent="0" use-parent-layout="false">
+                <preferred-size width="299" height="30"/>
+              </grid>
+            </constraints>
+            <properties>
+              <toolTipText value="If set will overwrite the gitlab default."/>
+            </properties>
+          </component>
+          <component id="8e46d" class="javax.swing.JLabel">
+            <constraints>
+              <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+            </constraints>
+            <properties>
+              <text value="Notifications for watched branches"/>
+            </properties>
+          </component>
+          <component id="755f8" class="javax.swing.JCheckBox" binding="watchedBranchesNotificationCheckbox">
+            <constraints>
+              <grid row="1" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false">
+                <preferred-size width="299" height="-1"/>
+              </grid>
+            </constraints>
+            <properties>
+              <text value="Show"/>
+            </properties>
+          </component>
+          <component id="6b00f" class="javax.swing.JLabel">
+            <constraints>
+              <grid row="2" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+            </constraints>
+            <properties>
+              <text value="Notifications for connection errors"/>
+            </properties>
+          </component>
+          <component id="40258" class="javax.swing.JCheckBox" binding="showConnectionErrorsCheckbox">
+            <constraints>
+              <grid row="2" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false">
+                <preferred-size width="299" height="-1"/>
+              </grid>
+            </constraints>
+            <properties>
+              <text value="Show"/>
+            </properties>
+          </component>
+          <component id="4da1a" class="javax.swing.JLabel">
+            <constraints>
+              <grid row="3" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+            </constraints>
+            <properties>
+              <text value="Pipelines for tags"/>
+            </properties>
+          </component>
+          <component id="e907d" class="javax.swing.JCheckBox" binding="showForTagsCheckBox">
+            <constraints>
+              <grid row="3" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+            </constraints>
+            <properties>
+              <text value="Show"/>
+            </properties>
+          </component>
+          <component id="3a538" class="javax.swing.JLabel">
+            <constraints>
+              <grid row="4" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+            </constraints>
+            <properties>
+              <text value="URL opener command"/>
+            </properties>
+          </component>
+          <component id="fa055" class="javax.swing.JTextField" binding="urlOpenerTextbox">
+            <constraints>
+              <grid row="4" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="6" anchor="8" fill="1" indent="0" use-parent-layout="false">
+                <preferred-size width="150" height="-1"/>
+              </grid>
+            </constraints>
+            <properties>
+              <toolTipText value="Leave empty to use default browser. Use %url where URL should be inserted."/>
+            </properties>
+          </component>
+        </children>
+      </grid>
+      <grid id="bd671" binding="mappingsPanel" layout-manager="BorderLayout" hgap="0" vgap="0">
+        <constraints>
+          <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="7" hsize-policy="7" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
+        </constraints>
+        <properties>
+          <toolTipText value="Shows mappings of remotes to gitlab data in the format 'remote;host;projectPath;projectId;projectName"/>
+        </properties>
+        <border type="none"/>
+        <children/>
+      </grid>
+      <grid id="67dcd" binding="ignoredRemotesPanel" layout-manager="BorderLayout" hgap="0" vgap="0">
+        <constraints>
+          <grid row="2" column="0" row-span="1" col-span="1" vsize-policy="7" hsize-policy="7" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
+        </constraints>
+        <properties/>
+        <border type="none"/>
+        <children/>
+      </grid>
+    </children>
+  </grid>
+</form>
