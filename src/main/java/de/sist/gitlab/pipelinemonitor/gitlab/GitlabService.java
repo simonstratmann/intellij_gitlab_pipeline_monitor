@@ -40,8 +40,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -59,7 +57,7 @@ public class GitlabService {
     private final ConfigProvider config = ServiceManager.getService(ConfigProvider.class);
     private final Project project;
     private final Map<Mapping, List<PipelineJobStatus>> pipelineInfos = new HashMap<>();
-    private static final Lock lock = new ReentrantLock();
+    private boolean isUnmappedRemotesDialogOpen;
 
 
     public GitlabService(Project project) {
@@ -121,7 +119,11 @@ public class GitlabService {
 
 
     public void checkForUnmappedRemotes(List<GitRepository> gitRepositories) {
-        lock.lock();
+        //Locks don't work here for some reason
+        if (isUnmappedRemotesDialogOpen) {
+            return;
+        }
+        isUnmappedRemotesDialogOpen = true;
         try {
             ConfigProvider.getInstance().aquireLock();
             logger.debug("Checking for unmapped remotes");
@@ -149,7 +151,7 @@ public class GitlabService {
                 }
             }
         } finally {
-            lock.unlock();
+            isUnmappedRemotesDialogOpen = false;
         }
     }
 
