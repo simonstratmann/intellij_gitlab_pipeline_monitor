@@ -37,6 +37,7 @@ import de.sist.gitlab.pipelinemonitor.UrlOpener;
 import de.sist.gitlab.pipelinemonitor.config.ConfigChangedListener;
 import de.sist.gitlab.pipelinemonitor.config.ConfigProvider;
 import de.sist.gitlab.pipelinemonitor.config.Mapping;
+import de.sist.gitlab.pipelinemonitor.config.PipelineViewerConfigApp;
 import de.sist.gitlab.pipelinemonitor.config.PipelineViewerConfigProject;
 import de.sist.gitlab.pipelinemonitor.git.GitService;
 import de.sist.gitlab.pipelinemonitor.gitlab.GitlabService;
@@ -64,10 +65,12 @@ import java.awt.Point;
 import java.awt.event.ActionEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.font.TextAttribute;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -151,7 +154,7 @@ public class GitlabToolWindow {
                 TableColumn column = getColumnModel().getColumn(columnIndex);
                 column.setPreferredWidth(Math.max(rendererWidth + getIntercellSpacing().width, column.getPreferredWidth()));
                 if (columnIndex == 4 || columnIndex == 5) {
-                    column.setPreferredWidth(36);
+//                    column.setPreferredWidth(36);
                 }
                 return component;
             }
@@ -238,12 +241,6 @@ public class GitlabToolWindow {
                 runLoadPipelinesTask();
             }
         });
-        branchPopupMenu.add(new AbstractAction("Create merge request for this branch") {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                openMergeRequestUrlForSelectedBranch(selectedPipelineStatus);
-            }
-        });
         branchPopupMenu.add(new AbstractAction("Checkout this branch") {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -294,7 +291,7 @@ public class GitlabToolWindow {
         AnActionButton refreshActionButton = new AnActionButton("Refresh", AllIcons.Actions.Refresh) {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
-                backgroundUpdateService.update(project);
+                backgroundUpdateService.update(project, true);
             }
 
             @Override
@@ -397,14 +394,9 @@ public class GitlabToolWindow {
     private void runLoadPipelinesTask() {
         final boolean started = backgroundUpdateService.startBackgroundTask();
         if (!started) {
-            updateWithProgressIndicator(this.project);
+            backgroundUpdateService.update(this.project, true);
         }
     }
-
-    private void updateWithProgressIndicator(Project project) {
-        backgroundUpdateService.update(project);
-    }
-
 
     private void updatePipelinesDisplay() {
         tableScrollPane.setEnabled(true);
@@ -556,10 +548,37 @@ public class GitlabToolWindow {
         return new TableCellRenderer() {
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
-                if (value == null) {
-                    return new JBLabel(IconLoader.getIcon("/toolWindow/add.png", GitlabToolWindow.class));
+                final JLabel label;
+                if (PipelineViewerConfigApp.getInstance().getDisplayType() == PipelineViewerConfigApp.DisplayType.ICON) {
+                    if (value == null) {
+                        label = new JBLabel(IconLoader.getIcon("/toolWindow/add.png", GitlabToolWindow.class));
+                    } else {
+                        return new JBLabel(IconLoader.getIcon("/toolWindow/external_link_arrow.png", GitlabToolWindow.class));
+                    }
+                } else {
+                    //Links and IDs
+                    if (value == null) {
+                        if (column == 5) {
+                            //Show a link to create a new merge request
+                            label = new JBLabel(IconLoader.getIcon("/toolWindow/external_link_arrow.png", GitlabToolWindow.class));
+                        } else {
+                            //Pipeline empty, shouldn't happen, but who knows...
+                            label = new JBLabel("");
+                        }
+                    } else {
+                        final String url = (String) value;
+                        if (PipelineViewerConfigApp.getInstance().getDisplayType() == PipelineViewerConfigApp.DisplayType.LINK) {
+                            label = new JBLabel(url);
+                        } else {
+                            label = new JBLabel(url.substring(url.lastIndexOf("/") + 1));
+                        }
+                        label.setForeground(JBColor.BLUE);
+                        Map<TextAttribute, Object> attributes = new HashMap<>(label.getFont().getAttributes());
+                        attributes.put(TextAttribute.UNDERLINE, TextAttribute.UNDERLINE_ON);
+                        label.setFont(label.getFont().deriveFont(attributes));
+                    }
                 }
-                return new JBLabel(IconLoader.getIcon("/toolWindow/external_link_arrow.png", GitlabToolWindow.class));
+                return label;
             }
         };
     }
@@ -643,7 +662,7 @@ public class GitlabToolWindow {
                 new TableRowDefinition("Branch", x -> x.branchName),
                 new TableRowDefinition("Result", x -> x.result),
                 new TableRowDefinition("Time", x -> x.creationTime),
-                new TableRowDefinition("Link", x -> x.pipelineLink),
+                new TableRowDefinition("Pipeline", x -> x.pipelineLink),
                 new TableRowDefinition("MR", x -> x.mergeRequestLink)
         );
 

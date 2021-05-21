@@ -37,6 +37,9 @@ public class ConfigFormApp {
     private JPanel ignoredRemotesPanel;
     private JCheckBox showForTagsCheckBox;
     private JTextField urlOpenerTextbox;
+    private JRadioButton radioDisplayTypeIcons;
+    private JRadioButton radioDisplayTypeIds;
+    private JRadioButton radioDisplayTypeLinks;
     private final CollectionListModel<String> mappingsModel = new CollectionListModel<>();
     private final CollectionListModel<String> ignoredRemotesModel = new CollectionListModel<>();
 
@@ -50,6 +53,10 @@ public class ConfigFormApp {
         loadSettings();
         createMappingsPanel();
         createIgnoredRemotesPanel();
+        ButtonGroup buttonGroup = new ButtonGroup();
+        buttonGroup.add(radioDisplayTypeIcons);
+        buttonGroup.add(radioDisplayTypeLinks);
+        buttonGroup.add(radioDisplayTypeIds);
     }
 
     public void apply() {
@@ -62,6 +69,14 @@ public class ConfigFormApp {
         config.getIgnoredRemotes().clear();
         config.getIgnoredRemotes().addAll(ignoredRemotesModel.getItems());
         config.setUrlOpenerCommand(urlOpenerTextbox.getText());
+        if (radioDisplayTypeIds.isSelected()) {
+            config.setDisplayType(PipelineViewerConfigApp.DisplayType.ID);
+        } else if (radioDisplayTypeIcons.isSelected()) {
+            config.setDisplayType(PipelineViewerConfigApp.DisplayType.ICON);
+        } else {
+            config.setDisplayType(PipelineViewerConfigApp.DisplayType.LINK);
+        }
+
         List<String> statusesToWatch = new ArrayList<>();
 
         config.setStatusesToWatch(statusesToWatch);
@@ -81,6 +96,9 @@ public class ConfigFormApp {
         mergeRequestTargetBranch.setText(config.getMergeRequestTargetBranch());
         showForTagsCheckBox.setSelected(config.isShowForTags());
         urlOpenerTextbox.setText(config.getUrlOpenerCommand());
+        radioDisplayTypeIcons.setSelected(config.getDisplayType() == PipelineViewerConfigApp.DisplayType.ICON);
+        radioDisplayTypeIds.setSelected(config.getDisplayType() == PipelineViewerConfigApp.DisplayType.ID);
+        radioDisplayTypeLinks.setSelected(config.getDisplayType() == PipelineViewerConfigApp.DisplayType.LINK);
 
         mappingsModel.replaceAll(config.getMappings().stream()
                 .map(Mapping::toSerializable)
@@ -97,6 +115,9 @@ public class ConfigFormApp {
                 || !Objects.equals(config.isShowForTags(), showForTagsCheckBox.isSelected())
                 || !Objects.equals(config.getUrlOpenerCommand(), urlOpenerTextbox.getText())
                 || !Objects.equals(new HashSet<>(ConfigProvider.getInstance().getIgnoredRemotes()), new HashSet<>(ignoredRemotesModel.getItems()))
+                || radioDisplayTypeIcons.isSelected() && config.getDisplayType() != PipelineViewerConfigApp.DisplayType.ICON
+                || radioDisplayTypeIds.isSelected() && config.getDisplayType() != PipelineViewerConfigApp.DisplayType.ID
+                || radioDisplayTypeLinks.isSelected() && config.getDisplayType() != PipelineViewerConfigApp.DisplayType.LINK
                 ;
     }
 

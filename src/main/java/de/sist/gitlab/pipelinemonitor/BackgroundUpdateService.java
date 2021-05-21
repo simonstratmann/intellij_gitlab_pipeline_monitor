@@ -43,7 +43,7 @@ public class BackgroundUpdateService {
                 stopBackgroundTask();
                 return;
             }
-            update(project);
+            update(project, false);
         };
 
         project.getMessageBus().connect().subscribe(GitInitListener.GIT_INITIALIZED, gitRepository -> {
@@ -70,7 +70,7 @@ public class BackgroundUpdateService {
         });
     }
 
-    public synchronized void update(Project project) {
+    public synchronized void update(Project project, boolean triggeredByUser) {
         Task.Backgroundable updateTask = new Task.Backgroundable(project, "Loading gitLab pipelines", false) {
             @Override
             public void run(@NotNull ProgressIndicator indicator) {

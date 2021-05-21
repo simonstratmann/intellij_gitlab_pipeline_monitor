@@ -24,7 +24,8 @@ public class GraphQl {
             "  project(fullPath: \"%s\") {\n" +
             "    name\n" +
             "    id\n" +
-            "    mergeRequests(sourceBranches:[%s]) {\n" +
+            //Get all merge requests for given source branches which are open, sorted by creation date (we only want the newest)
+            "    mergeRequests(sourceBranches:[%s], state:opened, sort:CREATED_DESC) {\n" +
             "      edges {\n" +
             "        node {\n" +
             "          sourceBranch\n" +

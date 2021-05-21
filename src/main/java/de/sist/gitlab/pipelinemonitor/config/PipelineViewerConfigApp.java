@@ -10,10 +10,18 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @State(name = "PipelineViewerConfigApp", storages = {@Storage("PipelineViewerConfigApp.xml")})
 public class PipelineViewerConfigApp implements PersistentStateComponent<PipelineViewerConfigApp> {
+
+    public enum DisplayType {
+        ICON,
+        LINK,
+        ID
+    }
 
     private List<Mapping> mappings = new ArrayList<>();
     private String mergeRequestTargetBranch;
@@ -23,6 +31,9 @@ public class PipelineViewerConfigApp implements PersistentStateComponent<Pipelin
     private List<String> ignoredRemotes = new ArrayList<>();
     private boolean showForTags = true;
     private String urlOpenerCommand;
+    @com.intellij.util.xmlb.annotations.Transient
+    private final Set<String> remotesAskAgainNextTime = new HashSet<>();
+    private DisplayType displayType = DisplayType.ICON;
 
     public List<Mapping> getMappings() {
         return mappings;
@@ -90,6 +101,18 @@ public class PipelineViewerConfigApp implements PersistentStateComponent<Pipelin
 
     public void setUrlOpenerCommand(String urlOpenerCommand) {
         this.urlOpenerCommand = urlOpenerCommand;
+    }
+
+    public Set<String> getRemotesAskAgainNextTime() {
+        return remotesAskAgainNextTime;
+    }
+
+    public DisplayType getDisplayType() {
+        return displayType == null ? DisplayType.ICON : displayType;
+    }
+
+    public void setDisplayType(DisplayType displayType) {
+        this.displayType = displayType;
     }
 
     @Override

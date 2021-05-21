@@ -17,6 +17,7 @@ import de.sist.gitlab.pipelinemonitor.PipelineTo;
 import de.sist.gitlab.pipelinemonitor.config.ConfigChangedListener;
 import de.sist.gitlab.pipelinemonitor.config.ConfigProvider;
 import de.sist.gitlab.pipelinemonitor.config.Mapping;
+import de.sist.gitlab.pipelinemonitor.config.PipelineViewerConfigApp;
 import de.sist.gitlab.pipelinemonitor.config.PipelineViewerConfigProject;
 import de.sist.gitlab.pipelinemonitor.git.GitService;
 import de.sist.gitlab.pipelinemonitor.gitlab.mapping.Data;
@@ -133,9 +134,15 @@ public class GitlabService {
                     for (String url : remote.getUrls()) {
                         if (!PipelineViewerConfigProject.getInstance(project).isEnabled()) {
                             //Make sure no further remotes are processed if multiple are found and the user chose to disable for the project
+                            logger.debug("Disabled for project " + project.getName());
                             return;
                         }
                         if (ConfigProvider.getInstance().getIgnoredRemotes().contains(url)) {
+                            logger.debug("Remote " + url + " is ignored");
+                            continue;
+                        }
+                        if (PipelineViewerConfigApp.getInstance().getRemotesAskAgainNextTime().contains(url)) {
+                            logger.debug("Remote " + url + " is ignored until next plugin load");
                             continue;
                         }
                         if (INCOMPATIBLE_REMOTES.stream().anyMatch(x -> url.toLowerCase().contains(x))) {
@@ -171,6 +178,7 @@ public class GitlabService {
             return;
         } else if (response.getCancel() == UnmappedRemoteDialog.Cancel.ASK_AGAIN) {
             logger.debug("User chose to be asked again about url " + url);
+            PipelineViewerConfigApp.getInstance().getRemotesAskAgainNextTime().add(url);
             return;
         }
 
@@ -253,10 +261,6 @@ public class GitlabService {
         return projectToPipelines;
     }
 
-    private void loadMergeRequests() {
-
-    }
-
     private List<PipelineTo> loadPipelines(Mapping mapping) throws IOException {
         final List<PipelineTo> pipelines = new ArrayList<>();
         try {
@@ -274,7 +278,7 @@ public class GitlabService {
                 if (Strings.isNullOrEmpty(accessToken)) {
                     logger.info("No token entered, setting token to null for remore " + mapping.getRemote());
                 } else {
-                    ServiceManager.getService(project, BackgroundUpdateService.class).update(project);
+                    ServiceManager.getService(project, BackgroundUpdateService.class).update(project, false);
                     logger.info("New token entered for remote " + mapping.getRemote());
                 }
 
