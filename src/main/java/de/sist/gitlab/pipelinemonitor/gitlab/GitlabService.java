@@ -119,7 +119,7 @@ public class GitlabService {
     }
 
 
-    public void checkForUnmappedRemotes(List<GitRepository> gitRepositories) {
+    public void checkForUnmappedRemotes(List<GitRepository> gitRepositories, boolean triggeredByUser) {
         //Locks don't work here for some reason
         if (isUnmappedRemotesDialogOpen) {
             return;
@@ -141,8 +141,8 @@ public class GitlabService {
                             logger.debug("Remote " + url + " is ignored");
                             continue;
                         }
-                        if (PipelineViewerConfigApp.getInstance().getRemotesAskAgainNextTime().contains(url)) {
-                            logger.debug("Remote " + url + " is ignored until next plugin load");
+                        if (PipelineViewerConfigApp.getInstance().getRemotesAskAgainNextTime().contains(url) && !triggeredByUser) {
+                            logger.debug("Remote " + url + " is ignored until next plugin load and reload was not triggered by user");
                             continue;
                         }
                         if (INCOMPATIBLE_REMOTES.stream().anyMatch(x -> url.toLowerCase().contains(x))) {

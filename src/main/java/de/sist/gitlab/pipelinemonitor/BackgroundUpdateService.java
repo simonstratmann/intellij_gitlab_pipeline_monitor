@@ -98,7 +98,7 @@ public class BackgroundUpdateService {
         };
 
         ApplicationManager.getApplication().invokeLater(() -> {
-            ServiceManager.getService(project, GitlabService.class).checkForUnmappedRemotes(ServiceManager.getService(project, GitService.class).getAllGitRepositories());
+            ServiceManager.getService(project, GitlabService.class).checkForUnmappedRemotes(ServiceManager.getService(project, GitService.class).getAllGitRepositories(), triggeredByUser);
             final BackgroundableProcessIndicator updateProgressIndicator = new BackgroundableProcessIndicator(updateTask);
             ProgressManager.getInstance().runProcessWithProgressAsynchronously(updateTask, updateProgressIndicator);
         });
