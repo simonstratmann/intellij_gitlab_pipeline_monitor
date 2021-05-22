@@ -165,7 +165,14 @@ public class GitlabService {
     private void handleUnknownRemote(String url) {
         logger.info("Found unkown remote " + url);
 
-        final UnmappedRemoteDialog.Response response = new UnmappedRemoteDialog(url).showDialog();
+        final Optional<HostAndProjectPath> hostProjectPathFromRemote = getHostProjectPathFromRemote(url);
+
+        final UnmappedRemoteDialog.Response response;
+        if (hostProjectPathFromRemote.isPresent()) {
+            response = new UnmappedRemoteDialog(url, hostProjectPathFromRemote.get().getHost(), hostProjectPathFromRemote.get().getProjectPath()).showDialog();
+        } else {
+            response = new UnmappedRemoteDialog(url).showDialog();
+        }
 
         if (response.getCancel() == UnmappedRemoteDialog.Cancel.IGNORE_REMOTE) {
             ConfigProvider.getInstance().getIgnoredRemotes().add(url);
@@ -184,19 +191,14 @@ public class GitlabService {
 
         final Mapping mapping = new Mapping();
         mapping.setRemote(url);
+        mapping.setHost(response.getGitlabHost());
+        mapping.setProjectPath(response.getProjectPath());
         if (!Strings.isNullOrEmpty(response.getAccessToken())) {
             logger.info("Saved access token for URL " + url);
             ConfigProvider.saveToken(mapping, response.getAccessToken());
         }
 
-        //Retrieve host and project path
-        fillMappingWithHostAndProjectPath(url, mapping);
-        if (mapping.getHost() == null) {
-            logger.info("Aborting with incomplete mapping " + mapping);
-            return;
-        }
-
-        //Retrieve project ID and path
+        //Retrieve project name and ID
         fillMappingWithProjectNameAndId(url, mapping);
         if (mapping.getProjectName() == null) {
             logger.info("Aborting with incomplete mapping " + mapping);
@@ -221,23 +223,6 @@ public class GitlabService {
         logger.info("Determined project name " + project.getName() + " and id " + project.getId() + " for remote " + url);
         mapping.setGitlabProjectId(project.getId());
         mapping.setProjectName(project.getName());
-    }
-
-    private void fillMappingWithHostAndProjectPath(String url, Mapping mapping) {
-        final Optional<HostAndProjectPath> hostProjectPathFromRemote = getHostProjectPathFromRemote(url);
-        if (!hostProjectPathFromRemote.isPresent()) {
-            final String input = Messages.showInputDialog(project, "Unable to determine host and project path from the URL. Please enter them in the format '<host>;<projectPath>' (e.g. 'https://gitlab.com;user/project').", "Gitlab Pipeline Viewer", null, url, null);
-            if (input == null || !input.contains(";")) {
-                logger.error("User didn't prove host and project path for remote " + url);
-                return;
-            }
-            final String[] split = input.split(";");
-            mapping.setHost(split[0]);
-            mapping.setProjectPath(split[1]);
-        } else {
-            mapping.setHost(hostProjectPathFromRemote.get().getHost());
-            mapping.setProjectPath(hostProjectPathFromRemote.get().getProjectPath());
-        }
     }
 
     private Map<Mapping, List<PipelineTo>> loadPipelines() throws IOException {

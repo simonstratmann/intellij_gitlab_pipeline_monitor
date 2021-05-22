@@ -128,10 +128,14 @@ public class ConfigProvider {
     }
 
     public static String getToken(Mapping mapping) {
+        return getToken(mapping.getRemote());
+    }
+
+    public static String getToken(String remote) {
         saveLock.lock();
-        final CredentialAttributes credentialAttributes = new CredentialAttributes(GitlabService.ACCESS_TOKEN_CREDENTIALS_ATTRIBUTE + mapping.getRemote(), mapping.getRemote());
+        final CredentialAttributes credentialAttributes = new CredentialAttributes(GitlabService.ACCESS_TOKEN_CREDENTIALS_ATTRIBUTE + remote, remote);
         final String token = PasswordSafe.getInstance().getPassword(credentialAttributes);
-        logger.debug("Found token with length " + (token == null ? 0 : token.length()) + " for remote " + mapping.getRemote());
+        logger.debug("Found token with length " + (token == null ? 0 : token.length()) + " for remote " + remote);
         saveLock.unlock();
         return token;
     }
