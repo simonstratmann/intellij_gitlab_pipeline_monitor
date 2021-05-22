@@ -56,6 +56,7 @@
                     </constraints>
                     <properties>
                       <text value="ask again"/>
+                      <toolTipText value="Ask again the next time the plugin is loaded or the refresh button is clicked."/>
                     </properties>
                   </component>
                   <component id="94565" class="javax.swing.JRadioButton" binding="radioNoAskRemote">
@@ -64,6 +65,7 @@
                     </constraints>
                     <properties>
                       <text value="don't ask again for this remote"/>
+                      <toolTipText value="The remote will be added to the list of ignored remotes and will not be monitored."/>
                     </properties>
                   </component>
                   <component id="ab2ec" class="javax.swing.JRadioButton" binding="radioNoAskProject">
@@ -72,6 +74,7 @@
                     </constraints>
                     <properties>
                       <text value="don't monitor pipelines for this project"/>
+                      <toolTipText value="The plugin is disabled for this IntelliJ project. You can reenable it in the settings."/>
                     </properties>
                   </component>
                   <component id="c7e79" class="javax.swing.JRadioButton" binding="radioDoMonitor">
@@ -80,6 +83,7 @@
                     </constraints>
                     <properties>
                       <text value="monitor this remote"/>
+                      <toolTipText value="Show pipelines for the gitlab project associated with this remote."/>
                     </properties>
                   </component>
                 </children>

@@ -4,7 +4,7 @@ plugins {
 }
 
 group 'de.sist'
-version '2.0.9.3'
+version '2.1.0'
 
 publishPlugin {
     token intellijPublishToken
@@ -30,12 +30,11 @@ intellij {
 }
 patchPluginXml {
     changeNotes """
-    <p>2.0.10</p>
+    <p>2.1.0</p>
     <ul>
-        <li>Show a symbol instead of the branch URL.</li>
-        <li>Show open merge request for a branch or allow to create a new one.</li>
-        <li>Option to choose display of pipelines and merge requests between URL, ID and icon.</li>
-        <li>Don't show untracked remotes popup when one is already open (anywhere).</li>
+        <li>Show latest open merge request for a branch or allow to create a new one.</li>
+        <li>Option to choose display of pipelines between URL, ID and icon.</li>
+        <li>Don't show untracked remotes popup when one is already open.</li>
         <li>Choosing to be asked again will ask the next time the plugin is loaded or a refresh is triggered manually (instead of asking every 15 seconds).</li>
     </ul>
     

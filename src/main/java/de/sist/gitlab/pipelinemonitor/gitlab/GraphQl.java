@@ -43,7 +43,7 @@ public class GraphQl {
         return String.format(REQUEST_TEMPLATE, graphqlQuery.replace("\"", "\\\"").replaceAll("[\\r\\n|\\n]", ""));
     }
 
-    public static Data parse(String response) {
+    private static Data parse(String response) {
         try {
             final Data data = Jackson.OBJECT_MAPPER.readValue(response, DataWrapper.class).getData();
             //gid://gitlab/Project/16957139 -> 16957139
