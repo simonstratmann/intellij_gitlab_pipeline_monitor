@@ -33,7 +33,7 @@ patchPluginXml {
     <p>2.1.0</p>
     <ul>
         <li>Show latest open merge request for a branch or allow to create a new one.</li>
-        <li>Option to choose display of pipelines between URL, ID and icon.</li>
+        <li>Option to switch display of pipelines between URL, ID and icon.</li>
         <li>Don't show untracked remotes popup when one is already open.</li>
         <li>The dialog for untracked remotes will not display the determined gitlab host and project path. When choosing to monitor the remote's project the data will be verified instantly.</li>
         <li>Choosing to be asked again will ask the next time the plugin is loaded or a refresh is triggered manually (instead of asking every 15 seconds).</li>

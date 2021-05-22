@@ -548,25 +548,25 @@ public class GitlabToolWindow {
         return new TableCellRenderer() {
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+                final String url = (String) value;
+                if (url == null && column == 4) {
+                    //Pipeline empty, shouldn't happen, but who knows...
+                    logger.warn("Empty URL for pipeline");
+                    return new JBLabel("");
+                }
                 final JLabel label;
                 if (PipelineViewerConfigApp.getInstance().getDisplayType() == PipelineViewerConfigApp.DisplayType.ICON) {
                     if (value == null) {
                         label = new JBLabel(IconLoader.getIcon("/toolWindow/add.png", GitlabToolWindow.class));
                     } else {
-                        return new JBLabel(IconLoader.getIcon("/toolWindow/external_link_arrow.png", GitlabToolWindow.class));
+                        label = new JBLabel(IconLoader.getIcon("/toolWindow/external_link_arrow.png", GitlabToolWindow.class));
                     }
                 } else {
                     //Links and IDs
                     if (value == null) {
-                        if (column == 5) {
-                            //Show a link to create a new merge request
-                            label = new JBLabel(IconLoader.getIcon("/toolWindow/external_link_arrow.png", GitlabToolWindow.class));
-                        } else {
-                            //Pipeline empty, shouldn't happen, but who knows...
-                            label = new JBLabel("");
-                        }
+                        //Show a link to create a new merge request
+                        label = new JBLabel(IconLoader.getIcon("/toolWindow/add.png", GitlabToolWindow.class));
                     } else {
-                        final String url = (String) value;
                         if (PipelineViewerConfigApp.getInstance().getDisplayType() == PipelineViewerConfigApp.DisplayType.LINK) {
                             label = new JBLabel(url);
                         } else {
@@ -577,6 +577,9 @@ public class GitlabToolWindow {
                         attributes.put(TextAttribute.UNDERLINE, TextAttribute.UNDERLINE_ON);
                         label.setFont(label.getFont().deriveFont(attributes));
                     }
+                }
+                if (column == 4 && PipelineViewerConfigApp.getInstance().getDisplayType() != PipelineViewerConfigApp.DisplayType.LINK) {
+                    label.setToolTipText(url);
                 }
                 return label;
             }
