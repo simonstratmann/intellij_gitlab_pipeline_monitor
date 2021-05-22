@@ -4,11 +4,14 @@ import com.google.common.base.Strings;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.ui.Messages;
 import de.sist.gitlab.pipelinemonitor.config.ConfigProvider;
+import de.sist.gitlab.pipelinemonitor.config.Mapping;
+import de.sist.gitlab.pipelinemonitor.gitlab.GitlabService;
 
 import javax.swing.*;
 import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.util.Optional;
 
 public class UnmappedRemoteDialog extends JDialog {
 
@@ -62,7 +65,7 @@ public class UnmappedRemoteDialog extends JDialog {
         buttonGroup.add(radioDoMonitor);
         radioAskAgain.setSelected(true);
 
-        buttonOK.addActionListener(e -> onOK());
+        buttonOK.addActionListener(e -> onOK(remoteUrl));
 
         // call onCancel() when cross is clicked
         setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
@@ -77,28 +80,39 @@ public class UnmappedRemoteDialog extends JDialog {
         accessTokenInput.setText(ConfigProvider.getToken(remoteUrl));
     }
 
-    private void onOK() {
-        final String gitlabHost = hostInput.getText();
-        final String projectPath = projectPathInput.getText();
-        if (radioAskAgain.isSelected()) {
-            response = new Response(Cancel.ASK_AGAIN, gitlabHost, projectPath, null);
-        } else if (radioNoAskRemote.isSelected()) {
-            response = new Response(Cancel.IGNORE_REMOTE, gitlabHost, projectPath, null);
-        } else if (radioNoAskProject.isSelected()) {
-            response = new Response(Cancel.IGNORE_PROJECT, gitlabHost, projectPath, null);
-        } else if (radioDoMonitor.isSelected()) {
-            if (Strings.isNullOrEmpty(hostInput.getText()) || Strings.isNullOrEmpty(projectPathInput.getText())) {
-                Messages.showWarningDialog("Please fill out the gitlab host and project path", "Incomplete Data");
-                return;
+    private void onOK(String remoteUrl) {
+        if (radioDoMonitor.isSelected()) {
+            tryAndCreateMapping(remoteUrl);
+        } else {
+            if (radioAskAgain.isSelected()) {
+                response = new Response(Cancel.ASK_AGAIN);
+            } else if (radioNoAskRemote.isSelected()) {
+                response = new Response(Cancel.IGNORE_REMOTE);
+            } else if (radioNoAskProject.isSelected()) {
+                response = new Response(Cancel.IGNORE_PROJECT);
             }
-            response = new Response(null, gitlabHost, projectPath, accessTokenInput.getText());
+            dispose();
         }
+    }
+
+    private void tryAndCreateMapping(String remoteUrl) {
+        if (Strings.isNullOrEmpty(hostInput.getText()) || Strings.isNullOrEmpty(projectPathInput.getText())) {
+            Messages.showWarningDialog("Please fill out the gitlab host and project path", "Incomplete Data");
+            return;
+        }
+        final Optional<Mapping> mappingOptional = GitlabService.createMappingWithProjectNameAndId(remoteUrl, hostInput.getText(), projectPathInput.getText(), accessTokenInput.getText());
+        if (!mappingOptional.isPresent()) {
+            Messages.showWarningDialog("The connection to gitlab failed or the project could not be found.", "Gitlab Connection Error");
+            return;
+        }
+
+        response = new Response(null, mappingOptional.get(), accessTokenInput.getText());
         dispose();
     }
 
     private void onCancel() {
         accessTokenInput.setText(null);
-        response = new Response(Cancel.ASK_AGAIN, null, null, null);
+        response = new Response(Cancel.ASK_AGAIN);
         dispose();
     }
 
@@ -121,14 +135,18 @@ public class UnmappedRemoteDialog extends JDialog {
     public static class Response {
 
         private final Cancel cancel;
-        private final String gitlabHost;
-        private final String projectPath;
+        private final Mapping mapping;
         private final String accessToken;
 
-        public Response(Cancel cancel, String gitlabHost, String projectPath, String accessToken) {
+        public Response(Cancel cancel) {
             this.cancel = cancel;
-            this.gitlabHost = gitlabHost;
-            this.projectPath = projectPath;
+            this.mapping = null;
+            this.accessToken = null;
+        }
+
+        public Response(Cancel cancel, Mapping mapping, String accessToken) {
+            this.cancel = cancel;
+            this.mapping = mapping;
             this.accessToken = accessToken;
         }
 
@@ -136,16 +154,14 @@ public class UnmappedRemoteDialog extends JDialog {
             return cancel;
         }
 
+        public Mapping getMapping() {
+            return mapping;
+        }
+
         public String getAccessToken() {
             return accessToken;
         }
 
-        public String getGitlabHost() {
-            return gitlabHost;
-        }
 
-        public String getProjectPath() {
-            return projectPath;
-        }
     }
 }

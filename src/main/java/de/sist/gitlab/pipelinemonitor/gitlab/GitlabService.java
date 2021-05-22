@@ -189,40 +189,29 @@ public class GitlabService {
             return;
         }
 
-        final Mapping mapping = new Mapping();
-        mapping.setRemote(url);
-        mapping.setHost(response.getGitlabHost());
-        mapping.setProjectPath(response.getProjectPath());
-        if (!Strings.isNullOrEmpty(response.getAccessToken())) {
-            logger.info("Saved access token for URL " + url);
-            ConfigProvider.saveToken(mapping, response.getAccessToken());
-        }
+        final Mapping mapping = response.getMapping();
 
-        //Retrieve project name and ID
-        fillMappingWithProjectNameAndId(url, mapping);
-        if (mapping.getProjectName() == null) {
-            logger.info("Aborting with incomplete mapping " + mapping);
-            return;
-        }
-        if (!mapping.isValid()) {
-            logger.info("Aborting with incomplete mapping " + mapping);
-            return;
-        }
 
         logger.info("Adding mapping " + mapping);
         ConfigProvider.getInstance().getMappings().add(mapping);
     }
 
-    private void fillMappingWithProjectNameAndId(String url, Mapping mapping) {
-        final Optional<Data> data = GraphQl.makeCall(mapping.getHost(), ConfigProvider.getToken(mapping), mapping.getProjectPath(), Collections.emptyList());
+    public static Optional<Mapping> createMappingWithProjectNameAndId(String remoteUrl, String host, String projectPath, String token) {
+        final Optional<Data> data = GraphQl.makeCall(host, token, projectPath, Collections.emptyList());
         if (!data.isPresent()) {
-            return;
+            return Optional.empty();
         }
 
+        final Mapping mapping = new Mapping();
         final de.sist.gitlab.pipelinemonitor.gitlab.mapping.Project project = data.get().getProject();
-        logger.info("Determined project name " + project.getName() + " and id " + project.getId() + " for remote " + url);
+        logger.info("Determined project name " + project.getName() + " and id " + project.getId() + " for remote " + remoteUrl);
+        mapping.setRemote(remoteUrl);
         mapping.setGitlabProjectId(project.getId());
         mapping.setProjectName(project.getName());
+        mapping.setHost(host);
+        mapping.setProjectPath(projectPath);
+        ConfigProvider.saveToken(mapping, token);
+        return Optional.of(mapping);
     }
 
     private Map<Mapping, List<PipelineTo>> loadPipelines() throws IOException {
@@ -230,6 +219,9 @@ public class GitlabService {
         for (GitRepository nonIgnoredRepository : GitService.getInstance(project).getNonIgnoredRepositories()) {
             for (GitRemote remote : nonIgnoredRepository.getRemotes()) {
                 for (String url : remote.getUrls()) {
+                    if (PipelineViewerConfigApp.getInstance().getRemotesAskAgainNextTime().contains(url)) {
+                        continue;
+                    }
                     final Mapping mapping = ConfigProvider.getInstance().getMappingByRemoteUrl(url);
                     if (mapping == null) {
                         continue;
@@ -262,6 +254,7 @@ public class GitlabService {
                 ConfigProvider.saveToken(mapping, accessToken);
                 if (Strings.isNullOrEmpty(accessToken)) {
                     logger.info("No token entered, setting token to null for remore " + mapping.getRemote());
+                    PipelineViewerConfigApp.getInstance().getRemotesAskAgainNextTime().add(mapping.getRemote());
                 } else {
                     ServiceManager.getService(project, BackgroundUpdateService.class).update(project, false);
                     logger.info("New token entered for remote " + mapping.getRemote());
@@ -319,7 +312,7 @@ public class GitlabService {
     protected static Optional<HostAndProjectPath> getHostProjectPathFromRemote(String remote) {
         final Matcher sshMatcher = REMOTE_GIT_SSH_PATTERN.matcher(remote);
         if (sshMatcher.matches()) {
-            final HostAndProjectPath hostAndProjectPath = new HostAndProjectPath(sshMatcher.group("host"), StringUtils.removeEnd(sshMatcher.group("projectPath"), ".git"));
+            final HostAndProjectPath hostAndProjectPath = new HostAndProjectPath("https://" + sshMatcher.group("host"), StringUtils.removeEnd(sshMatcher.group("projectPath"), ".git"));
             logger.info("Determined host " + hostAndProjectPath.getHost() + " and project path " + hostAndProjectPath.getProjectPath() + " from ssh remote " + remote);
             return Optional.of(hostAndProjectPath);
         }
@@ -327,7 +320,7 @@ public class GitlabService {
         if (httpMatcher.matches()) {
             if (remote.startsWith("https://gitlab.com")) {
                 final String host = "https://gitlab.com";
-                final String projectPath = getCleanProjectPath(remote.substring("https://gitlab.com/".length()));
+                final String projectPath = getCleanProjectPath(remote.substring("https://gitlab.com/".length() + 1));
                 final HostAndProjectPath hostAndProjectPath = new HostAndProjectPath(host, projectPath);
                 logger.debug("Recognized gitlab.com HTTPS remote - determined " + hostAndProjectPath);
                 return Optional.of(hostAndProjectPath);
@@ -354,7 +347,7 @@ public class GitlabService {
                 }
             }
         }
-        logger.error("Unable to parse remote " + remote);
+        logger.info("Unable to parse remote " + remote);
         return Optional.empty();
     }
 
