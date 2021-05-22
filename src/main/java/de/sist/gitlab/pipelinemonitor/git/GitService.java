@@ -7,6 +7,7 @@ import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
+import de.sist.gitlab.pipelinemonitor.ReloadListener;
 import de.sist.gitlab.pipelinemonitor.config.ConfigProvider;
 import git4idea.GitUtil;
 import git4idea.branch.GitBranchUtil;
@@ -46,6 +47,7 @@ public class GitService {
             logger.debug("Retrieved event GIT_REPO_CHANGE");
             fireGitEventIfReposChanged();
         });
+        project.getMessageBus().connect().subscribe(ReloadListener.RELOAD, pipelineInfos -> fireGitEventIfReposChanged());
     }
 
     private void fireGitEventIfReposChanged() {
@@ -64,8 +66,8 @@ public class GitService {
 
     private List<GitRepository> filterNonIgnoredRepos(List<GitRepository> gitRepositories) {
         return gitRepositories.stream().filter(x ->
-                x.getRemotes().stream().noneMatch(gitRemote ->
-                        gitRemote.getUrls().stream().anyMatch(url -> ConfigProvider.getInstance().getIgnoredRemotes().contains(url)))
+                x.getRemotes().stream().anyMatch(gitRemote ->
+                        gitRemote.getUrls().stream().noneMatch(url -> ConfigProvider.getInstance().getIgnoredRemotes().contains(url)))
 
         ).collect(Collectors.toList());
     }

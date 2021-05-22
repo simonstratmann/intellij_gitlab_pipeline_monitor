@@ -9,6 +9,7 @@
     <ul>
         <li>Display gitlab pipeline statuses for currently checked out branches</li>
         <li>Show notifications for new statuses</li>
+        <li>Open or create merge requests in your browser</li>
     </ul>
 
     ]]></description>
