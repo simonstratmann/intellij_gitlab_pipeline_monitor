@@ -356,7 +356,8 @@ public class GitlabToolWindow {
                 }
             }
         });
-        showForAllCheckbox = new JCheckBox("Show pipelines for all repos");
+        showForAllCheckbox = new JCheckBox("Show all");
+        showForAllCheckbox.setToolTipText("Switch between display of pipelines for current project and all associated projects");
         toggleShowForAllCheckboxVisibility(project);
         showForAllCheckbox.setSelected(PipelineViewerConfigProject.getInstance(project).isShowPipelinesForAll());
         showForAllCheckbox.addChangeListener(new ChangeListener() {
