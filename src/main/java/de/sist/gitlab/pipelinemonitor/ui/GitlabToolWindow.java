@@ -241,6 +241,12 @@ public class GitlabToolWindow {
                 runLoadPipelinesTask();
             }
         });
+        branchPopupMenu.add(new AbstractAction("Create merge request for this branch") {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                openMergeRequestUrlForSelectedBranch(selectedPipelineStatus);
+            }
+        });
         branchPopupMenu.add(new AbstractAction("Checkout this branch") {
             @Override
             public void actionPerformed(ActionEvent e) {
