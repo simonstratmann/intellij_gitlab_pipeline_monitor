@@ -67,7 +67,6 @@ public class GitlabService {
 
     public void updatePipelineInfos() throws IOException {
         synchronized (pipelineInfos) {
-
             final Map<Mapping, List<PipelineJobStatus>> newMappingToPipelines = new HashMap<>();
             for (Map.Entry<Mapping, List<PipelineTo>> entry : loadPipelines().entrySet()) {
                 final List<PipelineJobStatus> jobStatuses = entry.getValue().stream()
@@ -146,6 +145,7 @@ public class GitlabService {
                             continue;
                         }
                         if (INCOMPATIBLE_REMOTES.stream().anyMatch(x -> url.toLowerCase().contains(x))) {
+                            logger.debug("Remote URL " + url + " is incompatible");
                             continue;
                         }
                         if (!handledMappings.contains(url)) {
@@ -153,6 +153,7 @@ public class GitlabService {
                                 handleUnknownRemote(url);
                             }
                             handledMappings.add(url);
+                            PipelineViewerConfigApp.getInstance().getRemotesAskAgainNextTime().remove(url);
                         }
                     }
                 }
@@ -216,14 +217,17 @@ public class GitlabService {
 
     private Map<Mapping, List<PipelineTo>> loadPipelines() throws IOException {
         final Map<Mapping, List<PipelineTo>> projectToPipelines = new HashMap<>();
-        for (GitRepository nonIgnoredRepository : GitService.getInstance(project).getNonIgnoredRepositories()) {
+        final List<GitRepository> nonIgnoredRepositories = GitService.getInstance(project).getNonIgnoredRepositories();
+        if (nonIgnoredRepositories.isEmpty()) {
+            logger.debug("No non-ignored git repositories");
+            return Collections.emptyMap();
+        }
+        for (GitRepository nonIgnoredRepository : nonIgnoredRepositories) {
             for (GitRemote remote : nonIgnoredRepository.getRemotes()) {
                 for (String url : remote.getUrls()) {
-                    if (PipelineViewerConfigApp.getInstance().getRemotesAskAgainNextTime().contains(url)) {
-                        continue;
-                    }
                     final Mapping mapping = ConfigProvider.getInstance().getMappingByRemoteUrl(url);
                     if (mapping == null) {
+                        logger.debug("No mapping found for remote url " + url);
                         continue;
                     }
                     logger.debug("Loading pipelines for remote " + mapping.getRemote());
@@ -253,7 +257,7 @@ public class GitlabService {
                 final String accessToken = Messages.showInputDialog(project, "Unable to log in to gitlab. Please enter the access token for access to " + mapping.getRemote() + ". Current token: " + oldToken, "Gitlab Pipeline Viewer", null, null, null);
                 ConfigProvider.saveToken(mapping, accessToken);
                 if (Strings.isNullOrEmpty(accessToken)) {
-                    logger.info("No token entered, setting token to null for remore " + mapping.getRemote());
+                    logger.info("No token entered, setting token to null for remote " + mapping.getRemote());
                     PipelineViewerConfigApp.getInstance().getRemotesAskAgainNextTime().add(mapping.getRemote());
                 } else {
                     ServiceManager.getService(project, BackgroundUpdateService.class).update(project, false);
