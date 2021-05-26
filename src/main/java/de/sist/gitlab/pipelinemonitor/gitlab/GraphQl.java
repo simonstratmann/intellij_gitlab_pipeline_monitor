@@ -49,7 +49,7 @@ public class GraphQl {
             //gid://gitlab/Project/16957139 -> 16957139
             String id = data.getProject().getId();
             if (id.contains("/")) {
-                id = data.getProject().getId().substring(id.lastIndexOf("/"));
+                id = data.getProject().getId().substring(id.lastIndexOf("/") + 1);
             }
             data.getProject().setId(id);
             return data;

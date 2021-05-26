@@ -324,7 +324,7 @@ public class GitlabService {
         if (httpMatcher.matches()) {
             if (remote.startsWith("https://gitlab.com")) {
                 final String host = "https://gitlab.com";
-                final String projectPath = getCleanProjectPath(remote.substring("https://gitlab.com/".length() + 1));
+                final String projectPath = getCleanProjectPath(remote.substring("https://gitlab.com/".length()));
                 final HostAndProjectPath hostAndProjectPath = new HostAndProjectPath(host, projectPath);
                 logger.debug("Recognized gitlab.com HTTPS remote - determined " + hostAndProjectPath);
                 return Optional.of(hostAndProjectPath);
@@ -345,7 +345,7 @@ public class GitlabService {
                     return Optional.empty();
                 }
                 if (response.toLowerCase().contains("gitlab")) {
-                    final HostAndProjectPath hostAndProjectPath = new HostAndProjectPath(testUrl.toString(), getCleanProjectPath(fullUrl.substring(part.length())));
+                    final HostAndProjectPath hostAndProjectPath = new HostAndProjectPath(StringUtils.removeEndIgnoreCase(testUrl.toString(), "/"), getCleanProjectPath(fullUrl.substring(testUrl.length())));
                     logger.info("Determined host " + hostAndProjectPath.getHost() + " and project path " + hostAndProjectPath.getProjectPath() + " from http remote " + remote);
                     return Optional.of(hostAndProjectPath);
                 }
