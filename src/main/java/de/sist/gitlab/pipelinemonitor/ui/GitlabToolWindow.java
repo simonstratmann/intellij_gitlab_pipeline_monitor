@@ -204,7 +204,7 @@ public class GitlabToolWindow {
 
     private void handleEnabledState(Project project) {
         final boolean enabled = PipelineViewerConfigProject.getInstance(project).isEnabled();
-        logger.debug("Enabled for project: " + enabled);
+        logger.debug("Enabled for project: ", enabled);
         ApplicationManager.getApplication().invokeLater(() -> {
             toolWindowContent.setEnabled(enabled);
             pipelineTable.setEnabled(enabled);
@@ -533,7 +533,7 @@ public class GitlabToolWindow {
                         }
                     }
 
-                    logger.debug("Opening URL " + url);
+                    logger.debug("Opening URL ", url);
                     UrlOpener.openUrl(url);
                 }
             }

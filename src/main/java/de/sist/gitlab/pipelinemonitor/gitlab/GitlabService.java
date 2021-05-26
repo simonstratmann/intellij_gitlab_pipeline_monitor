@@ -86,12 +86,12 @@ public class GitlabService {
                 for (Map.Entry<Mapping, List<PipelineJobStatus>> entry : pipelineInfos.entrySet()) {
 
                     for (Mapping mapping : pipelineInfos.keySet()) {
-                        logger.debug("Loading merge requests for remote " + mapping.getRemote());
+                        logger.debug("Loading merge requests for remote ", mapping.getRemote());
                         final List<String> sourceBranches = entry.getValue().stream().map(x -> x.branchName).collect(Collectors.toList());
                         final Optional<Data> data = GraphQl.makeCall(mapping.getHost(), ConfigProvider.getToken(mapping), mapping.getProjectPath(), sourceBranches);
                         if (data.isPresent()) {
                             final List<MergeRequest> mergeRequests = data.get().getProject().getMergeRequests().getEdges().stream().map(Edge::getMergeRequest).collect(Collectors.toList());
-                            logger.debug("Loaded " + mergeRequests.size() + " pipelines for remote " + mapping.getRemote());
+                            logger.debug("Loaded ", mergeRequests.size(), " pipelines for remote ", mapping.getRemote());
 
                             final Map<String, List<MergeRequest>> mergeRequestsBySourceBranch = mergeRequests.stream().collect(Collectors.groupingBy(MergeRequest::getSourceBranch));
                             for (PipelineJobStatus pipelineJobStatus : pipelineInfos.get(mapping)) {
@@ -101,7 +101,7 @@ public class GitlabService {
                                 }
                             }
                         } else {
-                            logger.debug("Unable to load pipelines for remote " + mapping.getRemote());
+                            logger.debug("Unable to load pipelines for remote ", mapping.getRemote());
                         }
                     }
                 }
@@ -133,19 +133,19 @@ public class GitlabService {
                     for (String url : remote.getUrls()) {
                         if (!PipelineViewerConfigProject.getInstance(project).isEnabled()) {
                             //Make sure no further remotes are processed if multiple are found and the user chose to disable for the project
-                            logger.debug("Disabled for project " + project.getName());
+                            logger.debug("Disabled for project ", project.getName());
                             return;
                         }
                         if (ConfigProvider.getInstance().getIgnoredRemotes().contains(url)) {
-                            logger.debug("Remote " + url + " is ignored");
+                            logger.debug("Remote ", url, " is ignored");
                             continue;
                         }
                         if (PipelineViewerConfigApp.getInstance().getRemotesAskAgainNextTime().contains(url) && !triggeredByUser) {
-                            logger.debug("Remote " + url + " is ignored until next plugin load and reload was not triggered by user");
+                            logger.debug("Remote ", url, " is ignored until next plugin load and reload was not triggered by user");
                             continue;
                         }
                         if (INCOMPATIBLE_REMOTES.stream().anyMatch(x -> url.toLowerCase().contains(x))) {
-                            logger.debug("Remote URL " + url + " is incompatible");
+                            logger.debug("Remote URL ", url, " is incompatible");
                             continue;
                         }
                         if (!handledMappings.contains(url)) {
@@ -185,7 +185,7 @@ public class GitlabService {
             ApplicationManager.getApplication().getMessageBus().syncPublisher(ConfigChangedListener.CONFIG_CHANGED).configChanged();
             return;
         } else if (response.getCancel() == UnmappedRemoteDialog.Cancel.ASK_AGAIN) {
-            logger.debug("User chose to be asked again about url " + url);
+            logger.debug("User chose to be asked again about url ", url);
             PipelineViewerConfigApp.getInstance().getRemotesAskAgainNextTime().add(url);
             return;
         }
@@ -227,12 +227,12 @@ public class GitlabService {
                 for (String url : remote.getUrls()) {
                     final Mapping mapping = ConfigProvider.getInstance().getMappingByRemoteUrl(url);
                     if (mapping == null) {
-                        logger.debug("No mapping found for remote url " + url);
+                        logger.debug("No mapping found for remote url ", url);
                         continue;
                     }
-                    logger.debug("Loading pipelines for remote " + mapping.getRemote());
+                    logger.debug("Loading pipelines for remote ", mapping.getRemote());
                     final List<PipelineTo> pipelines = loadPipelines(mapping);
-                    logger.debug("Loaded " + pipelines.size() + " pipelines for remote " + mapping.getRemote());
+                    logger.debug("Loaded ", pipelines.size(), " pipelines for remote ", mapping.getRemote());
 
                     projectToPipelines.put(mapping, pipelines);
                 }
@@ -280,10 +280,10 @@ public class GitlabService {
                     .addParameter("per_page", "100");
 
             if (accessToken != null) {
-                logger.debug("Using access token for access to " + uriBuilder);
+                logger.debug("Using access token for access to ", uriBuilder);
                 uriBuilder.addParameter("private_token", accessToken);
             } else {
-                logger.debug("No access token set for remote " + mapping.getRemote());
+                logger.debug("No access token set for remote ", mapping.getRemote());
             }
 
             url = uriBuilder.build().toString();
@@ -292,7 +292,7 @@ public class GitlabService {
         }
         String json;
         try {
-            logger.debug("Calling URL " + url.replace(Strings.nullToEmpty(accessToken), "<accessToken>"));
+            logger.debug("Calling URL ", url.replace(Strings.nullToEmpty(accessToken), "<accessToken>"));
             json = HttpRequests.request(url).readString();
         } catch (HttpRequests.HttpStatusException e) {
             //Unfortunately gitlab returns a 404 if the project was found but could not be accessed. We must interpret 404 like 401
@@ -326,7 +326,7 @@ public class GitlabService {
                 final String host = "https://gitlab.com";
                 final String projectPath = getCleanProjectPath(remote.substring("https://gitlab.com/".length()));
                 final HostAndProjectPath hostAndProjectPath = new HostAndProjectPath(host, projectPath);
-                logger.debug("Recognized gitlab.com HTTPS remote - determined " + hostAndProjectPath);
+                logger.debug("Recognized gitlab.com HTTPS remote - determined ", hostAndProjectPath);
                 return Optional.of(hostAndProjectPath);
             }
             //For self hosted instances it's impossible to determine which part of the path is part of the host or the project.
@@ -338,7 +338,7 @@ public class GitlabService {
 
                 final String response;
                 try {
-                    logger.debug("Trying URL " + testUrl);
+                    logger.debug("Trying URL ", testUrl);
                     response = ApplicationManager.getApplication().executeOnPooledThread(() -> HttpRequests.request(testUrl.toString()).readString()).get();
                 } catch (Exception e) {
                     logger.error("Unable to retrieve host and project path from remote " + remote, e);

@@ -121,7 +121,7 @@ public class ConfigProvider {
 
     public static void saveToken(Mapping mapping, String token) {
         saveLock.lock();
-        logger.debug("Saving token with length " + (token == null ? 0 : token.length()) + " for remote " + mapping.getRemote());
+        logger.debug("Saving token with length ", (token == null ? 0 : token.length()), " for remote ", mapping.getRemote());
         final CredentialAttributes credentialAttributes = new CredentialAttributes(GitlabService.ACCESS_TOKEN_CREDENTIALS_ATTRIBUTE + mapping.getRemote(), mapping.getRemote());
         PasswordSafe.getInstance().setPassword(credentialAttributes, token);
         saveLock.unlock();
@@ -135,7 +135,11 @@ public class ConfigProvider {
         saveLock.lock();
         final CredentialAttributes credentialAttributes = new CredentialAttributes(GitlabService.ACCESS_TOKEN_CREDENTIALS_ATTRIBUTE + remote, remote);
         final String token = PasswordSafe.getInstance().getPassword(credentialAttributes);
-        logger.debug("Found token with length " + (token == null ? 0 : token.length()) + " for remote " + remote);
+        if (token == null) {
+            logger.debug("Found no token for remote ", remote);
+        } else {
+            logger.debug("Found token with length ", token.length(), " for remote ", remote);
+        }
         saveLock.unlock();
         return token;
     }

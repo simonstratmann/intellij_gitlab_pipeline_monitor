@@ -39,7 +39,7 @@ public class LightsWindows implements LightsApi {
         if (lightsApi == null) {
             return;
         }
-        logger.debug("Turning on " + light);
+        logger.debug("Turning on ", light);
         lightsApi.turnOnColor(lightsPointer, light, turnOthersOff);
     }
 
@@ -48,7 +48,7 @@ public class LightsWindows implements LightsApi {
         if (lightsApi == null) {
             return;
         }
-        logger.debug("Turning off " + light);
+        logger.debug("Turning off ", light);
         lightsApi.turnOffColor(lightsPointer, light);
     }
 

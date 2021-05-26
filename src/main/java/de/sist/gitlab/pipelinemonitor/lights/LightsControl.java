@@ -97,7 +97,7 @@ public class LightsControl {
         if (status.isPresent()) {
             //Don't enable any lights twice so that when the user turned the light off it doesn't get turned on again for the same run
             if (handledRuns.contains(status.get())) {
-                logger.debug("Already shown light for " + status.get());
+                logger.debug("Already shown light for ", status.get());
                 return;
             }
 
@@ -105,21 +105,21 @@ public class LightsControl {
             String result = status.get().result;
             switch (result) {
                 case "running":
-                    logger.debug("Showing build state light for running pipeline " + status.get());
+                    logger.debug("Showing build state light for running pipeline ", status.get());
                     lightsApi.turnOnColor(LightsWindowsLibrary.Light.YELLOW, false);
                     break;
                 case "failed":
-                    logger.debug("Showing failure pipeline " + status.get());
+                    logger.debug("Showing failure pipeline ", status.get());
                     lightsApi.turnOnColor(LightsWindowsLibrary.Light.RED, true);
                     break;
                 case "success":
-                    logger.debug("Showing success for pipeline " + status.get());
+                    logger.debug("Showing success for pipeline ", status.get());
                     lightsApi.turnOnColor(LightsWindowsLibrary.Light.GREEN, true);
                     break;
             }
             handledRuns.add(status.get());
         } else {
-            logger.debug("No pipeline found for " + lightsForBranch);
+            logger.debug("No pipeline found for ", lightsForBranch);
             lightsApi.turnAllOff();
         }
     }
@@ -159,7 +159,7 @@ public class LightsControl {
     public static File getPluginPath() {
         File systemPath = new File(PathManager.getSystemPath());
         final File gitlabPipelineViewerPath = new File(systemPath, "gitlabPipelineViewer");
-        logger.debug("Determined plugin storage path to be " + gitlabPipelineViewerPath);
+        logger.debug("Determined plugin storage path to be ", gitlabPipelineViewerPath);
         return gitlabPipelineViewerPath;
     }
 

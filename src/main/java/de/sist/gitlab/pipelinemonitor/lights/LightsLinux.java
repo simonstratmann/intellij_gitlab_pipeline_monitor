@@ -31,12 +31,12 @@ public class LightsLinux implements LightsApi {
     }
 
     public void turnOffColor(LightsWindowsLibrary.Light light) {
-        logger.debug("Turning off " + light);
+        logger.debug("Turning off ", light);
         runCommand("-as " + light.indexLinux + OFF);
     }
 
     public void turnOnColor(LightsWindowsLibrary.Light light, boolean turnOthersOff) {
-        logger.debug("Turning on " + light);
+        logger.debug("Turning on ", light);
         StringBuilder stringBuilder = new StringBuilder("-as " + light.indexLinux + ON);
 
         if (turnOthersOff) {
@@ -73,7 +73,7 @@ public class LightsLinux implements LightsApi {
         thread = new Thread(() -> {
             try {
                 final String command = clewarecontrol.getAbsolutePath() + " -c 1 " + parameter;
-                logger.debug("Running command " + command);
+                logger.debug("Running command ", command);
                 Runtime.getRuntime().exec(command).waitFor();
             } catch (IOException | InterruptedException e) {
                 logger.error(e);

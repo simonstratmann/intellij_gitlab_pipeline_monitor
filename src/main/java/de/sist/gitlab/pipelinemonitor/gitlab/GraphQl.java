@@ -64,7 +64,7 @@ public class GraphQl {
         final String graphQlQuery = buildQuery(projectPath, sourceBranches);
         final String responseString;
         try {
-            logger.debug("Reading project data using URL " + graphQlUrl + " and query " + graphQlQuery);
+            logger.debug("Reading project data using URL ", graphQlUrl, " and query ", graphQlQuery);
 
             responseString = ApplicationManager.getApplication().executeOnPooledThread(() ->
                     HttpRequests.post(graphQlUrl, "application/json")
@@ -73,7 +73,7 @@ public class GraphQl {
                                 try {
                                     if (accessToken != null) {
                                         request.getConnection().setRequestProperty("Authorization", "Bearer " + accessToken);
-                                        logger.debug("Using access token with length " + accessToken.length());
+                                        logger.debug("Using access token with length ", accessToken.length());
                                     } else {
                                         logger.debug("Not using access token");
                                     }
@@ -83,7 +83,7 @@ public class GraphQl {
                                     logger.error("Error connecting to gitlab", e);
                                     throw new RuntimeException(e);
                                 }
-                                logger.debug("Got response from " + graphQlQuery + "\n:" + response);
+                                logger.debug("Got response from ", graphQlQuery, "\n:", response);
                                 return response;
                             })).get();
         } catch (Exception e) {

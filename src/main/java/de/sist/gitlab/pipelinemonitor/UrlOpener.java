@@ -19,15 +19,15 @@ public class UrlOpener {
         final String openerCommand = PipelineViewerConfigApp.getInstance().getUrlOpenerCommand();
         if (!Strings.isNullOrEmpty(openerCommand)) {
             final String fullCommand = openerCommand.replace("%url", url);
-            logger.debug("Starting command " + fullCommand);
+            logger.debug("Starting command ", fullCommand);
             try {
                 Runtime.getRuntime().exec(fullCommand);
                 return;
             } catch (IOException e) {
-                logger.error("Unable to start command " + fullCommand);
+                logger.error("Unable to start command ", fullCommand);
             }
         } else {
-            logger.debug("Opening default browser for " + url);
+            logger.debug("Opening default browser for ", url);
         }
         com.intellij.ide.BrowserUtil.browse(url);
     }

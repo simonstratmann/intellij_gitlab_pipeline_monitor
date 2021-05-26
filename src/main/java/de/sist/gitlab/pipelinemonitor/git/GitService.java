@@ -57,10 +57,10 @@ public class GitService {
         if (!allGitRepositories.equals(newAllGitRepositories) || !nonIgnoredRepositories.equals(newNonIgnoredGitRepositories)) {
             allGitRepositories = newAllGitRepositories;
             nonIgnoredRepositories = newNonIgnoredGitRepositories;
-            logger.debug("Firing event GIT_INITIALIZED. Number of git repositories: " + newAllGitRepositories.size() + ". Non-ignored: " + newNonIgnoredGitRepositories.size());
+            logger.debug("Firing event GIT_INITIALIZED. Number of git repositories: ", newAllGitRepositories.size(), ". Non-ignored: ", newNonIgnoredGitRepositories.size());
             project.getMessageBus().syncPublisher(GitInitListener.GIT_INITIALIZED).handle(allGitRepositories);
         } else {
-            logger.debug("No new git repositories found. Number of git repositories: " + newAllGitRepositories.size() + ". Non-ignored: " + newNonIgnoredGitRepositories.size());
+            logger.debug("No new git repositories found. Number of git repositories: ", newAllGitRepositories.size(), ". Non-ignored: ", newNonIgnoredGitRepositories.size());
         }
     }
 
@@ -101,7 +101,7 @@ public class GitService {
 
                 final GitCommandResult gitCommandResult = Git.getInstance().runCommand(gitLineHandler);
                 String hash = gitCommandResult.getOutput().get(0).trim().replace("-n 1", "").trim();
-                logger.debug("Found local hash: " + hash);
+                logger.debug("Found local hash: ", hash);
                 Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
                 clipboard.setContents(new StringSelection(hash), null);
             }
@@ -113,7 +113,7 @@ public class GitService {
     }
 
     public @NotNull List<String> getTags(GitRepository gitRepository) {
-        logger.debug("Loading tags for " + gitRepository);
+        logger.debug("Loading tags for ", gitRepository);
         final VirtualFile root = gitRepository.getRoot();
         final Future<List<String>> future = ApplicationManager.getApplication().executeOnPooledThread(() -> GitBranchUtil.getAllTags(project, root));
         try {

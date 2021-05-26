@@ -153,7 +153,7 @@ public class NotifierService {
             }
         });
 
-        logger.debug("Showing notification for status " + status);
+        logger.debug("Showing notification for status ", status);
         showBalloon(notification, getDisplayTypeForStatus(status.result), index);
         shownNotifications.add(status);
     }

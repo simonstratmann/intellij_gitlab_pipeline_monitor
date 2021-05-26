@@ -130,7 +130,7 @@ public class BackgroundUpdateService {
         logger.debug("Stopping background task");
         boolean cancelled = scheduledFuture.cancel(false);
         isActive = !cancelled;
-        logger.debug("Background task cancelled: " + cancelled);
+        logger.debug("Background task cancelled: ", cancelled);
     }
 
     public synchronized boolean isActive() {
@@ -142,7 +142,7 @@ public class BackgroundUpdateService {
         if (isActive) {
             boolean cancelled = scheduledFuture.cancel(false);
             isActive = !cancelled;
-            logger.debug("Background task cancelled: " + cancelled);
+            logger.debug("Background task cancelled: ", cancelled);
         }
         scheduledFuture = AppExecutorUtil.getAppScheduledExecutorService().scheduleWithFixedDelay(backgroundTask, INITIAL_DELAY, UPDATE_DELAY, TimeUnit.SECONDS);
         isActive = true;
