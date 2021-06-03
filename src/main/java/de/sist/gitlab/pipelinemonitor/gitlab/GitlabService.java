@@ -153,7 +153,6 @@ public class GitlabService {
                                 handleUnknownRemote(url);
                             }
                             handledMappings.add(url);
-                            PipelineViewerConfigApp.getInstance().getRemotesAskAgainNextTime().remove(url);
                         }
                     }
                 }
@@ -175,6 +174,9 @@ public class GitlabService {
             response = new UnmappedRemoteDialog(url).showDialog();
         }
 
+        if (response.getCancel() != UnmappedRemoteDialog.Cancel.ASK_AGAIN) {
+            PipelineViewerConfigApp.getInstance().getRemotesAskAgainNextTime().remove(url);
+        }
         if (response.getCancel() == UnmappedRemoteDialog.Cancel.IGNORE_REMOTE) {
             ConfigProvider.getInstance().getIgnoredRemotes().add(url);
             logger.info("Added " + url + " to list of ignored remotes");
