@@ -8,6 +8,7 @@ import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.progress.impl.BackgroundableProcessIndicator;
 import com.intellij.openapi.project.Project;
+import com.intellij.serviceContainer.AlreadyDisposedException;
 import com.intellij.util.concurrency.AppExecutorUtil;
 import de.sist.gitlab.pipelinemonitor.config.ConfigChangedListener;
 import de.sist.gitlab.pipelinemonitor.config.ConfigProvider;
@@ -98,7 +99,12 @@ public class BackgroundUpdateService {
         };
 
         ApplicationManager.getApplication().invokeLater(() -> {
-            ServiceManager.getService(project, GitlabService.class).checkForUnmappedRemotes(ServiceManager.getService(project, GitService.class).getAllGitRepositories(), triggeredByUser);
+            try {
+                ServiceManager.getService(project, GitlabService.class).checkForUnmappedRemotes(ServiceManager.getService(project, GitService.class).getAllGitRepositories(), triggeredByUser);
+            } catch (AlreadyDisposedException e) {
+                stopBackgroundTask();
+                return;
+            }
             final BackgroundableProcessIndicator updateProgressIndicator = new BackgroundableProcessIndicator(updateTask);
             ProgressManager.getInstance().runProcessWithProgressAsynchronously(updateTask, updateProgressIndicator);
         });
