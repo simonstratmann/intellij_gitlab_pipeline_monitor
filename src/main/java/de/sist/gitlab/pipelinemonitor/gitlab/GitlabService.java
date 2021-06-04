@@ -294,7 +294,8 @@ public class GitlabService {
         }
         String json;
         try {
-            logger.debug("Calling URL ", url.replace(Strings.nullToEmpty(accessToken), "<accessToken>"));
+
+            logger.debug("Calling URL ", url.replace(accessToken == null ? "<accessToken>" : accessToken, "<accessToken>"));
             json = HttpRequests.request(url).readString();
         } catch (HttpRequests.HttpStatusException e) {
             //Unfortunately gitlab returns a 404 if the project was found but could not be accessed. We must interpret 404 like 401

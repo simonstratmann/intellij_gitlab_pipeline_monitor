@@ -135,7 +135,7 @@ public class ConfigProvider {
         saveLock.lock();
         final CredentialAttributes credentialAttributes = new CredentialAttributes(GitlabService.ACCESS_TOKEN_CREDENTIALS_ATTRIBUTE + remote, remote);
         final String token = PasswordSafe.getInstance().getPassword(credentialAttributes);
-        if (token == null) {
+        if (Strings.isNullOrEmpty(token)) {
             logger.debug("Found no token for remote ", remote);
         } else {
             logger.debug("Found token with length ", token.length(), " for remote ", remote);

@@ -45,9 +45,8 @@
     </extensions>
 
     <actions>
-        <!-- Add your actions here -->
         <action id="de.sist.gitlab.pipelinemonitor.OpenLastPipelineAction" class="de.sist.gitlab.pipelinemonitor.OpenLastPipelineAction" text="Open Last Pipeline"
-                description="Opens the last pipeline in the browser (like clicking its URL in the tool window=">
+                description="Opens the last pipeline in the browser (like clicking its URL in the tool window)">
             <add-to-group group-id="VcsGroups" anchor="last"/>
         </action>
     </actions>

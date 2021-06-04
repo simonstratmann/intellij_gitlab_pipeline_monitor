@@ -1,5 +1,6 @@
 package de.sist.gitlab.pipelinemonitor;
 
+import com.google.common.base.Joiner;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import de.sist.gitlab.pipelinemonitor.config.ConfigProvider;
@@ -56,27 +57,37 @@ public class PipelineFilter {
             tags.addAll(repoToTags.get(gitRepository));
         }
 
+        if (logger.isDebugEnabled()) {
+            logger.debug("Will retain branches that are contained in these checked out branches: ", Joiner.on(", ").join(trackedBranches));
+        }
         final List<PipelineJobStatus> statuses = toFilter.stream().filter(x -> {
                     if (config.getBranchesToIgnore(project).contains(x.branchName)) {
+                        logger.debug("Pipeline for branch ", x.branchName, " is ignored and will be filtered out");
                         return false;
                     }
                     if (trackedBranches.contains(x.branchName)) {
+                        logger.debug("Pipeline for branch ", x.branchName, " is tracked locally and will be retained");
                         return true;
                     }
                     if (config.getBranchesToWatch(project).contains(x.branchName) && (!forNotification || config.isShowNotificationForWatchedBranches())) {
+                        logger.debug("Pipeline for branch ", x.branchName, " is in list of branches to watch and will be retained");
                         return true;
                     }
                     if (tags.contains(x.branchName)) {
+                        logger.debug("Pipeline for ref ", x.branchName, " is in the list of tags and will be retained");
                         return true;
                     }
-
+                    logger.debug("Pipeline for branch ", x.branchName, " will be filtered out");
                     return false;
                 }
         ).collect(Collectors.toList());
         if (!statuses.isEmpty() && !forNotification) {
             latestShown = statuses.get(0);
         }
-        logger.debug(String.format("Filtered %d out of %d pipelines %s", statuses.size(), toFilter.size(), forNotification ? "for notifications" : "for display"));
+        if (logger.isDebugEnabled()) {
+            final String pipelineBranchNames = statuses.stream().map(PipelineJobStatus::getBranchName).collect(Collectors.joining(", "));
+            logger.debug(String.format("Filtered %d out of %d pipelines %s", statuses.size(), toFilter.size(), forNotification ? "for notifications:" : "for display:"), pipelineBranchNames);
+        }
 
         return statuses;
     }

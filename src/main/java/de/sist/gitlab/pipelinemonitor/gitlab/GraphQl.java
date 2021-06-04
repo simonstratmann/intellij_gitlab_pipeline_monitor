@@ -83,7 +83,7 @@ public class GraphQl {
                                     logger.error("Error connecting to gitlab", e);
                                     throw new RuntimeException(e);
                                 }
-                                logger.debug("Got response from ", graphQlQuery, "\n:", response);
+                                logger.debug("Got response from query\n:", response);
                                 return response;
                             })).get();
         } catch (Exception e) {

@@ -278,7 +278,12 @@ public class GitlabToolWindow {
     }
 
     private PipelineJobStatus getSelectedBranch(Point pointClicked) {
-        SelectedCell cell = getSelectedTableCell(pointClicked);
+        SelectedCell cell;
+        try {
+            cell = getSelectedTableCell(pointClicked);
+        } catch (ArrayIndexOutOfBoundsException e) {
+            return null;
+        }
         if (cell.rowIndex == -1 || cell.rowIndex > tableModel.rows.size()) {
             return null;
         }
@@ -447,7 +452,9 @@ public class GitlabToolWindow {
             final Mapping mapping = mappingAndPipelines.getKey();
             if (gitlabService.getPipelineInfos().size() > 1 && !showForAllCheckbox.isSelected()) {
                 final GitRepository currentRepository = GitService.getInstance(project).guessCurrentRepository();
-                if (!Objects.equals(GitService.getInstance(project).getRepositoryByRemoteUrl(mapping.getRemote()), currentRepository)) {
+                final GitRepository repoForMapping = GitService.getInstance(project).getRepositoryByRemoteUrl(mapping.getRemote());
+                if (!Objects.equals(repoForMapping, currentRepository)) {
+                    logger.debug("Not showing pipelines for ", repoForMapping, " because it doesn't match the current repo ", currentRepository);
                     continue;
                 }
             }
@@ -455,13 +462,18 @@ public class GitlabToolWindow {
             List<PipelineJobStatus> statuses = new ArrayList<>(statusFilter.filterPipelines(mapping, mappingAndPipelines.getValue(), false));
             statuses.sort(Comparator.comparing(x -> ((PipelineJobStatus) x).creationTime).reversed());
             Map<String, List<PipelineJobStatus>> branchesToStatuses = statuses.stream().collect(Collectors.groupingBy(x -> x.branchName));
+            logger.debug("Found ", branchesToStatuses.size(), " branches to show pipelines for");
             for (Map.Entry<String, List<PipelineJobStatus>> entry : branchesToStatuses.entrySet()) {
                 Optional<PipelineJobStatus> firstFinalStatus = entry.getValue().stream().filter(this::isFinalStatus).findFirst();
                 if (firstFinalStatus.isPresent()) {
-                    int indexOfFirstFinalStatus = entry.getValue().indexOf(firstFinalStatus.get());
-                    newRows.addAll(entry.getValue().subList(0, indexOfFirstFinalStatus + 1));
+                    int indexOfLatestFinalStatus = entry.getValue().indexOf(firstFinalStatus.get());
+                    final List<PipelineJobStatus> allUpToLatestFinalStatus = entry.getValue().subList(0, indexOfLatestFinalStatus + 1);
+                    logger.debug("Found ", allUpToLatestFinalStatus.size(), " pipelines for branch ", entry.getKey(), " including latest with final status: ", allUpToLatestFinalStatus.get(indexOfLatestFinalStatus));
+                    newRows.addAll(allUpToLatestFinalStatus);
                 } else {
-                    newRows.add(entry.getValue().get(0));
+                    final PipelineJobStatus status = entry.getValue().get(0);
+                    logger.debug("Found one entry for branch ", entry.getKey(), ": ", status);
+                    newRows.add(status);
                 }
             }
         }
