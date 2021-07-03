@@ -22,6 +22,8 @@ public class ConfigProvider {
 
     private static final com.intellij.openapi.diagnostic.Logger logger = Logger.getInstance(ConfigProvider.class);
 
+    public static final int READ_TIMEOUT = 5_000;
+
     private boolean isConfigOpen;
     private final Lock lock = new ReentrantLock();
     private static final Lock saveLock = new ReentrantLock();
@@ -99,7 +101,7 @@ public class ConfigProvider {
         return PipelineViewerConfigProject.getInstance(project).getShowLightsForBranch();
     }
 
-    public int getConnectTimeout() {
+    public int getConnectTimeoutSeconds() {
         return PipelineViewerConfigApp.getInstance().getConnectTimeout();
     }
 

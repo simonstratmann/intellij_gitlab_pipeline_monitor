@@ -1,6 +1,6 @@
 package de.sist.gitlab.pipelinemonitor;
 
-import com.intellij.openapi.application.ApplicationManager;
+import com.google.common.base.Stopwatch;
 import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProgressIndicator;
@@ -8,7 +8,6 @@ import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.progress.impl.BackgroundableProcessIndicator;
 import com.intellij.openapi.project.Project;
-import com.intellij.serviceContainer.AlreadyDisposedException;
 import com.intellij.util.concurrency.AppExecutorUtil;
 import de.sist.gitlab.pipelinemonitor.config.ConfigChangedListener;
 import de.sist.gitlab.pipelinemonitor.config.ConfigProvider;
@@ -72,43 +71,55 @@ public class BackgroundUpdateService {
     }
 
     public synchronized void update(Project project, boolean triggeredByUser) {
+        if (isRunning) {
+            return;
+        }
         Task.Backgroundable updateTask = new Task.Backgroundable(project, "Loading gitLab pipelines", false) {
             @Override
             public void run(@NotNull ProgressIndicator indicator) {
-                if (isRunning) {
-                    return;
-                }
-                isRunning = true;
+                Stopwatch stopwatch = Stopwatch.createStarted();
                 try {
-                    logger.debug("Starting IntelliJ background task");
-                    final GitlabService gitlabService = ServiceManager.getService(project, GitlabService.class);
-                    gitlabService.updatePipelineInfos();
-                    gitlabService.updateMergeRequests();
-                    project.getMessageBus().syncPublisher(ReloadListener.RELOAD).reload(gitlabService.getPipelineInfos());
-                    logger.debug("Finished IntelliJ background task");
-                } catch (IOException e) {
-                    logger.info("Connection error: " + e.getMessage());
-                    if (ConfigProvider.getInstance().isShowConnectionErrorNotifications()) {
-                        ServiceManager.getService(project, NotifierService.class).showError("Unable to connect to gitlab: " + e);
+                    getUpdateRunnable(triggeredByUser).run();
+                    //For some stupid reason the progress bar is not removed if the process returns too quickly
+                    if (stopwatch.elapsed(TimeUnit.MILLISECONDS) < 500) {
+                        try {
+                            Thread.sleep(500);
+                        } catch (InterruptedException ignored) {
+                        }
                     }
                 } finally {
-                    isRunning = false;
-                    indicator.checkCanceled();
+                    indicator.stop();
                 }
             }
         };
 
-        ApplicationManager.getApplication().invokeLater(() -> {
-            try {
-                ServiceManager.getService(project, GitlabService.class).checkForUnmappedRemotes(ServiceManager.getService(project, GitService.class).getAllGitRepositories(), triggeredByUser);
-            } catch (AlreadyDisposedException e) {
-                stopBackgroundTask();
+        final BackgroundableProcessIndicator updateProgressIndicator = new BackgroundableProcessIndicator(updateTask);
+        ProgressManager.getInstance().runProcessWithProgressAsynchronously(updateTask, updateProgressIndicator);
+    }
+
+    private Runnable getUpdateRunnable(boolean triggeredByUser) {
+        return () -> {
+            if (isRunning) {
                 return;
             }
-            final BackgroundableProcessIndicator updateProgressIndicator = new BackgroundableProcessIndicator(updateTask);
-            ProgressManager.getInstance().runProcessWithProgressAsynchronously(updateTask, updateProgressIndicator);
-        });
-
+            isRunning = true;
+            try {
+                logger.debug("Starting IntelliJ background task");
+                final GitlabService gitlabService = ServiceManager.getService(project, GitlabService.class);
+                ServiceManager.getService(project, GitlabService.class).checkForUnmappedRemotes(ServiceManager.getService(project, GitService.class).getAllGitRepositories(), triggeredByUser);
+                gitlabService.updatePipelineInfos();
+                gitlabService.updateMergeRequests();
+                project.getMessageBus().syncPublisher(ReloadListener.RELOAD).reload(gitlabService.getPipelineInfos());
+                logger.debug("Finished IntelliJ background task");
+            } catch (IOException e) {
+                logger.info("Connection error: " + e.getMessage());
+                if (ConfigProvider.getInstance().isShowConnectionErrorNotifications()) {
+                    ServiceManager.getService(project, NotifierService.class).showError("Unable to connect to gitlab: " + e);
+                }
+            } finally {
+                isRunning = false;
+            }
+        };
     }
 
     public synchronized boolean startBackgroundTask() {

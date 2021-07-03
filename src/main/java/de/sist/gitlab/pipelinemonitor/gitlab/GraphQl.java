@@ -5,10 +5,10 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.util.io.HttpRequests;
 import de.sist.gitlab.pipelinemonitor.Jackson;
+import de.sist.gitlab.pipelinemonitor.config.ConfigProvider;
 import de.sist.gitlab.pipelinemonitor.gitlab.mapping.Data;
 import de.sist.gitlab.pipelinemonitor.gitlab.mapping.DataWrapper;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -58,7 +58,7 @@ public class GraphQl {
         }
     }
 
-    public static Optional<Data> makeCall(String gitlabHost, String accessToken, String projectPath, List<String> sourceBranches) {
+    public static Optional<Data> makeCall(String gitlabHost, String accessToken, String projectPath, List<String> sourceBranches, boolean asTest) {
         final String graphQlUrl = gitlabHost + "/api/graphql";
 
         final String graphQlQuery = buildQuery(projectPath, sourceBranches);
@@ -68,6 +68,10 @@ public class GraphQl {
 
             responseString = ApplicationManager.getApplication().executeOnPooledThread(() ->
                     HttpRequests.post(graphQlUrl, "application/json")
+                            .readTimeout(ConfigProvider.READ_TIMEOUT)
+                            .connectTimeout(ConfigProvider.getInstance().getConnectTimeoutSeconds() * 1000)
+                            //Is handled in connection step
+                            .throwStatusCodeException(false)
                             .connect(request -> {
                                 final String response;
                                 try {
@@ -79,21 +83,38 @@ public class GraphQl {
                                     }
                                     request.write(graphQlQuery);
                                     response = request.readString();
-                                } catch (IOException e) {
-                                    logger.error("Error connecting to gitlab", e);
-                                    throw new RuntimeException(e);
+                                } catch (Exception e) {
+                                    if (asTest) {
+                                        logger.info("Error connecting to gitlab", e);
+                                    } else {
+                                        logger.error("Error connecting to gitlab", e);
+                                    }
+                                    return null;
                                 }
                                 logger.debug("Got response from query\n:", response);
                                 return response;
-                            })).get();
+                            }))
+                    .get();
         } catch (Exception e) {
-            logger.error("Error loading project data using URL " + graphQlUrl + " and query " + graphQlQuery, e);
+            if (asTest) {
+                logger.info("Error loading project data using URL " + graphQlUrl + " and query " + graphQlQuery, e);
+            } else {
+                logger.error("Error loading project data using URL " + graphQlUrl + " and query " + graphQlQuery, e);
+            }
+            return Optional.empty();
+        }
+        if (responseString == null) {
+            //Already logged
             return Optional.empty();
         }
         try {
             return Optional.of(parse(responseString));
         } catch (Exception e) {
-            logger.error("Error reading project data using URL " + graphQlUrl + " and query " + graphQlQuery + " with response " + responseString, e);
+            if (asTest) {
+                logger.info("Error reading project data using URL " + graphQlUrl + " and query " + graphQlQuery + " with response " + responseString, e);
+            } else {
+                logger.error("Error reading project data using URL " + graphQlUrl + " and query " + graphQlQuery + " with response " + responseString, e);
+            }
             return Optional.empty();
         }
     }

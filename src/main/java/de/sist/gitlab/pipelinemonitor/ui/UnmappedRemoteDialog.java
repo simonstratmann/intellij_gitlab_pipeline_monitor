@@ -3,6 +3,7 @@ package de.sist.gitlab.pipelinemonitor.ui;
 import com.google.common.base.Strings;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.ui.ComponentValidator;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.ui.ValidationInfo;
@@ -18,6 +19,7 @@ import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class UnmappedRemoteDialog extends JDialog {
 
@@ -131,6 +133,7 @@ public class UnmappedRemoteDialog extends JDialog {
 
     private void onOK(String remoteUrl) {
         if (radioDoMonitor.isSelected()) {
+
             tryAndCreateMapping(remoteUrl);
         } else {
             if (radioAskAgain.isSelected()) {
@@ -149,14 +152,21 @@ public class UnmappedRemoteDialog extends JDialog {
             Messages.showWarningDialog("Please fill out the gitlab host and project path", "Incomplete Data");
             return;
         }
-        final Optional<Mapping> mappingOptional = GitlabService.createMappingWithProjectNameAndId(remoteUrl, hostInput.getText(), projectPathInput.getText(), accessTokenInput.getText());
-        if (!mappingOptional.isPresent()) {
-            Messages.showWarningDialog("The connection to gitlab failed or the project could not be found.", "Gitlab Connection Error");
-            return;
+        try {
+            AtomicReference<Optional<Mapping>> mappingOptional = new AtomicReference<>();
+            ProgressManager.getInstance().runProcessWithProgressSynchronously(() -> {
+                mappingOptional.set(GitlabService.createMappingWithProjectNameAndId(remoteUrl, hostInput.getText(), projectPathInput.getText(), accessTokenInput.getText()));
+            }, "Checking mapping...", false, null, rootPane);
+            if (mappingOptional.get() == null || !mappingOptional.get().isPresent()) {
+                Messages.showWarningDialog("The connection to gitlab failed or the project could not be found.", "Gitlab Connection Error");
+                return;
+            }
+            response = new Response(null, mappingOptional.get().get(), accessTokenInput.getText());
+            dispose();
+        } catch (Exception e) {
+            logger.error(e);
         }
 
-        response = new Response(null, mappingOptional.get(), accessTokenInput.getText());
-        dispose();
     }
 
     private void onCancel() {

@@ -58,12 +58,11 @@ public class GitlabService implements Disposable {
     private static final Pattern REMOTE_GIT_HTTP_PATTERN = Pattern.compile("(?<scheme>https?:\\/\\/)(?<url>.*)(\\.git)?");
     private static final Pattern REMOTE_BEST_GUESS_PATTERN = Pattern.compile("(?<host>https?://[^/]*)/(?<projectPath>.*)");
     private static final List<String> INCOMPATIBLE_REMOTES = Arrays.asList("github.com", "bitbucket.com");
-    private static final int READ_TIMEOUT = 10_000;
 
     private final ConfigProvider config = ServiceManager.getService(ConfigProvider.class);
     private final Project project;
     private final Map<Mapping, List<PipelineJobStatus>> pipelineInfos = new HashMap<>();
-    private boolean isUnmappedRemotesDialogOpen;
+    private boolean isCheckingForUnmappedRemotes;
 
 
     public GitlabService(Project project) {
@@ -93,7 +92,7 @@ public class GitlabService implements Disposable {
                     for (Mapping mapping : pipelineInfos.keySet()) {
                         logger.debug("Loading merge requests for remote ", mapping.getRemote());
                         final List<String> sourceBranches = entry.getValue().stream().map(x -> x.branchName).collect(Collectors.toList());
-                        final Optional<Data> data = GraphQl.makeCall(mapping.getHost(), ConfigProvider.getToken(mapping), mapping.getProjectPath(), sourceBranches);
+                        final Optional<Data> data = GraphQl.makeCall(mapping.getHost(), ConfigProvider.getToken(mapping), mapping.getProjectPath(), sourceBranches, false);
                         if (data.isPresent()) {
                             final List<MergeRequest> mergeRequests = data.get().getProject().getMergeRequests().getEdges().stream().map(Edge::getMergeRequest).collect(Collectors.toList());
                             logger.debug("Loaded ", mergeRequests.size(), " pipelines for remote ", mapping.getRemote());
@@ -125,10 +124,10 @@ public class GitlabService implements Disposable {
 
     public void checkForUnmappedRemotes(List<GitRepository> gitRepositories, boolean triggeredByUser) {
         //Locks don't work here for some reason
-        if (isUnmappedRemotesDialogOpen) {
+        if (isCheckingForUnmappedRemotes) {
             return;
         }
-        isUnmappedRemotesDialogOpen = true;
+        isCheckingForUnmappedRemotes = true;
         try {
             ConfigProvider.getInstance().aquireLock();
             logger.debug("Checking for unmapped remotes");
@@ -163,7 +162,7 @@ public class GitlabService implements Disposable {
                 }
             }
         } finally {
-            isUnmappedRemotesDialogOpen = false;
+            isCheckingForUnmappedRemotes = false;
         }
     }
 
@@ -210,7 +209,7 @@ public class GitlabService implements Disposable {
     }
 
     public static Optional<Mapping> createMappingWithProjectNameAndId(String remoteUrl, String host, String projectPath, String token) {
-        final Optional<Data> data = GraphQl.makeCall(host, token, projectPath, Collections.emptyList());
+        final Optional<Data> data = GraphQl.makeCall(host, token, projectPath, Collections.emptyList(), true);
         if (!data.isPresent()) {
             return Optional.empty();
         }
@@ -307,8 +306,8 @@ public class GitlabService implements Disposable {
 
             logger.debug("Calling URL ", url.replace(accessToken == null ? "<accessToken>" : accessToken, "<accessToken>"));
             json = HttpRequests.request(url)
-                    .connectTimeout(ConfigProvider.getInstance().getConnectTimeout() * 1000)
-                    .readTimeout(READ_TIMEOUT)
+                    .connectTimeout(ConfigProvider.getInstance().getConnectTimeoutSeconds() * 1000)
+                    .readTimeout(ConfigProvider.READ_TIMEOUT)
                     .readString();
         } catch (HttpRequests.HttpStatusException e) {
             //Unfortunately gitlab returns a 404 if the project was found but could not be accessed. We must interpret 404 like 401
@@ -359,8 +358,8 @@ public class GitlabService implements Disposable {
                         try {
                             return HttpRequests
                                     .request(testUrl.toString())
-                                    .connectTimeout(ConfigProvider.getInstance().getConnectTimeout() * 1000)
-                                    .readTimeout(READ_TIMEOUT)
+                                    .connectTimeout(ConfigProvider.getInstance().getConnectTimeoutSeconds() * 1000)
+                                    .readTimeout(ConfigProvider.READ_TIMEOUT)
                                     .readString();
                         } catch (Exception e) {
                             logger.info("Unable to retrieve host and project path from remote " + remote, e);
