@@ -307,7 +307,7 @@ public class GitlabService implements Disposable {
             logger.debug("Calling URL ", url.replace(accessToken == null ? "<accessToken>" : accessToken, "<accessToken>"));
             json = HttpRequests.request(url)
                     .connectTimeout(ConfigProvider.getInstance().getConnectTimeoutSeconds() * 1000)
-                    .readTimeout(ConfigProvider.READ_TIMEOUT)
+                    .readTimeout(ConfigProvider.getInstance().getConnectTimeoutSeconds() * 1000)
                     .readString();
         } catch (HttpRequests.HttpStatusException e) {
             //Unfortunately gitlab returns a 404 if the project was found but could not be accessed. We must interpret 404 like 401
@@ -359,7 +359,7 @@ public class GitlabService implements Disposable {
                             return HttpRequests
                                     .request(testUrl.toString())
                                     .connectTimeout(ConfigProvider.getInstance().getConnectTimeoutSeconds() * 1000)
-                                    .readTimeout(ConfigProvider.READ_TIMEOUT)
+                                    .readTimeout(ConfigProvider.getInstance().getConnectTimeoutSeconds() * 1000)
                                     .readString();
                         } catch (Exception e) {
                             logger.info("Unable to retrieve host and project path from remote " + remote, e);

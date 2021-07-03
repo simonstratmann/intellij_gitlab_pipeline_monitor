@@ -68,7 +68,7 @@ public class GraphQl {
 
             responseString = ApplicationManager.getApplication().executeOnPooledThread(() ->
                     HttpRequests.post(graphQlUrl, "application/json")
-                            .readTimeout(ConfigProvider.READ_TIMEOUT)
+                            .readTimeout(ConfigProvider.getInstance().getConnectTimeoutSeconds() * 1000)
                             .connectTimeout(ConfigProvider.getInstance().getConnectTimeoutSeconds() * 1000)
                             //Is handled in connection step
                             .throwStatusCodeException(false)
