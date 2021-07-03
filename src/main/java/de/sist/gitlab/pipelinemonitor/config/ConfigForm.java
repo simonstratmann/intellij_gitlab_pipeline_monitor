@@ -15,7 +15,6 @@ import javax.swing.*;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 @SuppressWarnings("unused")
@@ -80,8 +79,8 @@ public class ConfigForm {
 
     public boolean isModified() {
         return
-                !Objects.equals(projectConfig.getShowLightsForBranch(), lightsBranch.getText())
-                        || !Objects.equals(projectConfig.getMergeRequestTargetBranch(), mergeRequestTargetBranch.getText())
+                !ConfigProvider.isEqualIgnoringEmptyOrNull(projectConfig.getShowLightsForBranch(), lightsBranch.getText())
+                        || !ConfigProvider.isEqualIgnoringEmptyOrNull(projectConfig.getMergeRequestTargetBranch(), mergeRequestTargetBranch.getText())
                         || !new HashSet<>(branchesToWatchListModel.getItems()).equals(new HashSet<>(projectConfig.getBranchesToWatch()))
                         || !new HashSet<>(branchesToIgnoreListModel.getItems()).equals(new HashSet<>(projectConfig.getBranchesToIgnore()))
                         || enabledCheckbox.isSelected() != projectConfig.isEnabled()

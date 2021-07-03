@@ -1,14 +1,15 @@
 package de.sist.gitlab.pipelinemonitor.config;
 
+import com.intellij.openapi.Disposable;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.ui.ComponentValidator;
-import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.ui.ValidationInfo;
+import com.intellij.openapi.util.Disposer;
 import com.intellij.ui.AnActionButton;
 import com.intellij.ui.CollectionListModel;
 import com.intellij.ui.DocumentAdapter;
@@ -63,7 +64,8 @@ public class ConfigFormApp {
         buttonGroup.add(radioDisplayTypeIcons);
         buttonGroup.add(radioDisplayTypeLinks);
         buttonGroup.add(radioDisplayTypeIds);
-        new ComponentValidator(DialogWrapper.findInstanceFromFocus().getDisposable()).withValidator(() -> {
+        final Disposable disposable = Disposer.newDisposable();
+        new ComponentValidator(disposable).withValidator(() -> {
             try {
                 Integer.parseInt(connectTimeout.getText());
                 return null;
@@ -131,11 +133,11 @@ public class ConfigFormApp {
 
     public boolean isModified() {
         return !mappingsModel.getItems().stream().map(Mapping::toMapping).collect(Collectors.toList()).equals(config.getMappings())
-                || !Objects.equals(config.getMergeRequestTargetBranch(), mergeRequestTargetBranch.getText())
+                || !ConfigProvider.isEqualIgnoringEmptyOrNull(config.getMergeRequestTargetBranch(), mergeRequestTargetBranch.getText())
                 || !Objects.equals(config.isShowNotificationForWatchedBranches(), watchedBranchesNotificationCheckbox.isSelected())
                 || !Objects.equals(config.isShowConnectionErrorNotifications(), showConnectionErrorsCheckbox.isSelected())
                 || !Objects.equals(config.isShowForTags(), showForTagsCheckBox.isSelected())
-                || !Objects.equals(config.getUrlOpenerCommand(), urlOpenerTextbox.getText())
+                || !ConfigProvider.isEqualIgnoringEmptyOrNull(config.getUrlOpenerCommand(), urlOpenerTextbox.getText())
                 || !Objects.equals(new HashSet<>(ConfigProvider.getInstance().getIgnoredRemotes()), new HashSet<>(ignoredRemotesModel.getItems()))
                 || config.getConnectTimeout() != Integer.parseInt(connectTimeout.getText())
                 || radioDisplayTypeIcons.isSelected() && config.getDisplayType() != PipelineViewerConfigApp.DisplayType.ICON

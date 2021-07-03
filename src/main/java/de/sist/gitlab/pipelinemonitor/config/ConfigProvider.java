@@ -148,5 +148,9 @@ public class ConfigProvider {
         return token;
     }
 
+    public static boolean isEqualIgnoringEmptyOrNull(String a, String b) {
+        return Strings.nullToEmpty(a).equals(Strings.nullToEmpty(b));
+    }
+
 
 }
