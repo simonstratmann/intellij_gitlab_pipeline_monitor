@@ -34,6 +34,7 @@ public class PipelineViewerConfigApp implements PersistentStateComponent<Pipelin
     @com.intellij.util.xmlb.annotations.Transient
     private final Set<String> remotesAskAgainNextTime = new HashSet<>();
     private DisplayType displayType = DisplayType.ICON;
+    private int connectTimeout = 5;
 
     public List<Mapping> getMappings() {
         return mappings;
@@ -113,6 +114,14 @@ public class PipelineViewerConfigApp implements PersistentStateComponent<Pipelin
 
     public void setDisplayType(DisplayType displayType) {
         this.displayType = displayType;
+    }
+
+    public int getConnectTimeout() {
+        return connectTimeout;
+    }
+
+    public void setConnectTimeout(int connectTimeout) {
+        this.connectTimeout = connectTimeout;
     }
 
     @Override

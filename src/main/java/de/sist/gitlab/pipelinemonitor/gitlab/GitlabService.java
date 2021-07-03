@@ -54,6 +54,7 @@ public class GitlabService {
     private static final Pattern REMOTE_GIT_SSH_PATTERN = Pattern.compile("git@(?<host>.*):(?<projectPath>.*)(\\.git)?");
     private static final Pattern REMOTE_GIT_HTTP_PATTERN = Pattern.compile("(?<scheme>https?:\\/\\/)(?<url>.*)(\\.git)?");
     private static final List<String> INCOMPATIBLE_REMOTES = Arrays.asList("github.com", "bitbucket.com");
+    private static final int READ_TIMEOUT = 10_000;
 
     private final ConfigProvider config = ServiceManager.getService(ConfigProvider.class);
     private final Project project;
@@ -296,7 +297,10 @@ public class GitlabService {
         try {
 
             logger.debug("Calling URL ", url.replace(accessToken == null ? "<accessToken>" : accessToken, "<accessToken>"));
-            json = HttpRequests.request(url).readString();
+            json = HttpRequests.request(url)
+                    .connectTimeout(ConfigProvider.getInstance().getConnectTimeout() * 1000)
+                    .readTimeout(READ_TIMEOUT)
+                    .readString();
         } catch (HttpRequests.HttpStatusException e) {
             //Unfortunately gitlab returns a 404 if the project was found but could not be accessed. We must interpret 404 like 401
             if (e.getStatusCode() == 401 || e.getStatusCode() == 404) {
@@ -342,9 +346,17 @@ public class GitlabService {
                 final String response;
                 try {
                     logger.debug("Trying URL ", testUrl);
-                    response = ApplicationManager.getApplication().executeOnPooledThread(() -> HttpRequests.request(testUrl.toString()).readString()).get();
+                    response = ApplicationManager.getApplication().executeOnPooledThread(() -> HttpRequests
+                            .request(testUrl.toString())
+                            .connectTimeout(ConfigProvider.getInstance().getConnectTimeout() * 1000)
+                            .readTimeout(READ_TIMEOUT)
+                            .readString()).get();
                 } catch (Exception e) {
                     logger.error("Unable to retrieve host and project path from remote " + remote, e);
+                    return Optional.empty();
+                }
+                if (response == null) {
+                    logger.error("Unable to retrieve host and project path from remote ", remote, ". ");
                     return Optional.empty();
                 }
                 if (response.toLowerCase().contains("gitlab")) {

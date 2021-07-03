@@ -99,12 +99,14 @@ public class ConfigProvider {
         return PipelineViewerConfigProject.getInstance(project).getShowLightsForBranch();
     }
 
+    public int getConnectTimeout() {
+        return PipelineViewerConfigApp.getInstance().getConnectTimeout();
+    }
 
     public String getMergeRequestTargetBranch(Project project) {
         final String value = PipelineViewerConfigProject.getInstance(project).getMergeRequestTargetBranch();
         return !Strings.isNullOrEmpty(value) ? value : PipelineViewerConfigApp.getInstance().getMergeRequestTargetBranch();
     }
-
 
     public boolean isShowNotificationForWatchedBranches() {
         return PipelineViewerConfigApp.getInstance().isShowNotificationForWatchedBranches();

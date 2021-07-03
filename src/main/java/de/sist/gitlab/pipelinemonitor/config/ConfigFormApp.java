@@ -5,9 +5,13 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
+import com.intellij.openapi.ui.ComponentValidator;
+import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.openapi.ui.Messages;
+import com.intellij.openapi.ui.ValidationInfo;
 import com.intellij.ui.AnActionButton;
 import com.intellij.ui.CollectionListModel;
+import com.intellij.ui.DocumentAdapter;
 import com.intellij.ui.IdeBorderFactory;
 import com.intellij.ui.ToolbarDecorator;
 import com.intellij.ui.components.JBList;
@@ -16,6 +20,7 @@ import de.sist.gitlab.pipelinemonitor.lights.LightsControl;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
+import javax.swing.event.DocumentEvent;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -40,6 +45,7 @@ public class ConfigFormApp {
     private JRadioButton radioDisplayTypeIcons;
     private JRadioButton radioDisplayTypeIds;
     private JRadioButton radioDisplayTypeLinks;
+    private JTextField connectTimeout;
     private final CollectionListModel<String> mappingsModel = new CollectionListModel<>();
     private final CollectionListModel<String> ignoredRemotesModel = new CollectionListModel<>();
 
@@ -57,6 +63,20 @@ public class ConfigFormApp {
         buttonGroup.add(radioDisplayTypeIcons);
         buttonGroup.add(radioDisplayTypeLinks);
         buttonGroup.add(radioDisplayTypeIds);
+        new ComponentValidator(DialogWrapper.findInstanceFromFocus().getDisposable()).withValidator(() -> {
+            try {
+                Integer.parseInt(connectTimeout.getText());
+                return null;
+            } catch (NumberFormatException nex) {
+                return new ValidationInfo("Please enter a numeric value", connectTimeout);
+            }
+        }).installOn(connectTimeout);
+        connectTimeout.getDocument().addDocumentListener(new DocumentAdapter() {
+            @Override
+            protected void textChanged(@NotNull DocumentEvent e) {
+                ComponentValidator.getInstance(connectTimeout).ifPresent(ComponentValidator::revalidate);
+            }
+        });
     }
 
     public void apply() {
@@ -69,6 +89,7 @@ public class ConfigFormApp {
         config.getIgnoredRemotes().clear();
         config.getIgnoredRemotes().addAll(ignoredRemotesModel.getItems());
         config.setUrlOpenerCommand(urlOpenerTextbox.getText());
+        config.setConnectTimeout(Integer.parseInt(connectTimeout.getText()));
         if (radioDisplayTypeIds.isSelected()) {
             config.setDisplayType(PipelineViewerConfigApp.DisplayType.ID);
         } else if (radioDisplayTypeIcons.isSelected()) {
@@ -99,6 +120,7 @@ public class ConfigFormApp {
         radioDisplayTypeIcons.setSelected(config.getDisplayType() == PipelineViewerConfigApp.DisplayType.ICON);
         radioDisplayTypeIds.setSelected(config.getDisplayType() == PipelineViewerConfigApp.DisplayType.ID);
         radioDisplayTypeLinks.setSelected(config.getDisplayType() == PipelineViewerConfigApp.DisplayType.LINK);
+        connectTimeout.setText(String.valueOf(config.getConnectTimeout()));
 
         mappingsModel.replaceAll(config.getMappings().stream()
                 .map(Mapping::toSerializable)
@@ -115,6 +137,7 @@ public class ConfigFormApp {
                 || !Objects.equals(config.isShowForTags(), showForTagsCheckBox.isSelected())
                 || !Objects.equals(config.getUrlOpenerCommand(), urlOpenerTextbox.getText())
                 || !Objects.equals(new HashSet<>(ConfigProvider.getInstance().getIgnoredRemotes()), new HashSet<>(ignoredRemotesModel.getItems()))
+                || config.getConnectTimeout() != Integer.parseInt(connectTimeout.getText())
                 || radioDisplayTypeIcons.isSelected() && config.getDisplayType() != PipelineViewerConfigApp.DisplayType.ICON
                 || radioDisplayTypeIds.isSelected() && config.getDisplayType() != PipelineViewerConfigApp.DisplayType.ID
                 || radioDisplayTypeLinks.isSelected() && config.getDisplayType() != PipelineViewerConfigApp.DisplayType.LINK
