@@ -3,11 +3,13 @@ package de.sist.gitlab.pipelinemonitor.gitlab;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.base.Strings;
 import com.intellij.credentialStore.CredentialAttributesKt;
+import com.intellij.openapi.Disposable;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
+import com.intellij.openapi.util.Disposer;
 import com.intellij.util.io.HttpRequests;
 import de.sist.gitlab.pipelinemonitor.BackgroundUpdateService;
 import de.sist.gitlab.pipelinemonitor.HostAndProjectPath;
@@ -28,6 +30,7 @@ import git4idea.repo.GitRemote;
 import git4idea.repo.GitRepository;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.utils.URIBuilder;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -45,7 +48,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-public class GitlabService {
+public class GitlabService implements Disposable {
 
     public static final String ACCESS_TOKEN_CREDENTIALS_ATTRIBUTE = CredentialAttributesKt.generateServiceName("GitlabService", "accessToken");
 
@@ -53,6 +56,7 @@ public class GitlabService {
 
     private static final Pattern REMOTE_GIT_SSH_PATTERN = Pattern.compile("git@(?<host>.*):(?<projectPath>.*)(\\.git)?");
     private static final Pattern REMOTE_GIT_HTTP_PATTERN = Pattern.compile("(?<scheme>https?:\\/\\/)(?<url>.*)(\\.git)?");
+    private static final Pattern REMOTE_BEST_GUESS_PATTERN = Pattern.compile("(?<host>https?://[^/]*)/(?<projectPath>.*)");
     private static final List<String> INCOMPATIBLE_REMOTES = Arrays.asList("github.com", "bitbucket.com");
     private static final int READ_TIMEOUT = 10_000;
 
@@ -169,35 +173,40 @@ public class GitlabService {
         final Optional<HostAndProjectPath> hostProjectPathFromRemote = getHostProjectPathFromRemote(url);
 
         final UnmappedRemoteDialog.Response response;
-        if (hostProjectPathFromRemote.isPresent()) {
-            response = new UnmappedRemoteDialog(url, hostProjectPathFromRemote.get().getHost(), hostProjectPathFromRemote.get().getProjectPath()).showDialog();
-        } else {
-            response = new UnmappedRemoteDialog(url).showDialog();
+        final Disposable disposable = Disposer.newDisposable();
+        try {
+            if (hostProjectPathFromRemote.isPresent()) {
+                response = new UnmappedRemoteDialog(url, hostProjectPathFromRemote.get().getHost(), hostProjectPathFromRemote.get().getProjectPath(), disposable).showDialog();
+            } else {
+                response = new UnmappedRemoteDialog(url, disposable).showDialog();
+            }
+
+            if (response.getCancel() != UnmappedRemoteDialog.Cancel.ASK_AGAIN) {
+                PipelineViewerConfigApp.getInstance().getRemotesAskAgainNextTime().remove(url);
+            }
+            if (response.getCancel() == UnmappedRemoteDialog.Cancel.IGNORE_REMOTE) {
+                ConfigProvider.getInstance().getIgnoredRemotes().add(url);
+                logger.info("Added " + url + " to list of ignored remotes");
+                return;
+            } else if (response.getCancel() == UnmappedRemoteDialog.Cancel.IGNORE_PROJECT) {
+                PipelineViewerConfigProject.getInstance(project).setEnabled(false);
+                logger.info("Disabling pipeline viewer for project " + project.getName());
+                ApplicationManager.getApplication().getMessageBus().syncPublisher(ConfigChangedListener.CONFIG_CHANGED).configChanged();
+                return;
+            } else if (response.getCancel() == UnmappedRemoteDialog.Cancel.ASK_AGAIN) {
+                logger.debug("User chose to be asked again about url ", url);
+                PipelineViewerConfigApp.getInstance().getRemotesAskAgainNextTime().add(url);
+                return;
+            }
+
+            final Mapping mapping = response.getMapping();
+
+
+            logger.info("Adding mapping " + mapping);
+            ConfigProvider.getInstance().getMappings().add(mapping);
+        } finally {
+            Disposer.dispose(disposable);
         }
-
-        if (response.getCancel() != UnmappedRemoteDialog.Cancel.ASK_AGAIN) {
-            PipelineViewerConfigApp.getInstance().getRemotesAskAgainNextTime().remove(url);
-        }
-        if (response.getCancel() == UnmappedRemoteDialog.Cancel.IGNORE_REMOTE) {
-            ConfigProvider.getInstance().getIgnoredRemotes().add(url);
-            logger.info("Added " + url + " to list of ignored remotes");
-            return;
-        } else if (response.getCancel() == UnmappedRemoteDialog.Cancel.IGNORE_PROJECT) {
-            PipelineViewerConfigProject.getInstance(project).setEnabled(false);
-            logger.info("Disabling pipeline viewer for project " + project.getName());
-            ApplicationManager.getApplication().getMessageBus().syncPublisher(ConfigChangedListener.CONFIG_CHANGED).configChanged();
-            return;
-        } else if (response.getCancel() == UnmappedRemoteDialog.Cancel.ASK_AGAIN) {
-            logger.debug("User chose to be asked again about url ", url);
-            PipelineViewerConfigApp.getInstance().getRemotesAskAgainNextTime().add(url);
-            return;
-        }
-
-        final Mapping mapping = response.getMapping();
-
-
-        logger.info("Adding mapping " + mapping);
-        ConfigProvider.getInstance().getMappings().add(mapping);
     }
 
     public static Optional<Mapping> createMappingWithProjectNameAndId(String remoteUrl, String host, String projectPath, String token) {
@@ -346,18 +355,24 @@ public class GitlabService {
                 final String response;
                 try {
                     logger.debug("Trying URL ", testUrl);
-                    response = ApplicationManager.getApplication().executeOnPooledThread(() -> HttpRequests
-                            .request(testUrl.toString())
-                            .connectTimeout(ConfigProvider.getInstance().getConnectTimeout() * 1000)
-                            .readTimeout(READ_TIMEOUT)
-                            .readString()).get();
+                    response = ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                        try {
+                            return HttpRequests
+                                    .request(testUrl.toString())
+                                    .connectTimeout(ConfigProvider.getInstance().getConnectTimeout() * 1000)
+                                    .readTimeout(READ_TIMEOUT)
+                                    .readString();
+                        } catch (Exception e) {
+                            logger.info("Unable to retrieve host and project path from remote " + remote, e);
+                            return null;
+                        }
+                    }).get();
                 } catch (Exception e) {
-                    logger.error("Unable to retrieve host and project path from remote " + remote, e);
-                    return Optional.empty();
+                    logger.info("Unable to retrieve host and project path from remote " + remote, e);
+                    return tryBestGuessForRemote(remote);
                 }
                 if (response == null) {
-                    logger.error("Unable to retrieve host and project path from remote ", remote, ". ");
-                    return Optional.empty();
+                    return tryBestGuessForRemote(remote);
                 }
                 if (response.toLowerCase().contains("gitlab")) {
                     final HostAndProjectPath hostAndProjectPath = new HostAndProjectPath(StringUtils.removeEndIgnoreCase(testUrl.toString(), "/"), getCleanProjectPath(fullUrl.substring(testUrl.length())));
@@ -367,11 +382,30 @@ public class GitlabService {
             }
         }
         logger.info("Unable to parse remote " + remote);
+        return tryBestGuessForRemote(remote);
+    }
+
+    @NotNull
+    private static Optional<HostAndProjectPath> tryBestGuessForRemote(String remote) {
+        logger.debug("Trying to parse helpful data for dialog from ", remote);
+        final Matcher bestGuessMatcher = REMOTE_BEST_GUESS_PATTERN.matcher(remote);
+        if (bestGuessMatcher.matches()) {
+            final String host = bestGuessMatcher.group("host");
+            final String projectPath = StringUtils.removeEnd(bestGuessMatcher.group("projectPath"), ".git");
+            logger.debug("Best guess: Host: ", host, ". Project path: ", projectPath);
+            return Optional.of(new HostAndProjectPath(host, projectPath));
+        }
+        logger.info("Unable to find any meaningful data in remote " + remote);
         return Optional.empty();
     }
 
     private static String getCleanProjectPath(String projectPath) {
         return StringUtils.removeStart(StringUtils.removeEndIgnoreCase(projectPath, ".git"), "/");
+    }
+
+    @Override
+    public void dispose() {
+
     }
 
     private static class LoginException extends Exception {

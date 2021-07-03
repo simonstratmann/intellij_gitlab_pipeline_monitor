@@ -159,7 +159,9 @@
                 <preferred-size width="150" height="-1"/>
               </grid>
             </constraints>
-            <properties/>
+            <properties>
+              <toolTipText value="The host under which your gitlab's UI is reachable (e.g. https://gitlab.mydomain.com)."/>
+            </properties>
           </component>
           <component id="b1711" class="javax.swing.JLabel" binding="projectLabel">
             <constraints>
@@ -175,7 +177,9 @@
                 <preferred-size width="150" height="-1"/>
               </grid>
             </constraints>
-            <properties/>
+            <properties>
+              <toolTipText value="The project's path after the gitlab host of the project's web URL (e.g. myuser/myproject)."/>
+            </properties>
           </component>
         </children>
       </grid>
