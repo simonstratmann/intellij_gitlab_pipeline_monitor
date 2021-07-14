@@ -81,7 +81,7 @@ public class BackgroundUpdateService {
                 try {
                     getUpdateRunnable(triggeredByUser).run();
                     //For some stupid reason the progress bar is not removed if the process returns too quickly
-                    if (stopwatch.elapsed(TimeUnit.MILLISECONDS) < 500) {
+                    if (stopwatch.elapsed(TimeUnit.MILLISECONDS) < 1000) {
                         try {
                             Thread.sleep(500);
                         } catch (InterruptedException ignored) {
