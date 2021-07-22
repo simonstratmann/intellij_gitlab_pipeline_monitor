@@ -8,7 +8,6 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.Disposer;
 import com.intellij.util.io.HttpRequests;
 import de.sist.gitlab.pipelinemonitor.BackgroundUpdateService;
@@ -21,14 +20,17 @@ import de.sist.gitlab.pipelinemonitor.config.ConfigProvider;
 import de.sist.gitlab.pipelinemonitor.config.Mapping;
 import de.sist.gitlab.pipelinemonitor.config.PipelineViewerConfigApp;
 import de.sist.gitlab.pipelinemonitor.config.PipelineViewerConfigProject;
+import de.sist.gitlab.pipelinemonitor.config.TokenType;
 import de.sist.gitlab.pipelinemonitor.git.GitService;
 import de.sist.gitlab.pipelinemonitor.gitlab.mapping.Data;
 import de.sist.gitlab.pipelinemonitor.gitlab.mapping.Edge;
 import de.sist.gitlab.pipelinemonitor.gitlab.mapping.MergeRequest;
+import de.sist.gitlab.pipelinemonitor.ui.TokenDialog;
 import de.sist.gitlab.pipelinemonitor.ui.UnmappedRemoteDialog;
 import git4idea.repo.GitRemote;
 import git4idea.repo.GitRepository;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.http.client.utils.URIBuilder;
 import org.jetbrains.annotations.NotNull;
 
@@ -208,7 +210,7 @@ public class GitlabService implements Disposable {
         }
     }
 
-    public static Optional<Mapping> createMappingWithProjectNameAndId(String remoteUrl, String host, String projectPath, String token) {
+    public static Optional<Mapping> createMappingWithProjectNameAndId(String remoteUrl, String host, String projectPath, String token, TokenType tokenType) {
         final Optional<Data> data = GraphQl.makeCall(host, token, projectPath, Collections.emptyList(), true);
         if (!data.isPresent()) {
             return Optional.empty();
@@ -222,7 +224,7 @@ public class GitlabService implements Disposable {
         mapping.setProjectName(project.getName());
         mapping.setHost(host);
         mapping.setProjectPath(projectPath);
-        ConfigProvider.saveToken(mapping, token);
+        ConfigProvider.saveToken(mapping, token, tokenType);
         return Optional.of(mapping);
     }
 
@@ -262,15 +264,18 @@ public class GitlabService implements Disposable {
         } catch (LoginException e) {
             ApplicationManager.getApplication().invokeLater(() -> {
 
-                String oldToken = ConfigProvider.getToken(mapping);
-                oldToken = Strings.isNullOrEmpty(oldToken) ? "<empty>" : oldToken;
+                final Pair<String, TokenType> tokenAndType = ConfigProvider.getTokenAndType(mapping.getRemote(), mapping.getHost());
+                final String oldToken = Strings.isNullOrEmpty(tokenAndType.getLeft()) ? "<empty>" : tokenAndType.getLeft();
+                final TokenType tokenType = tokenAndType.getRight();
                 logger.info("Login exception while loading pipelines, showing input dialog for token for remote " + mapping.getRemote());
-                final String accessToken = Messages.showInputDialog(project, "Unable to log in to gitlab. Please enter the access token for access to " + mapping.getRemote() + ". Current token: " + oldToken, "Gitlab Pipeline Viewer", null, null, null);
-                ConfigProvider.saveToken(mapping, accessToken);
-                if (Strings.isNullOrEmpty(accessToken)) {
+                final TokenType preselectedTokenType = tokenAndType.getLeft() == null ? TokenType.PERSONAL : tokenType;
+                final Optional<Pair<String, TokenType>> response = new TokenDialog("Unable to log in to gitlab. Please enter the access token for access to " + mapping.getRemote(), oldToken, preselectedTokenType).showDialog();
+
+                if (!response.isPresent() || Strings.isNullOrEmpty(response.get().getLeft())) {
                     logger.info("No token entered, setting token to null for remote " + mapping.getRemote());
                     PipelineViewerConfigApp.getInstance().getRemotesAskAgainNextTime().add(mapping.getRemote());
                 } else {
+                    ConfigProvider.saveToken(mapping, response.get().getLeft(), response.get().getRight());
                     ServiceManager.getService(project, BackgroundUpdateService.class).update(project, false);
                     logger.info("New token entered for remote " + mapping.getRemote());
                 }

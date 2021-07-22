@@ -8,6 +8,7 @@ import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import de.sist.gitlab.pipelinemonitor.gitlab.GitlabService;
+import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -123,29 +124,49 @@ public class ConfigProvider {
         return ServiceManager.getService(ConfigProvider.class);
     }
 
-    public static void saveToken(Mapping mapping, String token) {
+    public static void saveToken(Mapping mapping, String token, TokenType tokenType) {
         saveLock.lock();
-        logger.debug("Saving token with length ", (token == null ? 0 : token.length()), " for remote ", mapping.getRemote());
-        final CredentialAttributes credentialAttributes = new CredentialAttributes(GitlabService.ACCESS_TOKEN_CREDENTIALS_ATTRIBUTE + mapping.getRemote(), mapping.getRemote());
-        PasswordSafe.getInstance().setPassword(credentialAttributes, token);
+        final String passwordKey = tokenType == TokenType.PERSONAL ? mapping.getHost() : mapping.getRemote();
+        logger.debug("Saving token with length ", (token == null ? 0 : token.length()), (tokenType == TokenType.PERSONAL ? " for host " : " for remote "), passwordKey);
+        final CredentialAttributes credentialAttributes = new CredentialAttributes(GitlabService.ACCESS_TOKEN_CREDENTIALS_ATTRIBUTE + passwordKey, passwordKey);
+        PasswordSafe.getInstance().setPassword(credentialAttributes, Strings.emptyToNull(token));
+        if (tokenType == TokenType.PERSONAL) {
+            //Delete token saved for this remote as it's now superseded by the personal access token
+            PasswordSafe.getInstance().setPassword(new CredentialAttributes(GitlabService.ACCESS_TOKEN_CREDENTIALS_ATTRIBUTE + mapping.getRemote(), mapping.getRemote()), null);
+        }
         saveLock.unlock();
     }
 
     public static String getToken(Mapping mapping) {
-        return getToken(mapping.getRemote());
+        return getToken(mapping.getRemote(), mapping.getHost());
     }
 
-    public static String getToken(String remote) {
+    public static String getToken(String remote, String host) {
+        return getTokenAndType(remote, host).getLeft();
+    }
+
+    public static Pair<String, TokenType> getTokenAndType(String remote, String host) {
         saveLock.lock();
-        final CredentialAttributes credentialAttributes = new CredentialAttributes(GitlabService.ACCESS_TOKEN_CREDENTIALS_ATTRIBUTE + remote, remote);
-        final String token = PasswordSafe.getInstance().getPassword(credentialAttributes);
-        if (Strings.isNullOrEmpty(token)) {
-            logger.debug("Found no token for remote ", remote);
+        TokenType tokenType;
+        final CredentialAttributes tokenCA = new CredentialAttributes(GitlabService.ACCESS_TOKEN_CREDENTIALS_ATTRIBUTE + remote, remote);
+        String token = PasswordSafe.getInstance().getPassword(tokenCA);
+
+        if (!Strings.isNullOrEmpty(token)) {
+            tokenType = TokenType.PROJECT;
         } else {
-            logger.debug("Found token with length ", token.length(), " for remote ", remote);
+            //Didn't find a remote on token level, try host
+            final CredentialAttributes hostCA = new CredentialAttributes(GitlabService.ACCESS_TOKEN_CREDENTIALS_ATTRIBUTE + host, host);
+            token = PasswordSafe.getInstance().getPassword(hostCA);
+            tokenType = TokenType.PERSONAL;
+        }
+        if (Strings.isNullOrEmpty(token)) {
+            logger.debug("Found no token for remote ", remote, (host == null ? ":" : " and host " + host));
+            tokenType = null;
+        } else {
+            logger.debug("Found token with length ", token.length(), " for remote ", remote, (host == null ? ":" : " and host " + host));
         }
         saveLock.unlock();
-        return token;
+        return Pair.of(token, tokenType);
     }
 
     public static boolean isEqualIgnoringEmptyOrNull(String a, String b) {

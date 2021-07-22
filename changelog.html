@@ -1,3 +1,12 @@
+<p>2.3.0</p>
+<ul>
+  <li>
+    Support for personal and project access tokens. Personal access tokens work for all projects you're part of, project access tokens only for specific projects. The former is the default. Existing tokens are still saved per remote
+    (i.e. considered project access tokens) but the next time you enter an access token you can select it to be a personal access token and it will be used for all your future projects on this host. You're still able to use project tokes
+    for specific projects, even on hosts for which you already stored a personal access token.
+  </li>
+</ul>
+
 <p>2.2.1</p>
 <ul>
   <li>There's a bug in IntelliJ that causes progress bars to not close properly when the underlying task is finished too quickly. I thought I had found a way to work around it but sometimes it still happens. The bug is resolved in IntelliJ

@@ -10,6 +10,7 @@ import com.intellij.openapi.ui.ValidationInfo;
 import com.intellij.ui.DocumentAdapter;
 import de.sist.gitlab.pipelinemonitor.config.ConfigProvider;
 import de.sist.gitlab.pipelinemonitor.config.Mapping;
+import de.sist.gitlab.pipelinemonitor.config.TokenType;
 import de.sist.gitlab.pipelinemonitor.gitlab.GitlabService;
 import org.jetbrains.annotations.NotNull;
 
@@ -37,6 +38,8 @@ public class UnmappedRemoteDialog extends JDialog {
     private JTextField hostInput;
     private JLabel projectLabel;
     private JTextField projectPathInput;
+    private JRadioButton radioButtonTokenHost;
+    private JRadioButton radioButtonTokenRemote;
 
     private Response response;
     private final Disposable disposable;
@@ -69,12 +72,15 @@ public class UnmappedRemoteDialog extends JDialog {
         setModal(true);
         getRootPane().setDefaultButton(buttonOK);
 
-        ButtonGroup buttonGroup = new ButtonGroup();
-        buttonGroup.add(radioAskAgain);
-        buttonGroup.add(radioNoAskRemote);
-        buttonGroup.add(radioNoAskProject);
-        buttonGroup.add(radioDoMonitor);
+        ButtonGroup buttonGroupMonitorDecision = new ButtonGroup();
+        buttonGroupMonitorDecision.add(radioAskAgain);
+        buttonGroupMonitorDecision.add(radioNoAskRemote);
+        buttonGroupMonitorDecision.add(radioNoAskProject);
+        buttonGroupMonitorDecision.add(radioDoMonitor);
         radioAskAgain.setSelected(true);
+        final ButtonGroup buttonGroupTokenLevel = new ButtonGroup();
+        buttonGroupTokenLevel.add(radioButtonTokenHost);
+        buttonGroupTokenLevel.add(radioButtonTokenRemote);
 
         buttonOK.addActionListener(e -> onOK(remoteUrl));
 
@@ -88,7 +94,7 @@ public class UnmappedRemoteDialog extends JDialog {
 
         // call onCancel() on ESCAPE
         contentPane.registerKeyboardAction(e -> onCancel(), KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT);
-        accessTokenInput.setText(ConfigProvider.getToken(remoteUrl));
+        accessTokenInput.setText(ConfigProvider.getToken(remoteUrl, hostInput.getText()));
         //noinspection DuplicatedCode
         installHostValidator();
         installProjectPathValidator();
@@ -155,7 +161,7 @@ public class UnmappedRemoteDialog extends JDialog {
         try {
             AtomicReference<Optional<Mapping>> mappingOptional = new AtomicReference<>();
             ProgressManager.getInstance().runProcessWithProgressSynchronously(() -> {
-                mappingOptional.set(GitlabService.createMappingWithProjectNameAndId(remoteUrl, hostInput.getText(), projectPathInput.getText(), accessTokenInput.getText()));
+                mappingOptional.set(GitlabService.createMappingWithProjectNameAndId(remoteUrl, hostInput.getText(), projectPathInput.getText(), accessTokenInput.getText(), radioButtonTokenHost.isSelected() ? TokenType.PERSONAL : TokenType.PROJECT));
             }, "Checking mapping...", false, null, rootPane);
             if (mappingOptional.get() == null || !mappingOptional.get().isPresent()) {
                 Messages.showWarningDialog("The connection to gitlab failed or the project could not be found.", "Gitlab Connection Error");

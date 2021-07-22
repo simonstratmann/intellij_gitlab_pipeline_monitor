@@ -18,6 +18,8 @@ import com.intellij.ui.ToolbarDecorator;
 import com.intellij.ui.components.JBList;
 import de.sist.gitlab.pipelinemonitor.BackgroundUpdateService;
 import de.sist.gitlab.pipelinemonitor.lights.LightsControl;
+import de.sist.gitlab.pipelinemonitor.ui.TokenDialog;
+import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
@@ -26,6 +28,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @SuppressWarnings("unused")
@@ -183,12 +186,14 @@ public class ConfigFormApp {
             public void actionPerformed(@NotNull AnActionEvent e) {
                 for (String mappingString : mappingList.getSelectedValuesList()) {
                     final Mapping mapping = Mapping.toMapping(mappingString);
-                    final String oldAccessToken = ConfigProvider.getToken(mapping);
-                    final String newAccessToken = Messages.showInputDialog("Please enter the access token for " + mapping.getHost(), "Gitlab Pipeline Viewer", null, oldAccessToken, null);
-                    if (newAccessToken != null) {
-                        //Cancel
-                        ConfigProvider.saveToken(mapping, newAccessToken);
-                    }
+                    final Pair<String, TokenType> tokenAndType = ConfigProvider.getTokenAndType(mapping.getRemote(), mapping.getHost());
+                    final String token = tokenAndType.getLeft();
+                    final TokenType tokenType = tokenAndType.getRight();
+                    final TokenType preselectedTokenType = token == null ? TokenType.PERSONAL : tokenType;
+                    final Optional<Pair<String, TokenType>> response = new TokenDialog("Please enter the access token for " + mapping.getRemote(), token, preselectedTokenType).showDialog();
+                    response.ifPresent(pair -> {
+                        ConfigProvider.saveToken(mapping, pair.getLeft(), pair.getRight());
+                    });
                 }
             }
 
