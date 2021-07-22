@@ -166,6 +166,7 @@ public class ConfigFormApp {
         decorator.setRemoveAction(anActionButton -> {
             for (String s : mappingList.getSelectedValuesList()) {
                 mappingsModel.remove(s);
+                PipelineViewerConfigApp.getInstance().getRemotesAskAgainNextTime().remove(Mapping.toMapping(s).getRemote());
             }
         });
         decorator.setEditAction(anActionButton -> {
@@ -211,6 +212,7 @@ public class ConfigFormApp {
         decorator.setRemoveAction(anActionButton -> {
             for (String s : ignoredRemotesList.getSelectedValuesList()) {
                 ignoredRemotesModel.remove(s);
+                PipelineViewerConfigApp.getInstance().getRemotesAskAgainNextTime().remove(s);
             }
         });
 

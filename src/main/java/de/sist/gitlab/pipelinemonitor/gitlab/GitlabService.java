@@ -3,7 +3,13 @@ package de.sist.gitlab.pipelinemonitor.gitlab;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.base.Strings;
 import com.intellij.credentialStore.CredentialAttributesKt;
+import com.intellij.notification.Notification;
+import com.intellij.notification.NotificationGroup;
+import com.intellij.notification.NotificationGroupManager;
+import com.intellij.notification.NotificationType;
 import com.intellij.openapi.Disposable;
+import com.intellij.openapi.actionSystem.AnAction;
+import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
@@ -65,6 +71,7 @@ public class GitlabService implements Disposable {
     private final Project project;
     private final Map<Mapping, List<PipelineJobStatus>> pipelineInfos = new HashMap<>();
     private boolean isCheckingForUnmappedRemotes;
+    private Set<String> remoteBalloonsWaitingForAnswer = new HashSet<>();
 
 
     public GitlabService(Project project) {
@@ -133,7 +140,6 @@ public class GitlabService implements Disposable {
         try {
             ConfigProvider.getInstance().aquireLock();
             logger.debug("Checking for unmapped remotes");
-            final Set<String> handledMappings = new HashSet<>();
             for (GitRepository gitRepository : gitRepositories) {
                 for (GitRemote remote : gitRepository.getRemotes()) {
                     for (String url : remote.getUrls()) {
@@ -154,12 +160,29 @@ public class GitlabService implements Disposable {
                             logger.debug("Remote URL ", url, " is incompatible");
                             continue;
                         }
-                        if (!handledMappings.contains(url)) {
-                            if (config.getMappingByRemoteUrl(url) == null) {
-                                handleUnknownRemote(url);
-                            }
-                            handledMappings.add(url);
+                        if (remoteBalloonsWaitingForAnswer.contains(url)) {
+                            logger.debug("Remote URL ", url, " is already waiting for an answer");
+                            continue;
                         }
+                        if (config.getMappingByRemoteUrl(url) == null) {
+                            logger.debug("Showing notification for untracked remote ", url);
+                            final NotificationGroup notificationGroup = NotificationGroupManager.getInstance().getNotificationGroup("de.sist.gitlab.pipelinemonitor.unmappedRemote");
+                            final Notification unmappedRemoteNotification = notificationGroup.createNotification("Untracked remote found", "The remote " + url + " is not tracked by Gitlab Pipeline Viewer.", NotificationType.INFORMATION, null);
+                            final AnAction action = new AnAction("Choose How to Handle Remote") {
+                                @Override
+                                public void actionPerformed(@NotNull AnActionEvent e) {
+
+                                    openDialogForUnmappedRemote(url);
+                                    unmappedRemoteNotification.expire();
+                                    remoteBalloonsWaitingForAnswer.remove(url);
+                                }
+                            };
+                            unmappedRemoteNotification.notify(project);
+                            remoteBalloonsWaitingForAnswer.add(url);
+
+                            unmappedRemoteNotification.addActions(Collections.singletonList(action));
+                        }
+                        PipelineViewerConfigApp.getInstance().getRemotesAskAgainNextTime().add(url);
                     }
                 }
             }
@@ -168,8 +191,8 @@ public class GitlabService implements Disposable {
         }
     }
 
-    private void handleUnknownRemote(String url) {
-        logger.info("Found unkown remote " + url);
+    private void openDialogForUnmappedRemote(String url) {
+        logger.info("Showing dialog for untracked " + url);
 
         final Optional<HostAndProjectPath> hostProjectPathFromRemote = getHostProjectPathFromRemote(url);
 
@@ -202,9 +225,9 @@ public class GitlabService implements Disposable {
 
             final Mapping mapping = response.getMapping();
 
-
             logger.info("Adding mapping " + mapping);
             ConfigProvider.getInstance().getMappings().add(mapping);
+            ServiceManager.getService(project, BackgroundUpdateService.class).update(project, false);
         } finally {
             Disposer.dispose(disposable);
         }

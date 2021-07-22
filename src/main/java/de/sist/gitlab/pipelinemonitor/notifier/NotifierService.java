@@ -80,6 +80,7 @@ public class NotifierService {
     public void showError(String error) {
         Notification notification = errorNotificationGroup.createNotification(error, NotificationType.ERROR);
         Notifications.Bus.notify(notification, project);
+
     }
 
     private void showStatusNotifications(Map<Mapping, List<PipelineJobStatus>> mappingToPipelines) {
@@ -254,6 +255,7 @@ public class NotifierService {
             displayType = defaultDisplayType;
             shouldLog = true;
         }
+
         NotificationGroup registeredGroup = NotificationGroup.findRegisteredGroup(displayId);
         if (registeredGroup != null) {
             return registeredGroup;

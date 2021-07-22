@@ -20,7 +20,7 @@
     <depends>com.intellij.modules.vcs</depends>
     <depends>Git4Idea</depends>
 
-    <idea-version since-build="201.6668.113"/>
+    <idea-version since-build="203.4203.26"/>
 
     <extensions defaultExtensionNs="com.intellij">
         <toolWindow id="Gitlab pipeline viewer" secondary="true" icon="/toolWindow/gitlab-icon.png" anchor="bottom" factoryClass="de.sist.gitlab.pipelinemonitor.ui.GitlabToolWindowFactory"/>
@@ -42,6 +42,7 @@
         <projectService serviceImplementation="de.sist.gitlab.pipelinemonitor.BackgroundUpdateService"/>
         <postStartupActivity implementation="de.sist.gitlab.pipelinemonitor.StartupInitialization"/>
         <postStartupActivity implementation="de.sist.gitlab.pipelinemonitor.update.AfterUpdateNotifier"/>
+        <notificationGroup displayType="TOOL_WINDOW" id="de.sist.gitlab.pipelinemonitor.unmappedRemote"/>
     </extensions>
 
     <actions>
