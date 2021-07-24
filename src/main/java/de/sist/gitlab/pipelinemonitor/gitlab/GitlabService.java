@@ -241,7 +241,7 @@ public class GitlabService implements Disposable {
 
         final Mapping mapping = new Mapping();
         final de.sist.gitlab.pipelinemonitor.gitlab.mapping.Project project = data.get().getProject();
-        logger.info("Determined project name " + project.getName() + " and id " + project.getId() + " for remote " + remoteUrl);
+        logger.info("Determined project name " + project.getName() + " and id " + project.getId() + " for remote " + remoteUrl + " because GraphQl call returned a response");
         mapping.setRemote(remoteUrl);
         mapping.setGitlabProjectId(project.getId());
         mapping.setProjectName(project.getName());
@@ -357,6 +357,18 @@ public class GitlabService implements Disposable {
     }
 
     protected static Optional<HostAndProjectPath> getHostProjectPathFromRemote(String remote) {
+        final Optional<Mapping> similarMapping = ConfigProvider.getInstance().getMappings().stream()
+                .filter(x -> remote.startsWith(x.getHost()))
+                .findFirst();
+        if (similarMapping.isPresent()) {
+            logger.debug("Found existing mapping for host ", similarMapping.get().getHost(), " and remote ", similarMapping.get().getRemote());
+            final String host = similarMapping.get().getHost();
+            final String projectPath = getCleanProjectPath(remote.substring(similarMapping.get().getHost().length()));
+            logger.debug("Found existing mapping for host ", similarMapping.get().getHost(), " and remote ", similarMapping.get().getRemote());
+            final HostAndProjectPath hostAndProjectPath = new HostAndProjectPath(host, projectPath);
+            logger.info("Determined host " + hostAndProjectPath.getHost() + " and project path " + hostAndProjectPath.getProjectPath() + " for http remote " + remote + " from similar mapping");
+            return Optional.of(hostAndProjectPath);
+        }
         final Matcher sshMatcher = REMOTE_GIT_SSH_PATTERN.matcher(remote);
         if (sshMatcher.matches()) {
             final HostAndProjectPath hostAndProjectPath = new HostAndProjectPath("https://" + sshMatcher.group("host"), StringUtils.removeEnd(sshMatcher.group("projectPath"), ".git"));
@@ -402,10 +414,11 @@ public class GitlabService implements Disposable {
                     return tryBestGuessForRemote(remote);
                 }
                 if (response.toLowerCase().contains("gitlab")) {
-                    final HostAndProjectPath hostAndProjectPath = new HostAndProjectPath(StringUtils.removeEndIgnoreCase(testUrl.toString(), "/"), getCleanProjectPath(fullUrl.substring(testUrl.length())));
-                    logger.info("Determined host " + hostAndProjectPath.getHost() + " and project path " + hostAndProjectPath.getProjectPath() + " from http remote " + remote);
+                    final HostAndProjectPath hostAndProjectPath = new HostAndProjectPath(StringUtils.removeEndIgnoreCase(testUrl.toString(), "/"), getCleanProjectPath(remote.substring(testUrl.length())));
+                    logger.info("Determined host " + hostAndProjectPath.getHost() + " and project path " + hostAndProjectPath.getProjectPath() + " from http remote " + remote + " because that host returned a response containing 'gitlab'");
                     return Optional.of(hostAndProjectPath);
                 }
+                logger.debug("Response from ", testUrl, " does not contain \"gitlab\"");
             }
         }
         logger.info("Unable to parse remote " + remote);

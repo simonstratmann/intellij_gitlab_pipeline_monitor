@@ -181,7 +181,7 @@
               <toolTipText value="The project's path after the gitlab host of the project's web URL (e.g. myuser/myproject)."/>
             </properties>
           </component>
-          <component id="38ca1" class="javax.swing.JRadioButton" binding="radioButtonTokenHost">
+          <component id="38ca1" class="javax.swing.JRadioButton" binding="radioButtonTokenPersonal">
             <constraints>
               <grid row="2" column="2" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
             </constraints>
@@ -191,7 +191,7 @@
               <toolTipText value="This token works for all your projects on this gitlab instance and will be saved for the host."/>
             </properties>
           </component>
-          <component id="552af" class="javax.swing.JRadioButton" binding="radioButtonTokenRemote">
+          <component id="552af" class="javax.swing.JRadioButton" binding="radioButtonTokenProject">
             <constraints>
               <grid row="2" column="3" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
             </constraints>

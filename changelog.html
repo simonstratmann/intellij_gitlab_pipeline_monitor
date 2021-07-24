@@ -5,6 +5,16 @@
     (i.e. considered project access tokens) but the next time you enter an access token you can select it to be a personal access token and it will be used for all your future projects on this host. You're still able to use project tokes
     for specific projects, even on hosts for which you already stored a personal access token.
   </li>
+  <li>
+    Instead of a modal dialog now a sticky balloon popup is displayed. Only when you click the contained action will the dialog show up. This should make opening multiple projects with untracked remotes easier.
+  </li>
+  <li>
+    Fixed a bug where the project path determined from an HTTPS remote got truncated.
+  </li>
+  <li>
+    Whenever an untracked HTTPS remote is found the list of already existing mappings is searched to see if one exists which matches the remote. That should make parsing of remotes more robust as for every host you only (may) have to fix
+    the parsed values.
+  </li>
 </ul>
 
 <p>2.2.1</p>

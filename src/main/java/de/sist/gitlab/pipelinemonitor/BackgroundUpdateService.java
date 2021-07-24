@@ -104,7 +104,7 @@ public class BackgroundUpdateService {
             }
             isRunning = true;
             try {
-                logger.debug("Starting IntelliJ background task");
+                logger.debug("Starting IntelliJ background task", (triggeredByUser ? " triggered by user" : ""));
                 final GitlabService gitlabService = ServiceManager.getService(project, GitlabService.class);
                 ServiceManager.getService(project, GitlabService.class).checkForUnmappedRemotes(ServiceManager.getService(project, GitService.class).getAllGitRepositories(), triggeredByUser);
                 gitlabService.updatePipelineInfos();

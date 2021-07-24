@@ -12,6 +12,7 @@ import de.sist.gitlab.pipelinemonitor.config.ConfigProvider;
 import de.sist.gitlab.pipelinemonitor.config.Mapping;
 import de.sist.gitlab.pipelinemonitor.config.TokenType;
 import de.sist.gitlab.pipelinemonitor.gitlab.GitlabService;
+import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
@@ -38,8 +39,8 @@ public class UnmappedRemoteDialog extends JDialog {
     private JTextField hostInput;
     private JLabel projectLabel;
     private JTextField projectPathInput;
-    private JRadioButton radioButtonTokenHost;
-    private JRadioButton radioButtonTokenRemote;
+    private JRadioButton radioButtonTokenPersonal;
+    private JRadioButton radioButtonTokenProject;
 
     private Response response;
     private final Disposable disposable;
@@ -79,8 +80,8 @@ public class UnmappedRemoteDialog extends JDialog {
         buttonGroupMonitorDecision.add(radioDoMonitor);
         radioAskAgain.setSelected(true);
         final ButtonGroup buttonGroupTokenLevel = new ButtonGroup();
-        buttonGroupTokenLevel.add(radioButtonTokenHost);
-        buttonGroupTokenLevel.add(radioButtonTokenRemote);
+        buttonGroupTokenLevel.add(radioButtonTokenPersonal);
+        buttonGroupTokenLevel.add(radioButtonTokenProject);
 
         buttonOK.addActionListener(e -> onOK(remoteUrl));
 
@@ -98,6 +99,24 @@ public class UnmappedRemoteDialog extends JDialog {
         //noinspection DuplicatedCode
         installHostValidator();
         installProjectPathValidator();
+        hostInput.getDocument().addDocumentListener(new DocumentAdapter() {
+            @Override
+            protected void textChanged(@NotNull DocumentEvent e) {
+                //Try to find token for new host input but only if the token was not already entered
+                if (!Strings.isNullOrEmpty(hostInput.getText()) && Strings.isNullOrEmpty(accessTokenInput.getText())) {
+                    final Pair<String, TokenType> tokenAndType = ConfigProvider.getTokenAndType(remoteUrl, hostInput.getText());
+                    if (!Strings.isNullOrEmpty(tokenAndType.getLeft())) {
+                        logger.debug("Found existing token", tokenAndType.getLeft(), " of type ", tokenAndType.getRight(), " for changed host ", hostInput.getText());
+                        accessTokenInput.setText(tokenAndType.getLeft());
+                        if (tokenAndType.getRight() == TokenType.PROJECT) {
+                            radioButtonTokenProject.setSelected(true);
+                        } else {
+                            radioButtonTokenPersonal.setSelected(true);
+                        }
+                    }
+                }
+            }
+        });
     }
 
     private void installHostValidator() {
@@ -161,7 +180,7 @@ public class UnmappedRemoteDialog extends JDialog {
         try {
             AtomicReference<Optional<Mapping>> mappingOptional = new AtomicReference<>();
             ProgressManager.getInstance().runProcessWithProgressSynchronously(() -> {
-                mappingOptional.set(GitlabService.createMappingWithProjectNameAndId(remoteUrl, hostInput.getText(), projectPathInput.getText(), accessTokenInput.getText(), radioButtonTokenHost.isSelected() ? TokenType.PERSONAL : TokenType.PROJECT));
+                mappingOptional.set(GitlabService.createMappingWithProjectNameAndId(remoteUrl, hostInput.getText(), projectPathInput.getText(), accessTokenInput.getText(), radioButtonTokenPersonal.isSelected() ? TokenType.PERSONAL : TokenType.PROJECT));
             }, "Checking mapping...", false, null, rootPane);
             if (mappingOptional.get() == null || !mappingOptional.get().isPresent()) {
                 Messages.showWarningDialog("The connection to gitlab failed or the project could not be found.", "Gitlab Connection Error");
