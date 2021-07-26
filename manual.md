@@ -9,10 +9,11 @@ Example screenshot:
 By default all pipelines for tags and locally checked out branches are monitored. For each branch the last finished pipeline and a currently running pipeline (if one exists) will be shown. If an open merge request exists a link to it will
 be shown, otherwise a link to open a new one.
 
-When the plugin detects a git remote that is unknown it try to determine if it's hosted on gitlab and find the correct host and project path. It will ask you if you want to monitor pipelines for this (assuming it's associated with a gitlab
-project):
+When the plugin detects a git remote that is unknown it try to determine if it's hosted on gitlab and find the correct host and project path. It will display a balloon notification:<br>
+<img src="https://i.imgur.com/AbsuJQR.png" width="250" alt="notification"/>
 
-<img src="https://i.imgur.com/wWiZNzU.png" width="500" alt="Screenshot untracked remote"/>
+When you have time click the first action in it and a dialog will appear, asking you if you want to monitor pipelines for this remote (assuming it's associated with a gitlab project):<br>
+<img src="https://i.imgur.com/qQo1fvf.png" width="500" alt="Screenshot untracked remote"/>
 
 # Troubleshooting
 

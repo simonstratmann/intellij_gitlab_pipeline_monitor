@@ -3,25 +3,20 @@ package de.sist.gitlab.pipelinemonitor.gitlab;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.base.Strings;
 import com.intellij.credentialStore.CredentialAttributesKt;
-import com.intellij.notification.Notification;
 import com.intellij.notification.NotificationGroup;
 import com.intellij.notification.NotificationGroupManager;
-import com.intellij.notification.NotificationType;
+import com.intellij.notification.NotificationsManager;
 import com.intellij.openapi.Disposable;
-import com.intellij.openapi.actionSystem.AnAction;
-import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.util.Disposer;
 import com.intellij.util.io.HttpRequests;
 import de.sist.gitlab.pipelinemonitor.BackgroundUpdateService;
 import de.sist.gitlab.pipelinemonitor.HostAndProjectPath;
 import de.sist.gitlab.pipelinemonitor.Jackson;
 import de.sist.gitlab.pipelinemonitor.PipelineJobStatus;
 import de.sist.gitlab.pipelinemonitor.PipelineTo;
-import de.sist.gitlab.pipelinemonitor.config.ConfigChangedListener;
 import de.sist.gitlab.pipelinemonitor.config.ConfigProvider;
 import de.sist.gitlab.pipelinemonitor.config.Mapping;
 import de.sist.gitlab.pipelinemonitor.config.PipelineViewerConfigApp;
@@ -32,7 +27,7 @@ import de.sist.gitlab.pipelinemonitor.gitlab.mapping.Data;
 import de.sist.gitlab.pipelinemonitor.gitlab.mapping.Edge;
 import de.sist.gitlab.pipelinemonitor.gitlab.mapping.MergeRequest;
 import de.sist.gitlab.pipelinemonitor.ui.TokenDialog;
-import de.sist.gitlab.pipelinemonitor.ui.UnmappedRemoteDialog;
+import de.sist.gitlab.pipelinemonitor.ui.UntrackedRemoteNotification;
 import git4idea.repo.GitRemote;
 import git4idea.repo.GitRepository;
 import org.apache.commons.lang3.StringUtils;
@@ -47,11 +42,9 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -71,7 +64,6 @@ public class GitlabService implements Disposable {
     private final Project project;
     private final Map<Mapping, List<PipelineJobStatus>> pipelineInfos = new HashMap<>();
     private boolean isCheckingForUnmappedRemotes;
-    private Set<String> remoteBalloonsWaitingForAnswer = new HashSet<>();
 
 
     public GitlabService(Project project) {
@@ -160,27 +152,15 @@ public class GitlabService implements Disposable {
                             logger.debug("Remote URL ", url, " is incompatible");
                             continue;
                         }
-                        if (remoteBalloonsWaitingForAnswer.contains(url)) {
+                        final UntrackedRemoteNotification[] openNotifications = NotificationsManager.getNotificationsManager().getNotificationsOfType(UntrackedRemoteNotification.class, project);
+                        if (Arrays.stream(openNotifications).anyMatch(x -> x.getUrl().equals(url))) {
                             logger.debug("Remote URL ", url, " is already waiting for an answer");
                             continue;
                         }
                         if (config.getMappingByRemoteUrl(url) == null) {
                             logger.debug("Showing notification for untracked remote ", url);
                             final NotificationGroup notificationGroup = NotificationGroupManager.getInstance().getNotificationGroup("de.sist.gitlab.pipelinemonitor.unmappedRemote");
-                            final Notification unmappedRemoteNotification = notificationGroup.createNotification("Untracked remote found", "The remote " + url + " is not tracked by Gitlab Pipeline Viewer.", NotificationType.INFORMATION, null);
-                            final AnAction action = new AnAction("Choose How to Handle Remote") {
-                                @Override
-                                public void actionPerformed(@NotNull AnActionEvent e) {
-
-                                    openDialogForUnmappedRemote(url);
-                                    unmappedRemoteNotification.expire();
-                                    remoteBalloonsWaitingForAnswer.remove(url);
-                                }
-                            };
-                            unmappedRemoteNotification.notify(project);
-                            remoteBalloonsWaitingForAnswer.add(url);
-
-                            unmappedRemoteNotification.addActions(Collections.singletonList(action));
+                            new UntrackedRemoteNotification(project, notificationGroup, url).notify(project);
                         }
                         PipelineViewerConfigApp.getInstance().getRemotesAskAgainNextTime().add(url);
                     }
@@ -191,47 +171,7 @@ public class GitlabService implements Disposable {
         }
     }
 
-    private void openDialogForUnmappedRemote(String url) {
-        logger.info("Showing dialog for untracked " + url);
 
-        final Optional<HostAndProjectPath> hostProjectPathFromRemote = getHostProjectPathFromRemote(url);
-
-        final UnmappedRemoteDialog.Response response;
-        final Disposable disposable = Disposer.newDisposable();
-        try {
-            if (hostProjectPathFromRemote.isPresent()) {
-                response = new UnmappedRemoteDialog(url, hostProjectPathFromRemote.get().getHost(), hostProjectPathFromRemote.get().getProjectPath(), disposable).showDialog();
-            } else {
-                response = new UnmappedRemoteDialog(url, disposable).showDialog();
-            }
-
-            if (response.getCancel() != UnmappedRemoteDialog.Cancel.ASK_AGAIN) {
-                PipelineViewerConfigApp.getInstance().getRemotesAskAgainNextTime().remove(url);
-            }
-            if (response.getCancel() == UnmappedRemoteDialog.Cancel.IGNORE_REMOTE) {
-                ConfigProvider.getInstance().getIgnoredRemotes().add(url);
-                logger.info("Added " + url + " to list of ignored remotes");
-                return;
-            } else if (response.getCancel() == UnmappedRemoteDialog.Cancel.IGNORE_PROJECT) {
-                PipelineViewerConfigProject.getInstance(project).setEnabled(false);
-                logger.info("Disabling pipeline viewer for project " + project.getName());
-                ApplicationManager.getApplication().getMessageBus().syncPublisher(ConfigChangedListener.CONFIG_CHANGED).configChanged();
-                return;
-            } else if (response.getCancel() == UnmappedRemoteDialog.Cancel.ASK_AGAIN) {
-                logger.debug("User chose to be asked again about url ", url);
-                PipelineViewerConfigApp.getInstance().getRemotesAskAgainNextTime().add(url);
-                return;
-            }
-
-            final Mapping mapping = response.getMapping();
-
-            logger.info("Adding mapping " + mapping);
-            ConfigProvider.getInstance().getMappings().add(mapping);
-            ServiceManager.getService(project, BackgroundUpdateService.class).update(project, false);
-        } finally {
-            Disposer.dispose(disposable);
-        }
-    }
 
     public static Optional<Mapping> createMappingWithProjectNameAndId(String remoteUrl, String host, String projectPath, String token, TokenType tokenType) {
         final Optional<Data> data = GraphQl.makeCall(host, token, projectPath, Collections.emptyList(), true);
@@ -356,7 +296,7 @@ public class GitlabService implements Disposable {
         return mapping.getHost() + "/" + mapping.getProjectPath();
     }
 
-    protected static Optional<HostAndProjectPath> getHostProjectPathFromRemote(String remote) {
+    public static Optional<HostAndProjectPath> getHostProjectPathFromRemote(String remote) {
         final Optional<Mapping> similarMapping = ConfigProvider.getInstance().getMappings().stream()
                 .filter(x -> remote.startsWith(x.getHost()))
                 .findFirst();
