@@ -43,6 +43,7 @@
         <postStartupActivity implementation="de.sist.gitlab.pipelinemonitor.StartupInitialization"/>
         <postStartupActivity implementation="de.sist.gitlab.pipelinemonitor.update.AfterUpdateNotifier"/>
         <notificationGroup displayType="TOOL_WINDOW" id="de.sist.gitlab.pipelinemonitor.unmappedRemote"/>
+        <notificationGroup displayType="STICKY_BALLOON" id="de.sist.gitlab.pipelinemonitor.disabledCi"/>
     </extensions>
 
     <actions>

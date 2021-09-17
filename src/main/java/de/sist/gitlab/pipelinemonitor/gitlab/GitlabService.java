@@ -5,6 +5,7 @@ import com.google.common.base.Strings;
 import com.intellij.credentialStore.CredentialAttributesKt;
 import com.intellij.notification.NotificationGroup;
 import com.intellij.notification.NotificationGroupManager;
+import com.intellij.notification.NotificationType;
 import com.intellij.notification.NotificationsManager;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.application.ApplicationManager;
@@ -158,9 +159,28 @@ public class GitlabService implements Disposable {
                             continue;
                         }
                         if (config.getMappingByRemoteUrl(url) == null) {
+                            final Optional<HostAndProjectPath> hostProjectPathFromRemote = GitlabService.getHostProjectPathFromRemote(url);
+
+                            if (hostProjectPathFromRemote.isPresent()) {
+                                final String host = hostProjectPathFromRemote.get().getHost();
+                                final String projectPath = hostProjectPathFromRemote.get().getProjectPath();
+                                final Optional<Data> data = GraphQl.makeCall(host, ConfigProvider.getToken(url, host), projectPath, Collections.emptyList(), true);
+                                if (data.isPresent() && !data.get().getProject().isJobsEnabled()) {
+                                    final NotificationGroup notificationGroup = NotificationGroupManager.getInstance().getNotificationGroup("de.sist.gitlab.pipelinemonitor.disabledCi");
+                                    notificationGroup.createNotification("Gitlab Pipeline Viewer - CI disabled", "Gitlab CI is disabled for " + url + ". Ignoring it.", NotificationType.INFORMATION, null).notify(project);
+                                    ConfigProvider.getInstance().getIgnoredRemotes().add(url);
+                                    logger.info("Added " + url + " to list of ignored remotes because CI is disabled for its gitlab project");
+                                    return;
+                                } else {
+                                    logger.info("CI is enabled for " + url);
+                                }
+                            } else {
+                                logger.debug("Unable to determine if CI is enabled for " + url);
+                            }
+
                             logger.debug("Showing notification for untracked remote ", url);
                             final NotificationGroup notificationGroup = NotificationGroupManager.getInstance().getNotificationGroup("de.sist.gitlab.pipelinemonitor.unmappedRemote");
-                            new UntrackedRemoteNotification(project, notificationGroup, url).notify(project);
+                            new UntrackedRemoteNotification(project, notificationGroup, url, hostProjectPathFromRemote.orElse(null)).notify(project);
                         }
                         PipelineViewerConfigApp.getInstance().getRemotesAskAgainNextTime().add(url);
                     }

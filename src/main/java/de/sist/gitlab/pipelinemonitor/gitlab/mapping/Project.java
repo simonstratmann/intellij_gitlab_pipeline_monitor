@@ -8,6 +8,7 @@ public class Project {
 
     private String name;
     private String id;
+    private boolean jobsEnabled;
     private MergeRequests mergeRequests;
 
     public String getName() {
@@ -24,6 +25,14 @@ public class Project {
 
     public void setId(String id) {
         this.id = id;
+    }
+
+    public boolean isJobsEnabled() {
+        return jobsEnabled;
+    }
+
+    public void setJobsEnabled(boolean jobsEnabled) {
+        this.jobsEnabled = jobsEnabled;
     }
 
     public MergeRequests getMergeRequests() {

@@ -21,8 +21,7 @@ import de.sist.gitlab.pipelinemonitor.config.PipelineViewerConfigApp;
 import de.sist.gitlab.pipelinemonitor.config.PipelineViewerConfigProject;
 import de.sist.gitlab.pipelinemonitor.gitlab.GitlabService;
 import org.jetbrains.annotations.NotNull;
-
-import java.util.Optional;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * @author PPI AG
@@ -33,12 +32,13 @@ public class UntrackedRemoteNotification extends Notification {
 
     private final String url;
     private final Project project;
+    private final HostAndProjectPath hostProjectPathFromRemote;
 
-
-    public UntrackedRemoteNotification(Project project, NotificationGroup notificationGroup, String url) {
+    public UntrackedRemoteNotification(Project project, NotificationGroup notificationGroup, String url, @Nullable HostAndProjectPath hostProjectPathFromRemote) {
         super(notificationGroup.getDisplayId(), "Untracked remote found", "The remote " + url + " is not tracked by Gitlab Pipeline Viewer.", NotificationType.INFORMATION);
         this.url = url;
         this.project = project;
+        this.hostProjectPathFromRemote = hostProjectPathFromRemote;
 
         final AnAction openDialog = new AnAction("Choose How to Handle Remote") {
             @Override
@@ -62,13 +62,12 @@ public class UntrackedRemoteNotification extends Notification {
     private void openDialogForUnmappedRemote(String url) {
         logger.info("Showing dialog for untracked " + url);
 
-        final Optional<HostAndProjectPath> hostProjectPathFromRemote = GitlabService.getHostProjectPathFromRemote(url);
 
         final UnmappedRemoteDialog.Response response;
         final Disposable disposable = Disposer.newDisposable();
         try {
-            if (hostProjectPathFromRemote.isPresent()) {
-                response = new UnmappedRemoteDialog(url, hostProjectPathFromRemote.get().getHost(), hostProjectPathFromRemote.get().getProjectPath(), disposable).showDialog();
+            if (hostProjectPathFromRemote != null) {
+                response = new UnmappedRemoteDialog(url, hostProjectPathFromRemote.getHost(), hostProjectPathFromRemote.getProjectPath(), disposable).showDialog();
             } else {
                 response = new UnmappedRemoteDialog(url, disposable).showDialog();
             }
