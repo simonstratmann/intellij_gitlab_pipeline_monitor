@@ -388,6 +388,9 @@ public class GitlabToolWindow {
     }
 
     private void toggleShowForAllCheckboxVisibility(Project project) {
+        if (project.isDisposed()) {
+            return;
+        }
         final boolean doShow = ServiceManager.getService(project, GitService.class).getNonIgnoredRepositories().size() > 1;
         if (doShow) {
             if (Arrays.asList(actionPanel.getComponents()).contains(showForAllCheckbox)) {

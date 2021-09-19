@@ -165,17 +165,21 @@ public class GitlabService implements Disposable {
                                 final String host = hostProjectPathFromRemote.get().getHost();
                                 final String projectPath = hostProjectPathFromRemote.get().getProjectPath();
                                 final Optional<Data> data = GraphQl.makeCall(host, ConfigProvider.getToken(url, host), projectPath, Collections.emptyList(), true);
-                                if (data.isPresent() && !data.get().getProject().isJobsEnabled()) {
-                                    final NotificationGroup notificationGroup = NotificationGroupManager.getInstance().getNotificationGroup("de.sist.gitlab.pipelinemonitor.disabledCi");
-                                    notificationGroup.createNotification("Gitlab Pipeline Viewer - CI disabled", "Gitlab CI is disabled for " + url + ". Ignoring it.", NotificationType.INFORMATION, null).notify(project);
-                                    ConfigProvider.getInstance().getIgnoredRemotes().add(url);
-                                    logger.info("Added " + url + " to list of ignored remotes because CI is disabled for its gitlab project");
-                                    return;
+                                if (data.isPresent()) {
+                                    if (!data.get().getProject().isJobsEnabled()) {
+                                        final NotificationGroup notificationGroup = NotificationGroupManager.getInstance().getNotificationGroup("de.sist.gitlab.pipelinemonitor.disabledCi");
+                                        notificationGroup.createNotification("Gitlab Pipeline Viewer - CI disabled", "Gitlab CI is disabled for " + url + ". Ignoring it.", NotificationType.INFORMATION, null).notify(project);
+                                        ConfigProvider.getInstance().getIgnoredRemotes().add(url);
+                                        logger.info("Added " + url + " to list of ignored remotes because CI is disabled for its gitlab project");
+                                        return;
+                                    } else {
+                                        logger.debug("Unable to determine if CI is enabled for " + url + " because the graphql query failed");
+                                    }
                                 } else {
                                     logger.info("CI is enabled for " + url);
                                 }
                             } else {
-                                logger.debug("Unable to determine if CI is enabled for " + url);
+                                logger.debug("Unable to determine if CI is enabled for " + url + " because host and project path could not be parsed");
                             }
 
                             logger.debug("Showing notification for untracked remote ", url);
