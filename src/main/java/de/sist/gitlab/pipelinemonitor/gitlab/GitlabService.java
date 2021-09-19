@@ -161,25 +161,8 @@ public class GitlabService implements Disposable {
                         if (config.getMappingByRemoteUrl(url) == null) {
                             final Optional<HostAndProjectPath> hostProjectPathFromRemote = GitlabService.getHostProjectPathFromRemote(url);
 
-                            if (hostProjectPathFromRemote.isPresent()) {
-                                final String host = hostProjectPathFromRemote.get().getHost();
-                                final String projectPath = hostProjectPathFromRemote.get().getProjectPath();
-                                final Optional<Data> data = GraphQl.makeCall(host, ConfigProvider.getToken(url, host), projectPath, Collections.emptyList(), true);
-                                if (data.isPresent()) {
-                                    if (!data.get().getProject().isJobsEnabled()) {
-                                        final NotificationGroup notificationGroup = NotificationGroupManager.getInstance().getNotificationGroup("de.sist.gitlab.pipelinemonitor.disabledCi");
-                                        notificationGroup.createNotification("Gitlab Pipeline Viewer - CI disabled", "Gitlab CI is disabled for " + url + ". Ignoring it.", NotificationType.INFORMATION, null).notify(project);
-                                        ConfigProvider.getInstance().getIgnoredRemotes().add(url);
-                                        logger.info("Added " + url + " to list of ignored remotes because CI is disabled for its gitlab project");
-                                        return;
-                                    } else {
-                                        logger.debug("Unable to determine if CI is enabled for " + url + " because the graphql query failed");
-                                    }
-                                } else {
-                                    logger.info("CI is enabled for " + url);
-                                }
-                            } else {
-                                logger.debug("Unable to determine if CI is enabled for " + url + " because host and project path could not be parsed");
+                            if (isCiDisabledForGitlabProject(url, hostProjectPathFromRemote.orElse(null))) {
+                                return;
                             }
 
                             logger.debug("Showing notification for untracked remote ", url);
@@ -195,7 +178,30 @@ public class GitlabService implements Disposable {
         }
     }
 
+    private boolean isCiDisabledForGitlabProject(String url, HostAndProjectPath hostProjectPathFromRemote) {
+        if (hostProjectPathFromRemote == null) {
+            logger.debug("Unable to determine if CI is enabled for " + url + " because host and project path could not be parsed");
+            return false;
+        }
 
+        final String host = hostProjectPathFromRemote.getHost();
+        final String projectPath = hostProjectPathFromRemote.getProjectPath();
+        final Optional<Data> data = GraphQl.makeCall(host, ConfigProvider.getToken(url, host), projectPath, Collections.emptyList(), true);
+
+        if (!data.isPresent()) {
+            logger.debug("Unable to determine if CI is enabled for " + url + " because the graphql query failed");
+            return false;
+        }
+        if (data.get().getProject().isJobsEnabled()) {
+            logger.info("CI is enabled for " + url);
+            return false;
+        }
+        final NotificationGroup notificationGroup = NotificationGroupManager.getInstance().getNotificationGroup("de.sist.gitlab.pipelinemonitor.disabledCi");
+        notificationGroup.createNotification("Gitlab Pipeline Viewer - CI disabled", "Gitlab CI is disabled for " + url + ". Ignoring it.", NotificationType.INFORMATION, null).notify(project);
+        ConfigProvider.getInstance().getIgnoredRemotes().add(url);
+        logger.info("Added " + url + " to list of ignored remotes because CI is disabled for its gitlab project");
+        return true;
+    }
 
     public static Optional<Mapping> createMappingWithProjectNameAndId(String remoteUrl, String host, String projectPath, String token, TokenType tokenType) {
         final Optional<Data> data = GraphQl.makeCall(host, token, projectPath, Collections.emptyList(), true);
