@@ -105,6 +105,7 @@ public class GitlabToolWindow {
     private final PipelineFilter statusFilter;
     private TableRowSorter<PipelineTableModel> tableSorter;
     private final Project project;
+    private final GitService gitService;
 
     private JCheckBox showForAllCheckbox;
     JPanel actionPanel;
@@ -116,6 +117,7 @@ public class GitlabToolWindow {
         backgroundUpdateService = ServiceManager.getService(project, BackgroundUpdateService.class);
         messageBus = project.getMessageBus();
         statusFilter = ServiceManager.getService(project, PipelineFilter.class);
+        gitService = ServiceManager.getService(project, GitService.class);
 
         tableModel = new PipelineTableModel();
         messageBus.connect().subscribe(ReloadListener.RELOAD, pipelineInfos -> ApplicationManager.getApplication().invokeLater(this::updatePipelinesDisplay));
@@ -327,7 +329,7 @@ public class GitlabToolWindow {
         AnActionButton copyCurrentGitHash = new AnActionButton("Copy current git hash to clipboard", "Copy current git hash to clipboard", null) {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
-                GitService.getInstance(project).copyHashToClipboard();
+                gitService.copyHashToClipboard();
             }
 
             @Override
@@ -388,10 +390,7 @@ public class GitlabToolWindow {
     }
 
     private void toggleShowForAllCheckboxVisibility(Project project) {
-        if (project.isDisposed()) {
-            return;
-        }
-        final boolean doShow = ServiceManager.getService(project, GitService.class).getNonIgnoredRepositories().size() > 1;
+        final boolean doShow = gitService.getNonIgnoredRepositories().size() > 1;
         if (doShow) {
             if (Arrays.asList(actionPanel.getComponents()).contains(showForAllCheckbox)) {
                 return;
@@ -454,8 +453,8 @@ public class GitlabToolWindow {
             //If pipelines for multiple projects exist and pipelines are only to be shown for the current one skip all others
             final Mapping mapping = mappingAndPipelines.getKey();
             if (gitlabService.getPipelineInfos().size() > 1 && !showForAllCheckbox.isSelected()) {
-                final GitRepository currentRepository = GitService.getInstance(project).guessCurrentRepository();
-                final GitRepository repoForMapping = GitService.getInstance(project).getRepositoryByRemoteUrl(mapping.getRemote());
+                final GitRepository currentRepository = gitService.guessCurrentRepository();
+                final GitRepository repoForMapping = gitService.getRepositoryByRemoteUrl(mapping.getRemote());
                 if (!Objects.equals(repoForMapping, currentRepository)) {
                     logger.debug("Not showing pipelines for ", repoForMapping, " because it doesn't match the current repo ", currentRepository);
                     continue;

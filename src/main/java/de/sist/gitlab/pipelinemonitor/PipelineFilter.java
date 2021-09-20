@@ -1,6 +1,7 @@
 package de.sist.gitlab.pipelinemonitor;
 
 import com.google.common.base.Joiner;
+import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import de.sist.gitlab.pipelinemonitor.config.ConfigProvider;
@@ -26,7 +27,7 @@ public class PipelineFilter {
     private static final int TAG_INTERVAL = 180;
     private final ConfigProvider config;
     private final Project project;
-    final GitService gitService;
+    private final GitService gitService;
     private PipelineJobStatus latestShown;
     private final Map<GitRepository, Instant> lastTagUpdate = new HashMap<>();
     private final Map<GitRepository, List<String>> repoToTags = new HashMap<>();
@@ -35,7 +36,7 @@ public class PipelineFilter {
         config = ConfigProvider.getInstance();
 
         this.project = project;
-        gitService = GitService.getInstance(project);
+        gitService = ServiceManager.getService(project, GitService.class);
     }
 
     public List<PipelineJobStatus> filterPipelines(Mapping mapping, List<PipelineJobStatus> toFilter, boolean forNotification) {

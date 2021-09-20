@@ -64,11 +64,13 @@ public class GitlabService implements Disposable {
     private final ConfigProvider config = ServiceManager.getService(ConfigProvider.class);
     private final Project project;
     private final Map<Mapping, List<PipelineJobStatus>> pipelineInfos = new HashMap<>();
+    final GitService gitService;
     private boolean isCheckingForUnmappedRemotes;
 
 
     public GitlabService(Project project) {
         this.project = project;
+        gitService = ServiceManager.getService(project, GitService.class);
     }
 
     public void updatePipelineInfos() throws IOException {
@@ -124,7 +126,7 @@ public class GitlabService implements Disposable {
     }
 
 
-    public void checkForUnmappedRemotes(List<GitRepository> gitRepositories, boolean triggeredByUser) {
+    public void checkForUnmappedRemotes(boolean triggeredByUser) {
         //Locks don't work here for some reason
         if (isCheckingForUnmappedRemotes) {
             return;
@@ -132,6 +134,7 @@ public class GitlabService implements Disposable {
         isCheckingForUnmappedRemotes = true;
         try {
             ConfigProvider.getInstance().aquireLock();
+            final List<GitRepository> gitRepositories = gitService.getAllGitRepositories();
             logger.debug("Checking for unmapped remotes");
             for (GitRepository gitRepository : gitRepositories) {
                 for (GitRemote remote : gitRepository.getRemotes()) {
@@ -223,7 +226,7 @@ public class GitlabService implements Disposable {
 
     private Map<Mapping, List<PipelineTo>> loadPipelines() throws IOException {
         final Map<Mapping, List<PipelineTo>> projectToPipelines = new HashMap<>();
-        final List<GitRepository> nonIgnoredRepositories = GitService.getInstance(project).getNonIgnoredRepositories();
+        final List<GitRepository> nonIgnoredRepositories = gitService.getNonIgnoredRepositories();
         if (nonIgnoredRepositories.isEmpty()) {
             logger.debug("No non-ignored git repositories");
             return Collections.emptyMap();

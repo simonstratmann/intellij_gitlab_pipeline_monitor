@@ -9,6 +9,7 @@ import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.progress.impl.BackgroundableProcessIndicator;
 import com.intellij.openapi.project.Project;
 import com.intellij.util.concurrency.AppExecutorUtil;
+import com.intellij.util.messages.MessageBus;
 import de.sist.gitlab.pipelinemonitor.config.ConfigChangedListener;
 import de.sist.gitlab.pipelinemonitor.config.ConfigProvider;
 import de.sist.gitlab.pipelinemonitor.config.PipelineViewerConfigProject;
@@ -28,15 +29,22 @@ public class BackgroundUpdateService {
 
     private static final int INITIAL_DELAY = 0;
     private static final int UPDATE_DELAY = 30;
+    final GitService gitService;
+    final NotifierService notifierService;
 
     private boolean isActive = false;
     private boolean isRunning = false;
     private final Runnable backgroundTask;
     private ScheduledFuture<?> scheduledFuture;
     private final Project project;
+    private final GitlabService gitlabService;
+    private final MessageBus messageBus;
 
     public BackgroundUpdateService(Project project) {
         this.project = project;
+
+        gitlabService = ServiceManager.getService(project, GitlabService.class);
+        messageBus = project.getMessageBus();
 
         backgroundTask = () -> {
             if (!PipelineViewerConfigProject.getInstance(project).isEnabled()) {
@@ -68,6 +76,8 @@ public class BackgroundUpdateService {
                 logger.debug("Retrieved CONFIG_CHANGED event. Project is enabled. Starting background task if needed");
             }
         });
+        gitService = ServiceManager.getService(project, GitService.class);
+        notifierService = ServiceManager.getService(project, NotifierService.class);
     }
 
     public synchronized void update(Project project, boolean triggeredByUser) {
@@ -99,22 +109,23 @@ public class BackgroundUpdateService {
 
     private Runnable getUpdateRunnable(boolean triggeredByUser) {
         return () -> {
-            if (isRunning) {
+            if (isRunning || project.isDisposed()) {
                 return;
             }
             isRunning = true;
             try {
                 logger.debug("Starting IntelliJ background task", (triggeredByUser ? " triggered by user" : ""));
-                final GitlabService gitlabService = ServiceManager.getService(project, GitlabService.class);
-                ServiceManager.getService(project, GitlabService.class).checkForUnmappedRemotes(ServiceManager.getService(project, GitService.class).getAllGitRepositories(), triggeredByUser);
+                gitlabService.checkForUnmappedRemotes(triggeredByUser);
                 gitlabService.updatePipelineInfos();
                 gitlabService.updateMergeRequests();
-                project.getMessageBus().syncPublisher(ReloadListener.RELOAD).reload(gitlabService.getPipelineInfos());
+                if (!messageBus.isDisposed()) {
+                    messageBus.syncPublisher(ReloadListener.RELOAD).reload(gitlabService.getPipelineInfos());
+                }
                 logger.debug("Finished IntelliJ background task");
             } catch (IOException e) {
                 logger.info("Connection error: " + e.getMessage());
                 if (ConfigProvider.getInstance().isShowConnectionErrorNotifications()) {
-                    ServiceManager.getService(project, NotifierService.class).showError("Unable to connect to gitlab: " + e);
+                    notifierService.showError("Unable to connect to gitlab: " + e);
                 }
             } finally {
                 isRunning = false;

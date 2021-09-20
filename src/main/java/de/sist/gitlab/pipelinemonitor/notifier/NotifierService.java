@@ -58,6 +58,7 @@ public class NotifierService {
     private final Project project;
 
     private final List<Balloon> openBalloons = new ArrayList<>();
+    private final GitService gitService;
 
     private Set<PipelineJobStatus> shownNotifications;
 
@@ -75,6 +76,7 @@ public class NotifierService {
         errorNotificationGroup = createNotificationGroup("GitLab Pipeline Viewer - Error", NotificationDisplayType.STICKY_BALLOON);
 
         project.getMessageBus().connect().subscribe(ReloadListener.RELOAD, this::showStatusNotifications);
+        gitService = ServiceManager.getService(project, GitService.class);
     }
 
     public void showError(String error) {
@@ -139,7 +141,7 @@ public class NotifierService {
         content = status.branchName + ": <span style=\"color:" + getColorForStatus(status.result) + "\">" + status.result + "</span>"
                 + "<br>Created: " + DateTime.formatDateTime(status.creationTime)
                 + "<br>Last update: " + DateTime.formatDateTime(status.updateTime);
-        if (GitService.getInstance(project).getNonIgnoredRepositories().size() > 1) {
+        if (gitService.getNonIgnoredRepositories().size() > 1) {
             content = ConfigProvider.getInstance().getMappingByProjectId(status.getProjectId()).getProjectName() + " " + content;
         }
 

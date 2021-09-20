@@ -3,10 +3,10 @@ package de.sist.gitlab.pipelinemonitor.git;
 import com.intellij.dvcs.DvcsUtil;
 import com.intellij.dvcs.repo.VcsRepositoryManager;
 import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.util.messages.MessageBus;
 import de.sist.gitlab.pipelinemonitor.ReloadListener;
 import de.sist.gitlab.pipelinemonitor.config.ConfigProvider;
 import git4idea.GitUtil;
@@ -36,9 +36,11 @@ public class GitService {
     private List<GitRepository> allGitRepositories = new ArrayList<>();
     private List<GitRepository> nonIgnoredRepositories = new ArrayList<>();
     private final Project project;
+    private final MessageBus messageBus;
 
     public GitService(Project project) {
         this.project = project;
+        messageBus = project.getMessageBus();
         project.getMessageBus().connect().subscribe(VcsRepositoryManager.VCS_REPOSITORY_MAPPING_UPDATED, () -> {
             logger.debug("Retrieved event VCS_REPOSITORY_MAPPING_UPDATED");
             fireGitEventIfReposChanged();
@@ -58,7 +60,10 @@ public class GitService {
             allGitRepositories = newAllGitRepositories;
             nonIgnoredRepositories = newNonIgnoredGitRepositories;
             logger.debug("Firing event GIT_INITIALIZED. Number of git repositories: ", newAllGitRepositories.size(), ". Non-ignored: ", newNonIgnoredGitRepositories.size());
-            project.getMessageBus().syncPublisher(GitInitListener.GIT_INITIALIZED).handle(allGitRepositories);
+
+            if (!messageBus.isDisposed()) {
+                messageBus.syncPublisher(GitInitListener.GIT_INITIALIZED).handle(allGitRepositories);
+            }
         } else {
             logger.debug("No new git repositories found. Number of git repositories: ", newAllGitRepositories.size(), ". Non-ignored: ", newNonIgnoredGitRepositories.size());
         }
@@ -122,10 +127,6 @@ public class GitService {
             logger.error("Error loading tags", e);
             return Collections.emptyList();
         }
-    }
-
-    public static GitService getInstance(Project project) {
-        return ServiceManager.getService(project, GitService.class);
     }
 
 }

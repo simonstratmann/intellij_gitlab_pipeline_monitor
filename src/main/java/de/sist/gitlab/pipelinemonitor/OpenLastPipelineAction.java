@@ -14,7 +14,6 @@ public class OpenLastPipelineAction extends AnAction {
 
     Logger logger = Logger.getInstance(OpenLastPipelineAction.class);
 
-
     @Override
     public void actionPerformed(@NotNull AnActionEvent e) {
         final Project project = e.getProject();
