@@ -87,6 +87,9 @@ public class GitService {
     }
 
     public List<GitRepository> getAllGitRepositories() {
+        if (project.isDisposed()) {
+            return Collections.emptyList();
+        }
         allGitRepositories = GitUtil.getRepositoryManager(project).getRepositories();
         return allGitRepositories;
     }
