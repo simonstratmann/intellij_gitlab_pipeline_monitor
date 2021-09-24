@@ -19,7 +19,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-@SuppressWarnings("RedundantIfStatement")
 public class PipelineFilter {
 
     private static final Logger logger = Logger.getInstance(PipelineFilter.class);

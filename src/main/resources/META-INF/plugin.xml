@@ -42,8 +42,21 @@
         <projectService serviceImplementation="de.sist.gitlab.pipelinemonitor.BackgroundUpdateService"/>
         <postStartupActivity implementation="de.sist.gitlab.pipelinemonitor.StartupInitialization"/>
         <postStartupActivity implementation="de.sist.gitlab.pipelinemonitor.update.AfterUpdateNotifier"/>
-        <notificationGroup displayType="TOOL_WINDOW" id="de.sist.gitlab.pipelinemonitor.unmappedRemote"/>
-        <notificationGroup displayType="STICKY_BALLOON" id="de.sist.gitlab.pipelinemonitor.disabledCi"/>
+        <notificationGroup displayType="TOOL_WINDOW" id="de.sist.gitlab.pipelinemonitor.unmappedRemote" key="de.sist.gitlab.pipelinemonitor.unmappedRemote" bundle="gitlabBranchViewer"/>
+        <notificationGroup displayType="STICKY_BALLOON" id="de.sist.gitlab.pipelinemonitor.disabledCi" key="de.sist.gitlab.pipelinemonitor.disabledCi" bundle="gitlabBranchViewer"/>
+        <notificationGroup displayType="STICKY_BALLOON" id="de.sist.gitlab.pipelinemonitor.error" key="de.sist.gitlab.pipelinemonitor.error" bundle="gitlabBranchViewer"/>
+        <notificationGroup displayType="BALLOON" id="de.sist.gitlab.pipelinemonitor.pipelineStatus.pending" icon="/toolWindow/gitlab-icon.png" key="de.sist.gitlab.pipelinemonitor.pipelineStatus.pending" bundle="gitlabBranchViewer"
+                           isLogByDefault="false"/>
+        <notificationGroup displayType="BALLOON" id="de.sist.gitlab.pipelinemonitor.pipelineStatus.running" icon="/toolWindow/gitlab-icon.png" key="de.sist.gitlab.pipelinemonitor.pipelineStatus.running" bundle="gitlabBranchViewer"
+                           isLogByDefault="false"/>
+        <notificationGroup displayType="BALLOON" id="de.sist.gitlab.pipelinemonitor.pipelineStatus.canceled" icon="/toolWindow/gitlab-icon.png" key="de.sist.gitlab.pipelinemonitor.pipelineStatus.canceled" bundle="gitlabBranchViewer"
+                           isLogByDefault="false"/>
+        <notificationGroup displayType="BALLOON" id="de.sist.gitlab.pipelinemonitor.pipelineStatus.failed" icon="/toolWindow/gitlab-icon.png" key="de.sist.gitlab.pipelinemonitor.pipelineStatus.failed" bundle="gitlabBranchViewer"/>
+        <notificationGroup displayType="BALLOON" id="de.sist.gitlab.pipelinemonitor.pipelineStatus.success" icon="/toolWindow/gitlab-icon.png" key="de.sist.gitlab.pipelinemonitor.pipelineStatus.success" bundle="gitlabBranchViewer"/>
+        <notificationGroup displayType="BALLOON" id="de.sist.gitlab.pipelinemonitor.pipelineStatus.skipped" icon="/toolWindow/gitlab-icon.png" key="de.sist.gitlab.pipelinemonitor.pipelineStatus.skipped" bundle="gitlabBranchViewer"
+                           isLogByDefault="false"/>
+        <notificationGroup displayType="BALLOON" id="de.sist.gitlab.pipelinemonitor.pipelineStatus.other" icon="/toolWindow/gitlab-icon.png" key="de.sist.gitlab.pipelinemonitor.pipelineStatus.other" bundle="gitlabBranchViewer"
+                           isLogByDefault="false"/>
     </extensions>
 
     <actions>

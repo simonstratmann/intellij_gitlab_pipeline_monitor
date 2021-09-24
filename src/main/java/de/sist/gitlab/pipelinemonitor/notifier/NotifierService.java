@@ -4,20 +4,18 @@ import com.intellij.notification.Notification;
 import com.intellij.notification.NotificationAction;
 import com.intellij.notification.NotificationDisplayType;
 import com.intellij.notification.NotificationGroup;
+import com.intellij.notification.NotificationGroupManager;
 import com.intellij.notification.NotificationType;
 import com.intellij.notification.Notifications;
-import com.intellij.notification.impl.NotificationSettings;
 import com.intellij.notification.impl.NotificationsConfigurationImpl;
 import com.intellij.notification.impl.NotificationsManagerImpl;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.options.ShowSettingsUtil;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.Balloon;
 import com.intellij.openapi.ui.popup.JBPopupListener;
 import com.intellij.openapi.ui.popup.LightweightWindowEvent;
-import com.intellij.openapi.util.IconLoader;
 import com.intellij.openapi.wm.IdeFrame;
 import com.intellij.openapi.wm.WindowManager;
 import com.intellij.ui.BalloonImpl;
@@ -29,7 +27,6 @@ import de.sist.gitlab.pipelinemonitor.PipelineJobStatus;
 import de.sist.gitlab.pipelinemonitor.ReloadListener;
 import de.sist.gitlab.pipelinemonitor.UrlOpener;
 import de.sist.gitlab.pipelinemonitor.config.ConfigProvider;
-import de.sist.gitlab.pipelinemonitor.config.GitlabProjectConfigurable;
 import de.sist.gitlab.pipelinemonitor.config.Mapping;
 import de.sist.gitlab.pipelinemonitor.git.GitService;
 import de.sist.gitlab.pipelinemonitor.lights.LightsControl;
@@ -41,7 +38,6 @@ import java.awt.Rectangle;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -62,18 +58,13 @@ public class NotifierService {
 
     private Set<PipelineJobStatus> shownNotifications;
 
-    private final Map<String, String> statusesToNotificationGroupIds = new HashMap<>();
     private final NotificationGroup errorNotificationGroup;
 
     public NotifierService(Project project) {
         this.project = project;
         statusFilter = ServiceManager.getService(project, PipelineFilter.class);
 
-        KNOWN_STATUSES.forEach(x -> {
-            statusesToNotificationGroupIds.put(x, createNotificationGroupForStatus(x).getDisplayId());
-        });
-
-        errorNotificationGroup = createNotificationGroup("GitLab Pipeline Viewer - Error", NotificationDisplayType.STICKY_BALLOON);
+        errorNotificationGroup = NotificationGroupManager.getInstance().getNotificationGroup("de.sist.gitlab.pipelinemonitor.error");
 
         project.getMessageBus().connect().subscribe(ReloadListener.RELOAD, this::showStatusNotifications);
         gitService = ServiceManager.getService(project, GitService.class);
@@ -116,6 +107,7 @@ public class NotifierService {
         shownNotifications.addAll(statusesToShow);
     }
 
+    @SuppressWarnings("unused")
     private void enableDebugModeIfApplicable() {
         logger.debug("Showing all notifications for developer");
         if ("strat".equals(System.getProperty("user.name"))) {
@@ -162,30 +154,10 @@ public class NotifierService {
     }
 
     private NotificationGroup getNotificationGroupForStatus(PipelineJobStatus status) {
-        if (!statusesToNotificationGroupIds.containsKey(status.result)) {
-            statusesToNotificationGroupIds.put(status.result, createNotificationGroupForStatus(status.result).getDisplayId());
+        if (KNOWN_STATUSES.contains(status.getResult())) {
+            return NotificationGroupManager.getInstance().getNotificationGroup("de.sist.gitlab.pipelinemonitor.pipelineStatus." + status.result);
         }
-
-        NotificationGroup notificationGroup = NotificationGroup.findRegisteredGroup(statusesToNotificationGroupIds.get(status.result));
-        if (notificationGroup == null) {
-            String message = "Unable to find registered notification group for status " + status.result;
-            logger.error(message);
-            throw new RuntimeException(message);
-        }
-        return notificationGroup;
-    }
-
-    private void showIncompleteConfigNotification(String message) {
-        Notification notification = errorNotificationGroup.createNotification("GitLab pipeline viewer", message, NotificationType.ERROR, null);
-        notification.addAction(new NotificationAction("Open settings") {
-            @Override
-            public void actionPerformed(@NotNull AnActionEvent e, @NotNull Notification notification) {
-                notification.hideBalloon();
-                ShowSettingsUtil.getInstance().showSettingsDialog(project, GitlabProjectConfigurable.class);
-            }
-        });
-        logger.debug("Showing notification for incomplete config");
-        Notifications.Bus.notify(notification, project);
+        return NotificationGroupManager.getInstance().getNotificationGroup("de.sist.gitlab.pipelinemonitor.pipelineStatus.other");
     }
 
     private void showBalloon(Notification notification, NotificationDisplayType displayType, int index) {
@@ -236,35 +208,10 @@ public class NotifierService {
     }
 
     @NotNull
-    private NotificationGroup createNotificationGroupForStatus(String status) {
-        String displayId = getDisplayIdForStatus(status);
-        return createNotificationGroup(displayId, NotificationDisplayType.BALLOON);
-    }
-
-    @NotNull
     private String getDisplayIdForStatus(String status) {
         return "GitLab Pipeline Viewer - status " + status;
     }
 
-    private NotificationGroup createNotificationGroup(String displayId, NotificationDisplayType defaultDisplayType) {
-        NotificationDisplayType displayType;
-        boolean shouldLog;
-        if (NotificationsConfigurationImpl.getInstanceImpl().isRegistered(displayId)) {
-            NotificationSettings notificationSettings = NotificationsConfigurationImpl.getSettings(displayId);
-            shouldLog = notificationSettings.isShouldLog();
-            displayType = notificationSettings.getDisplayType();
-        } else {
-            displayType = defaultDisplayType;
-            shouldLog = true;
-        }
-
-        NotificationGroup registeredGroup = NotificationGroup.findRegisteredGroup(displayId);
-        if (registeredGroup != null) {
-            return registeredGroup;
-        }
-        return new NotificationGroup(displayId, displayType, shouldLog,
-                "GitLab pipeline viewer", IconLoader.getIcon("/toolWindow/gitlab-icon.png", NotifierService.class));
-    }
 
     private NotificationDisplayType getDisplayTypeForStatus(String status) {
         return NotificationsConfigurationImpl.getSettings(getDisplayIdForStatus(status)).getDisplayType();

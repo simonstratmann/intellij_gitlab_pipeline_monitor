@@ -57,6 +57,7 @@ public class GitlabService implements Disposable {
     private static final Logger logger = Logger.getInstance(GitlabService.class);
 
     private static final Pattern REMOTE_GIT_SSH_PATTERN = Pattern.compile("git@(?<host>.*):(?<projectPath>.*)(\\.git)?");
+    @SuppressWarnings("RegExpRedundantEscape")
     private static final Pattern REMOTE_GIT_HTTP_PATTERN = Pattern.compile("(?<scheme>https?:\\/\\/)(?<url>.*)(\\.git)?");
     private static final Pattern REMOTE_BEST_GUESS_PATTERN = Pattern.compile("(?<host>https?://[^/]*)/(?<projectPath>.*)");
     private static final List<String> INCOMPATIBLE_REMOTES = Arrays.asList("github.com", "bitbucket.com");
