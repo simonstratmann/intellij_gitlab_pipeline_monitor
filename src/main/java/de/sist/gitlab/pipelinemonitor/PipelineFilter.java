@@ -12,6 +12,7 @@ import git4idea.GitLocalBranch;
 import git4idea.repo.GitRepository;
 
 import java.time.Instant;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -43,6 +44,10 @@ public class PipelineFilter {
         final Set<String> tags = new HashSet<>();
 
         GitRepository gitRepository = gitService.getRepositoryByRemoteUrl(mapping.getRemote());
+        if (gitRepository == null) {
+            //Can happen during shutdown or in other edge cases. Not much we can do
+            return Collections.emptyList();
+        }
         for (GitLocalBranch localBranch : gitRepository.getBranches().getLocalBranches()) {
             if (localBranch.findTrackedBranch(gitRepository) != null) {
                 trackedBranches.add(localBranch.getName());
