@@ -1,4 +1,11 @@
-# Overview
+# Gitlab Pipeline Viewer
+
+<!-- Plugin description -->
+**Gitlab Pipeline Viewer** allows you you track gitlab build pipelines for your projects directly from inside IntelliJ and other Jetbrains products.
+
+<!-- Plugin description end -->
+
+## Overview
 
 This plugin allows you to monitor and display pipelines run on gitlab. Both gitlab.com and self-hosted instances are supported.
 
@@ -15,7 +22,7 @@ When the plugin detects a git remote that is unknown it try to determine if it's
 When you have time click the first action in it and a dialog will appear, asking you if you want to monitor pipelines for this remote (assuming it's associated with a gitlab project):<br>
 <img src="https://i.imgur.com/qQo1fvf.png" width="500" alt="Screenshot untracked remote"/>
 
-# Troubleshooting
+## Troubleshooting
 
 Unfortunately gitlab returns an empty response if access to a private project was not possible due to an auth error. Therefore the plugin can't tell if the gitlab host is wrong, the project path is wrong or an invalid access token was used.
 Make sure the values entered are correct. You can check and edit them at any time in the settings.
