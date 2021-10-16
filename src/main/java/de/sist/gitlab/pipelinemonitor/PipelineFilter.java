@@ -8,6 +8,8 @@ import de.sist.gitlab.pipelinemonitor.config.ConfigProvider;
 import de.sist.gitlab.pipelinemonitor.config.Mapping;
 import de.sist.gitlab.pipelinemonitor.config.PipelineViewerConfigApp;
 import de.sist.gitlab.pipelinemonitor.git.GitService;
+import de.sist.gitlab.pipelinemonitor.gitlab.GitlabService;
+import de.sist.gitlab.pipelinemonitor.gitlab.mapping.MergeRequest;
 import git4idea.GitLocalBranch;
 import git4idea.repo.GitRepository;
 
@@ -17,7 +19,10 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class PipelineFilter {
@@ -25,6 +30,7 @@ public class PipelineFilter {
     private static final Logger logger = Logger.getInstance(PipelineFilter.class);
 
     private static final int TAG_INTERVAL = 180;
+    private static final Pattern MR_REF_PATTERN = Pattern.compile(".*\\/(\\d*)\\/.*");
     private final ConfigProvider config;
     private final Project project;
     private final GitService gitService;
@@ -65,6 +71,7 @@ public class PipelineFilter {
         if (logger.isDebugEnabled()) {
             logger.debug("Will retain branches that are contained in these checked out branches: ", Joiner.on(", ").join(trackedBranches));
         }
+        final List<MergeRequest> mergeRequests = project.getService(GitlabService.class).getMergeRequests();
         final List<PipelineJobStatus> statuses = toFilter.stream().filter(x -> {
                     if (config.getBranchesToIgnore(project).contains(x.branchName)) {
                         logger.debug("Pipeline for branch ", x.branchName, " is ignored and will be filtered out");
@@ -80,6 +87,29 @@ public class PipelineFilter {
                     }
                     if (tags.contains(x.branchName)) {
                         logger.debug("Pipeline for ref ", x.branchName, " is in the list of tags and will be retained");
+                        return true;
+                    }
+                    if (x.source.equals("merge_request_event")) {
+                        logger.debug("Source branch for merge request pipeline ", x.branchName, " is tracked locally and will be retained");
+                        final Matcher matcher = MR_REF_PATTERN.matcher(x.branchName);
+                        if (!matcher.matches()) {
+                            logger.debug("Unable to find MR ID in " + x.source);
+                            return false;
+                        }
+                        final String mergeRequestId = matcher.group(1);
+                        final Optional<MergeRequest> matchingMergeRequest = mergeRequests.stream().filter(mr -> mr.getReference().equals(mergeRequestId)).findFirst();
+                        if (matchingMergeRequest.isEmpty()) {
+                            logger.debug("No merge request found with ID " + mergeRequestId);
+                            return false;
+                        }
+                        final boolean mrBranchTracked = trackedBranches.contains(matchingMergeRequest.get().getSourceBranch());
+                        if (!mrBranchTracked) {
+                            logger.debug("Merge request ", matchingMergeRequest.get().getReference(), " source branch ", matchingMergeRequest.get().getSourceBranch(), " does not match any locally tracked branched");
+                            return false;
+                        }
+                        x.setBranchNameDisplay("MR: " + matchingMergeRequest.get().getSourceBranch());
+                        x.mergeRequestLink = matchingMergeRequest.get().getWebUrl();
+                        logger.debug("Merge request ", matchingMergeRequest.get().getReference(), " source branch ", matchingMergeRequest.get().getSourceBranch(), " matches a locally tracked branch");
                         return true;
                     }
                     logger.debug("Pipeline for branch ", x.branchName, " will be filtered out");

@@ -359,7 +359,7 @@ public class GitlabToolWindow {
                         RowFilter<PipelineTableModel, Integer> filter = new RowFilter<PipelineTableModel, Integer>() {
                             @Override
                             public boolean include(Entry<? extends PipelineTableModel, ? extends Integer> entry) {
-                                return entry.getModel().rows.get(entry.getIdentifier()).branchName.toLowerCase().contains(text.toLowerCase());
+                                return entry.getModel().rows.get(entry.getIdentifier()).getBranchNameDisplay().toLowerCase().contains(text.toLowerCase());
                             }
                         };
                         tableSorter.setRowFilter(filter);
@@ -463,7 +463,7 @@ public class GitlabToolWindow {
 
             List<PipelineJobStatus> statuses = new ArrayList<>(statusFilter.filterPipelines(mapping, mappingAndPipelines.getValue(), false));
             statuses.sort(Comparator.comparing(x -> ((PipelineJobStatus) x).creationTime).reversed());
-            Map<String, List<PipelineJobStatus>> branchesToStatuses = statuses.stream().collect(Collectors.groupingBy(x -> x.branchName));
+            Map<String, List<PipelineJobStatus>> branchesToStatuses = statuses.stream().collect(Collectors.groupingBy(x -> x.getBranchNameDisplay()));
             logger.debug("Found ", branchesToStatuses.size(), " branches to show pipelines for");
             for (Map.Entry<String, List<PipelineJobStatus>> entry : branchesToStatuses.entrySet()) {
                 Optional<PipelineJobStatus> firstFinalStatus = entry.getValue().stream().filter(this::isFinalStatus).findFirst();
@@ -683,7 +683,7 @@ public class GitlabToolWindow {
         public List<PipelineJobStatus> rows = new ArrayList<>();
         public List<TableRowDefinition> definitions = Arrays.asList(
                 new TableRowDefinition("Project", x -> x.projectId),
-                new TableRowDefinition("Branch", x -> x.branchName),
+                new TableRowDefinition("Branch", PipelineJobStatus::getBranchNameDisplay),
                 new TableRowDefinition("Result", x -> x.result),
                 new TableRowDefinition("Time", x -> x.creationTime),
                 new TableRowDefinition("Pipeline", x -> x.pipelineLink),

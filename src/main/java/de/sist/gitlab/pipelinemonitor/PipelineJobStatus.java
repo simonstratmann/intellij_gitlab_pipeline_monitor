@@ -7,21 +7,24 @@ import java.util.StringJoiner;
 
 public class PipelineJobStatus {
 
-    public String branchName;
-    public String projectId;
-    public ZonedDateTime creationTime;
-    public ZonedDateTime updateTime;
-    public String result;
-    public String pipelineLink;
+    public final String branchName;
+    public final String projectId;
+    public final ZonedDateTime creationTime;
+    public final ZonedDateTime updateTime;
+    public final String result;
+    public final String pipelineLink;
     public String mergeRequestLink;
+    public final String source;
+    private String branchNameDisplay;
 
-    public PipelineJobStatus(String ref, String projectId, ZonedDateTime creationTime, ZonedDateTime updatedAt, String result, String webUrl) {
+    public PipelineJobStatus(String ref, String projectId, ZonedDateTime creationTime, ZonedDateTime updatedAt, String result, String webUrl, String source) {
         this.branchName = ref;
         this.projectId = projectId;
         this.pipelineLink = webUrl;
         this.creationTime = creationTime;
         this.updateTime = updatedAt;
         this.result = result;
+        this.source = source;
     }
 
     @Override
@@ -37,7 +40,9 @@ public class PipelineJobStatus {
                 Objects.equal(projectId, that.projectId) &&
                 Objects.equal(creationTime, that.creationTime) &&
                 Objects.equal(result, that.result) &&
-                Objects.equal(pipelineLink, that.pipelineLink);
+                Objects.equal(source, that.source) &&
+                Objects.equal(pipelineLink, that.pipelineLink)
+                ;
     }
 
     public String getBranchName() {
@@ -65,6 +70,22 @@ public class PipelineJobStatus {
     }
 
 
+    public String getSource() {
+        return source;
+    }
+
+    public String getMergeRequestLink() {
+        return mergeRequestLink;
+    }
+
+    public String getBranchNameDisplay() {
+        return branchNameDisplay != null ? branchNameDisplay : branchName;
+    }
+
+    public void setBranchNameDisplay(String branchNameDisplay) {
+        this.branchNameDisplay = branchNameDisplay;
+    }
+
     @Override
     public int hashCode() {
         return Objects.hashCode(branchName, creationTime, result, pipelineLink);
@@ -78,6 +99,7 @@ public class PipelineJobStatus {
                 .add("result='" + result + "'")
                 .add("pipelineLink='" + pipelineLink + "'")
                 .add("mergeRequestLink='" + mergeRequestLink + "'")
+                .add("source='" + source + "'")
                 .toString();
     }
 }

@@ -25,6 +25,8 @@ public class PipelineTo {
     private ZonedDateTime updatedAt;
     @JsonProperty("web_url")
     private String webUrl;
+    @JsonProperty("source")
+    private String source;
 
     @JsonProperty("id")
     public Integer getId() {
@@ -98,12 +100,21 @@ public class PipelineTo {
         this.webUrl = webUrl;
     }
 
+    public String getSource() {
+        return source;
+    }
+
+    public void setSource(String source) {
+        this.source = source;
+    }
+
     @Override
     public String toString() {
         return new StringJoiner(", ", PipelineTo.class.getSimpleName() + "[", "]")
                 .add("ref='" + ref + "'")
                 .add("status='" + status + "'")
                 .add("webUrl='" + webUrl + "'")
+                .add("source='" + source + "'")
                 .toString();
     }
 }

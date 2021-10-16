@@ -31,6 +31,8 @@ public class GraphQl {
             "        node {\n" +
             "          sourceBranch\n" +
             "          webUrl\n" +
+            "          id\n" +
+            "          reference\n" +
             "        }\n" +
             "      } \n" +
             "    }\n" +

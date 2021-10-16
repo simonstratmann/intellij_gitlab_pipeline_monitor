@@ -127,10 +127,10 @@ public class NotifierService {
         }
 
         if (getDisplayTypeForStatus(status.result) == NotificationDisplayType.TOOL_WINDOW) {
-            Notifications.Bus.notify(notificationGroup.createNotification(status.branchName + ": " + status.result, notificationType));
+            Notifications.Bus.notify(notificationGroup.createNotification(status.getBranchNameDisplay() + ": " + status.result, notificationType));
             return;
         }
-        content = status.branchName + ": <span style=\"color:" + getColorForStatus(status.result) + "\">" + status.result + "</span>"
+        content = status.getBranchNameDisplay() + ": <span style=\"color:" + getColorForStatus(status.result) + "\">" + status.result + "</span>"
                 + "<br>Created: " + DateTime.formatDateTime(status.creationTime)
                 + "<br>Last update: " + DateTime.formatDateTime(status.updateTime);
         if (gitService.getNonIgnoredRepositories().size() > 1) {

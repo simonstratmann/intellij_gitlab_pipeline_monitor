@@ -65,6 +65,7 @@ public class GitlabService implements Disposable {
     private final ConfigProvider config = ServiceManager.getService(ConfigProvider.class);
     private final Project project;
     private final Map<Mapping, List<PipelineJobStatus>> pipelineInfos = new HashMap<>();
+    private final List<MergeRequest> mergeRequests = new ArrayList<>();
     final GitService gitService;
     private boolean isCheckingForUnmappedRemotes;
 
@@ -79,7 +80,7 @@ public class GitlabService implements Disposable {
             final Map<Mapping, List<PipelineJobStatus>> newMappingToPipelines = new HashMap<>();
             for (Map.Entry<Mapping, List<PipelineTo>> entry : loadPipelines().entrySet()) {
                 final List<PipelineJobStatus> jobStatuses = entry.getValue().stream()
-                        .map(pipeline -> new PipelineJobStatus(pipeline.getRef(), entry.getKey().getGitlabProjectId(), pipeline.getCreatedAt(), pipeline.getUpdatedAt(), pipeline.getStatus(), pipeline.getWebUrl()))
+                        .map(pipeline -> new PipelineJobStatus(pipeline.getRef(), entry.getKey().getGitlabProjectId(), pipeline.getCreatedAt(), pipeline.getUpdatedAt(), pipeline.getStatus(), pipeline.getWebUrl(), pipeline.getSource()))
                         .sorted(Comparator.comparing(PipelineJobStatus::getUpdateTime, Comparator.nullsFirst(Comparator.naturalOrder())).reversed())
                         .collect(Collectors.toList());
                 newMappingToPipelines.put(entry.getKey(), jobStatuses);
@@ -96,10 +97,12 @@ public class GitlabService implements Disposable {
 
                     for (Mapping mapping : pipelineInfos.keySet()) {
                         logger.debug("Loading merge requests for remote ", mapping.getRemote());
-                        final List<String> sourceBranches = entry.getValue().stream().map(x -> x.branchName).collect(Collectors.toList());
+                        final List<String> sourceBranches = entry.getValue().stream().map(x -> x.branchName).distinct().collect(Collectors.toList());
                         final Optional<Data> data = GraphQl.makeCall(mapping.getHost(), ConfigProvider.getToken(mapping), mapping.getProjectPath(), sourceBranches, false);
                         if (data.isPresent()) {
-                            final List<MergeRequest> mergeRequests = data.get().getProject().getMergeRequests().getEdges().stream().map(Edge::getMergeRequest).collect(Collectors.toList());
+                            final List<MergeRequest> newMergeRequests = data.get().getProject().getMergeRequests().getEdges().stream().map(Edge::getMergeRequest).collect(Collectors.toList());
+                            mergeRequests.clear();
+                            mergeRequests.addAll(newMergeRequests);
                             logger.debug("Loaded ", mergeRequests.size(), " pipelines for remote ", mapping.getRemote());
 
                             final Map<String, List<MergeRequest>> mergeRequestsBySourceBranch = mergeRequests.stream().collect(Collectors.groupingBy(MergeRequest::getSourceBranch));
@@ -126,6 +129,11 @@ public class GitlabService implements Disposable {
         }
     }
 
+    public List<MergeRequest> getMergeRequests() {
+        synchronized (pipelineInfos) {
+            return mergeRequests;
+        }
+    }
 
     public void checkForUnmappedRemotes(boolean triggeredByUser) {
         //Locks don't work here for some reason
