@@ -104,6 +104,6 @@ tasks {
     }
 
     runIde {
-        jvmArgs("-Xmx4G")
+        jvmArgs("-Xmx4G", "-Didea.log.debug.categories=#de.sist")
     }
 }

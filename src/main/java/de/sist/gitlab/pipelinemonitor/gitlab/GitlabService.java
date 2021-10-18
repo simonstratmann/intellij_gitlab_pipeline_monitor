@@ -92,29 +92,26 @@ public class GitlabService implements Disposable {
 
     public void updateMergeRequests() {
         synchronized (pipelineInfos) {
+            mergeRequests.clear();
             try {
-                for (Map.Entry<Mapping, List<PipelineJobStatus>> entry : pipelineInfos.entrySet()) {
+                for (Mapping mapping : pipelineInfos.keySet()) {
+                    logger.debug("Loading merge requests for remote ", mapping.getRemote());
+                    final List<String> sourceBranches = new ArrayList<>(gitService.getTrackedBranches(mapping));
+                    final Optional<Data> data = GraphQl.makeCall(mapping.getHost(), ConfigProvider.getToken(mapping), mapping.getProjectPath(), sourceBranches, false);
+                    if (data.isPresent()) {
+                        final List<MergeRequest> newMergeRequests = data.get().getProject().getMergeRequests().getEdges().stream().map(Edge::getMergeRequest).collect(Collectors.toList());
+                        mergeRequests.addAll(newMergeRequests);
+                        logger.debug("Loaded ", mergeRequests.size(), " pipelines for remote ", mapping.getRemote());
 
-                    for (Mapping mapping : pipelineInfos.keySet()) {
-                        logger.debug("Loading merge requests for remote ", mapping.getRemote());
-                        final List<String> sourceBranches = entry.getValue().stream().map(x -> x.branchName).distinct().collect(Collectors.toList());
-                        final Optional<Data> data = GraphQl.makeCall(mapping.getHost(), ConfigProvider.getToken(mapping), mapping.getProjectPath(), sourceBranches, false);
-                        if (data.isPresent()) {
-                            final List<MergeRequest> newMergeRequests = data.get().getProject().getMergeRequests().getEdges().stream().map(Edge::getMergeRequest).collect(Collectors.toList());
-                            mergeRequests.clear();
-                            mergeRequests.addAll(newMergeRequests);
-                            logger.debug("Loaded ", mergeRequests.size(), " pipelines for remote ", mapping.getRemote());
-
-                            final Map<String, List<MergeRequest>> mergeRequestsBySourceBranch = mergeRequests.stream().collect(Collectors.groupingBy(MergeRequest::getSourceBranch));
-                            for (PipelineJobStatus pipelineJobStatus : pipelineInfos.get(mapping)) {
-                                final List<MergeRequest> mergeRequestsForPipeline = mergeRequestsBySourceBranch.get(pipelineJobStatus.branchName);
-                                if (mergeRequestsForPipeline != null && mergeRequestsForPipeline.size() > 0) {
-                                    pipelineJobStatus.mergeRequestLink = mergeRequestsForPipeline.get(0).getWebUrl();
-                                }
+                        final Map<String, List<MergeRequest>> mergeRequestsBySourceBranch = mergeRequests.stream().collect(Collectors.groupingBy(MergeRequest::getSourceBranch));
+                        for (PipelineJobStatus pipelineJobStatus : pipelineInfos.get(mapping)) {
+                            final List<MergeRequest> mergeRequestsForPipeline = mergeRequestsBySourceBranch.get(pipelineJobStatus.branchName);
+                            if (mergeRequestsForPipeline != null && mergeRequestsForPipeline.size() > 0) {
+                                pipelineJobStatus.mergeRequestLink = mergeRequestsForPipeline.get(0).getWebUrl();
                             }
-                        } else {
-                            logger.debug("Unable to load pipelines for remote ", mapping.getRemote());
                         }
+                    } else {
+                        logger.debug("Unable to load pipelines for remote ", mapping.getRemote());
                     }
                 }
             } catch (Exception e) {

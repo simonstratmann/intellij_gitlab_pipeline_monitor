@@ -10,11 +10,9 @@ import de.sist.gitlab.pipelinemonitor.config.PipelineViewerConfigApp;
 import de.sist.gitlab.pipelinemonitor.git.GitService;
 import de.sist.gitlab.pipelinemonitor.gitlab.GitlabService;
 import de.sist.gitlab.pipelinemonitor.gitlab.mapping.MergeRequest;
-import git4idea.GitLocalBranch;
 import git4idea.repo.GitRepository;
 
 import java.time.Instant;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -46,19 +44,10 @@ public class PipelineFilter {
     }
 
     public List<PipelineJobStatus> filterPipelines(Mapping mapping, List<PipelineJobStatus> toFilter, boolean forNotification) {
-        final Set<String> trackedBranches = new HashSet<>();
         final Set<String> tags = new HashSet<>();
 
         GitRepository gitRepository = gitService.getRepositoryByRemoteUrl(mapping.getRemote());
-        if (gitRepository == null) {
-            //Can happen during shutdown or in other edge cases. Not much we can do
-            return Collections.emptyList();
-        }
-        for (GitLocalBranch localBranch : gitRepository.getBranches().getLocalBranches()) {
-            if (localBranch.findTrackedBranch(gitRepository) != null) {
-                trackedBranches.add(localBranch.getName());
-            }
-        }
+        final Set<String> trackedBranches = gitService.getTrackedBranches(mapping);
         if (PipelineViewerConfigApp.getInstance().isShowForTags()) {
             final boolean outdated = lastTagUpdate.computeIfAbsent(gitRepository, x -> Instant.MIN.plusSeconds(TAG_INTERVAL)).isBefore(Instant.now().minusSeconds(TAG_INTERVAL));
             if (outdated) {
@@ -90,7 +79,7 @@ public class PipelineFilter {
                         return true;
                     }
                     if (x.source.equals("merge_request_event")) {
-                        logger.debug("Source branch for merge request pipeline ", x.branchName, " is tracked locally and will be retained");
+                        logger.debug("Event source for pipeline with ", x.branchName, " is a merge request");
                         final Matcher matcher = MR_REF_PATTERN.matcher(x.branchName);
                         if (!matcher.matches()) {
                             logger.debug("Unable to find MR ID in " + x.source);
@@ -104,7 +93,7 @@ public class PipelineFilter {
                         }
                         final boolean mrBranchTracked = trackedBranches.contains(matchingMergeRequest.get().getSourceBranch());
                         if (!mrBranchTracked) {
-                            logger.debug("Merge request ", matchingMergeRequest.get().getReference(), " source branch ", matchingMergeRequest.get().getSourceBranch(), " does not match any locally tracked branched");
+                            logger.debug("Merge request ", matchingMergeRequest.get().getReference(), " with source branch ", matchingMergeRequest.get().getSourceBranch(), " does not match any locally tracked branches");
                             return false;
                         }
                         x.setBranchNameDisplay("MR: " + matchingMergeRequest.get().getSourceBranch());
@@ -115,12 +104,12 @@ public class PipelineFilter {
                     logger.debug("Pipeline for branch ", x.branchName, " will be filtered out");
                     return false;
                 }
-        ).collect(Collectors.toList());
+        ).distinct().collect(Collectors.toList());
         if (!statuses.isEmpty() && !forNotification) {
             latestShown = statuses.get(0);
         }
         if (logger.isDebugEnabled()) {
-            final String pipelineBranchNames = statuses.stream().map(PipelineJobStatus::getBranchName).collect(Collectors.joining(", "));
+            final String pipelineBranchNames = statuses.stream().map(PipelineJobStatus::getBranchName).distinct().collect(Collectors.joining(", "));
             logger.debug(String.format("Filtered %d out of %d pipelines %s", statuses.size(), toFilter.size(), forNotification ? "for notifications:" : "for display:"), pipelineBranchNames);
         }
 

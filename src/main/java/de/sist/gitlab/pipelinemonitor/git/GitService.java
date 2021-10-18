@@ -9,6 +9,8 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.util.messages.MessageBus;
 import de.sist.gitlab.pipelinemonitor.ReloadListener;
 import de.sist.gitlab.pipelinemonitor.config.ConfigProvider;
+import de.sist.gitlab.pipelinemonitor.config.Mapping;
+import git4idea.GitLocalBranch;
 import git4idea.GitUtil;
 import git4idea.branch.GitBranchUtil;
 import git4idea.commands.Git;
@@ -24,7 +26,9 @@ import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -130,6 +134,21 @@ public class GitService {
             logger.error("Error loading tags", e);
             return Collections.emptyList();
         }
+    }
+
+    public Set<String> getTrackedBranches(Mapping mapping) {
+        final Set<String> trackedBranches = new HashSet<>();
+        GitRepository gitRepository = getRepositoryByRemoteUrl(mapping.getRemote());
+        if (gitRepository == null) {
+            //Can happen during shutdown or in other edge cases. Not much we can do
+            return Collections.emptySet();
+        }
+        for (GitLocalBranch localBranch : gitRepository.getBranches().getLocalBranches()) {
+            if (localBranch.findTrackedBranch(gitRepository) != null) {
+                trackedBranches.add(localBranch.getName());
+            }
+        }
+        return trackedBranches;
     }
 
 }
