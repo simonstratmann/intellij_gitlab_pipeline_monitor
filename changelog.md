@@ -1,4 +1,4 @@
-<!-- Keep a Changelog guide -> https://keepachangelog.com -->
+## [Unreleased]
 
 ## [2.6.0]
 
