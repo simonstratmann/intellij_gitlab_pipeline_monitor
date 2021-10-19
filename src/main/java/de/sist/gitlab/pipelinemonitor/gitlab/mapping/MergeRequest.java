@@ -6,18 +6,11 @@ import javax.annotation.Generated;
 @Generated("jsonschema2pojo")
 public class MergeRequest {
 
-    private String id;
     private String sourceBranch;
     private String webUrl;
-    private String reference;
+    private String title;
+    private HeadPipeline headPipeline;
 
-    public String getId() {
-        return id.replace("gid://gitlab/MergeRequest/", "");
-    }
-
-    public void setId(String id) {
-        this.id = id;
-    }
 
     public String getSourceBranch() {
         return sourceBranch;
@@ -35,11 +28,35 @@ public class MergeRequest {
         this.webUrl = webUrl;
     }
 
-    public String getReference() {
-        return reference.replace("!", "");
+
+    public String getTitle() {
+        return title;
     }
 
-    public void setReference(String reference) {
-        this.reference = reference;
+    public void setTitle(String title) {
+        this.title = title;
     }
+
+    public HeadPipeline getHeadPipeline() {
+        return headPipeline;
+    }
+
+    public void setHeadPipeline(HeadPipeline headPipeline) {
+        this.headPipeline = headPipeline;
+    }
+
+    public static class HeadPipeline {
+
+        private String ref;
+
+
+        public String getRef() {
+            return ref;
+        }
+
+        public void setRef(String ref) {
+            this.ref = ref;
+        }
+    }
+
 }

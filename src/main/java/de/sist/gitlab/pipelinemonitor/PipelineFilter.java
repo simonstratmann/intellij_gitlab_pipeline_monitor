@@ -1,6 +1,7 @@
 package de.sist.gitlab.pipelinemonitor;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Strings;
 import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
@@ -19,8 +20,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class PipelineFilter {
@@ -28,7 +27,6 @@ public class PipelineFilter {
     private static final Logger logger = Logger.getInstance(PipelineFilter.class);
 
     private static final int TAG_INTERVAL = 180;
-    private static final Pattern MR_REF_PATTERN = Pattern.compile(".*\\/(\\d*)\\/.*");
     private final ConfigProvider config;
     private final Project project;
     private final GitService gitService;
@@ -78,27 +76,15 @@ public class PipelineFilter {
                         logger.debug("Pipeline for ref ", x.branchName, " is in the list of tags and will be retained");
                         return true;
                     }
-                    if (x.source.equals("merge_request_event")) {
-                        logger.debug("Event source for pipeline with ", x.branchName, " is a merge request");
-                        final Matcher matcher = MR_REF_PATTERN.matcher(x.branchName);
-                        if (!matcher.matches()) {
-                            logger.debug("Unable to find MR ID in " + x.source);
-                            return false;
+                    final Optional<MergeRequest> matchingMergeRequest = mergeRequests.stream().filter(mr -> mr.getHeadPipeline().getRef().equals(x.branchName)).findFirst();
+                    if (matchingMergeRequest.isPresent()) {
+                        logger.debug("Branch with ref ", x.branchName, " matches MR ", matchingMergeRequest.get());
+                        final String prefix = Strings.nullToEmpty(PipelineViewerConfigApp.getInstance().getMrPipelinePrefix());
+                        if (PipelineViewerConfigApp.getInstance().getMrPipelineDisplayType() == PipelineViewerConfigApp.MrPipelineDisplayType.SOURCE_BRANCH) {
+                            x.setBranchNameDisplay(prefix + matchingMergeRequest.get().getSourceBranch());
+                        } else {
+                            x.setBranchNameDisplay(prefix + matchingMergeRequest.get().getTitle());
                         }
-                        final String mergeRequestId = matcher.group(1);
-                        final Optional<MergeRequest> matchingMergeRequest = mergeRequests.stream().filter(mr -> mr.getReference().equals(mergeRequestId)).findFirst();
-                        if (matchingMergeRequest.isEmpty()) {
-                            logger.debug("No merge request found with ID " + mergeRequestId);
-                            return false;
-                        }
-                        final boolean mrBranchTracked = trackedBranches.contains(matchingMergeRequest.get().getSourceBranch());
-                        if (!mrBranchTracked) {
-                            logger.debug("Merge request ", matchingMergeRequest.get().getReference(), " with source branch ", matchingMergeRequest.get().getSourceBranch(), " does not match any locally tracked branches");
-                            return false;
-                        }
-                        x.setBranchNameDisplay("MR: " + matchingMergeRequest.get().getSourceBranch());
-                        x.mergeRequestLink = matchingMergeRequest.get().getWebUrl();
-                        logger.debug("Merge request ", matchingMergeRequest.get().getReference(), " source branch ", matchingMergeRequest.get().getSourceBranch(), " matches a locally tracked branch");
                         return true;
                     }
                     logger.debug("Pipeline for branch ", x.branchName, " will be filtered out");

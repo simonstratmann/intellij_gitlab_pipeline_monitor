@@ -50,6 +50,9 @@ public class ConfigFormApp {
     private JRadioButton radioDisplayTypeIds;
     private JRadioButton radioDisplayTypeLinks;
     private JTextField connectTimeout;
+    private JRadioButton radioMrPipelineBranchName;
+    private JRadioButton radioMRPipelineTitle;
+    private JTextField mrPipelinePrefixTextbox;
     private final CollectionListModel<String> mappingsModel = new CollectionListModel<>();
     private final CollectionListModel<String> ignoredRemotesModel = new CollectionListModel<>();
 
@@ -63,10 +66,16 @@ public class ConfigFormApp {
         loadSettings();
         createMappingsPanel();
         createIgnoredRemotesPanel();
-        ButtonGroup buttonGroup = new ButtonGroup();
-        buttonGroup.add(radioDisplayTypeIcons);
-        buttonGroup.add(radioDisplayTypeLinks);
-        buttonGroup.add(radioDisplayTypeIds);
+
+        ButtonGroup displayTypeButtonGroup = new ButtonGroup();
+        displayTypeButtonGroup.add(radioDisplayTypeIcons);
+        displayTypeButtonGroup.add(radioDisplayTypeLinks);
+        displayTypeButtonGroup.add(radioDisplayTypeIds);
+
+        ButtonGroup mrPipelineBttonGroup = new ButtonGroup();
+        mrPipelineBttonGroup.add(radioMRPipelineTitle);
+        mrPipelineBttonGroup.add(radioMrPipelineBranchName);
+
         final Disposable disposable = Disposer.newDisposable();
         new ComponentValidator(disposable).withValidator(() -> {
             try {
@@ -102,6 +111,8 @@ public class ConfigFormApp {
         } else {
             config.setDisplayType(PipelineViewerConfigApp.DisplayType.LINK);
         }
+        config.setMrPipelineDisplayType(radioMRPipelineTitle.isSelected() ? PipelineViewerConfigApp.MrPipelineDisplayType.TITLE : PipelineViewerConfigApp.MrPipelineDisplayType.SOURCE_BRANCH);
+        config.setMrPipelinePrefix(mrPipelinePrefixTextbox.getText());
 
         List<String> statusesToWatch = new ArrayList<>();
 
@@ -126,6 +137,9 @@ public class ConfigFormApp {
         radioDisplayTypeIds.setSelected(config.getDisplayType() == PipelineViewerConfigApp.DisplayType.ID);
         radioDisplayTypeLinks.setSelected(config.getDisplayType() == PipelineViewerConfigApp.DisplayType.LINK);
         connectTimeout.setText(String.valueOf(config.getConnectTimeout()));
+        radioMRPipelineTitle.setSelected(config.getMrPipelineDisplayType() == PipelineViewerConfigApp.MrPipelineDisplayType.TITLE);
+        radioMrPipelineBranchName.setSelected(config.getMrPipelineDisplayType() == PipelineViewerConfigApp.MrPipelineDisplayType.SOURCE_BRANCH);
+        mrPipelinePrefixTextbox.setText(config.getMrPipelinePrefix());
 
         mappingsModel.replaceAll(config.getMappings().stream()
                 .map(Mapping::toSerializable)
@@ -146,6 +160,8 @@ public class ConfigFormApp {
                 || radioDisplayTypeIcons.isSelected() && config.getDisplayType() != PipelineViewerConfigApp.DisplayType.ICON
                 || radioDisplayTypeIds.isSelected() && config.getDisplayType() != PipelineViewerConfigApp.DisplayType.ID
                 || radioDisplayTypeLinks.isSelected() && config.getDisplayType() != PipelineViewerConfigApp.DisplayType.LINK
+                || radioMrPipelineBranchName.isSelected() && config.getMrPipelineDisplayType() != PipelineViewerConfigApp.MrPipelineDisplayType.SOURCE_BRANCH
+                || !Objects.equals(config.getMrPipelinePrefix(), mrPipelinePrefixTextbox.getText())
                 ;
     }
 

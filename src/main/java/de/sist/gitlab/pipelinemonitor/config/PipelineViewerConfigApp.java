@@ -23,6 +23,11 @@ public class PipelineViewerConfigApp implements PersistentStateComponent<Pipelin
         ID
     }
 
+    public enum MrPipelineDisplayType {
+        SOURCE_BRANCH,
+        TITLE
+    }
+
     private List<Mapping> mappings = new ArrayList<>();
     private String mergeRequestTargetBranch;
     private List<String> statusesToWatch = new ArrayList<>();
@@ -35,6 +40,8 @@ public class PipelineViewerConfigApp implements PersistentStateComponent<Pipelin
     private final Set<String> remotesAskAgainNextTime = new HashSet<>();
     private DisplayType displayType = DisplayType.ICON;
     private int connectTimeout = 10;
+    private MrPipelineDisplayType mrPipelineDisplayType = MrPipelineDisplayType.SOURCE_BRANCH;
+    private String mrPipelinePrefix = "MR: ";
 
     public List<Mapping> getMappings() {
         return mappings;
@@ -122,6 +129,22 @@ public class PipelineViewerConfigApp implements PersistentStateComponent<Pipelin
 
     public void setConnectTimeout(int connectTimeout) {
         this.connectTimeout = connectTimeout;
+    }
+
+    public MrPipelineDisplayType getMrPipelineDisplayType() {
+        return mrPipelineDisplayType == null ? MrPipelineDisplayType.SOURCE_BRANCH : mrPipelineDisplayType;
+    }
+
+    public void setMrPipelineDisplayType(MrPipelineDisplayType mrPipelineDisplayType) {
+        this.mrPipelineDisplayType = mrPipelineDisplayType;
+    }
+
+    public String getMrPipelinePrefix() {
+        return mrPipelinePrefix;
+    }
+
+    public void setMrPipelinePrefix(String mrPipelinePrefix) {
+        this.mrPipelinePrefix = mrPipelinePrefix;
     }
 
     @Override
