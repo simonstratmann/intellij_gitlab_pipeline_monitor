@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+## [2.6.1]
+
+* Prevent NPE in PipelineFilter
+
 ## [2.6.0]
 
 * Support for [merge request pipelines](https://docs.gitlab.com/ee/ci/pipelines/merge_request_pipelines.html)

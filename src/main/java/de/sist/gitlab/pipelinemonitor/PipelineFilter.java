@@ -18,6 +18,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -68,25 +69,27 @@ public class PipelineFilter {
                         logger.debug("Pipeline for branch ", x.branchName, " is tracked locally and will be retained");
                         return true;
                     }
-                    if (config.getBranchesToWatch(project).contains(x.branchName) && (!forNotification || config.isShowNotificationForWatchedBranches())) {
-                        logger.debug("Pipeline for branch ", x.branchName, " is in list of branches to watch and will be retained");
-                        return true;
-                    }
-                    if (tags.contains(x.branchName)) {
-                        logger.debug("Pipeline for ref ", x.branchName, " is in the list of tags and will be retained");
-                        return true;
-                    }
-                    final Optional<MergeRequest> matchingMergeRequest = mergeRequests.stream().filter(mr -> mr.getHeadPipeline().getRef().equals(x.branchName)).findFirst();
-                    if (matchingMergeRequest.isPresent()) {
-                        logger.debug("Branch with ref ", x.branchName, " matches MR ", matchingMergeRequest.get());
-                        final String prefix = Strings.nullToEmpty(PipelineViewerConfigApp.getInstance().getMrPipelinePrefix());
-                        if (PipelineViewerConfigApp.getInstance().getMrPipelineDisplayType() == PipelineViewerConfigApp.MrPipelineDisplayType.SOURCE_BRANCH) {
-                            x.setBranchNameDisplay(prefix + matchingMergeRequest.get().getSourceBranch());
-                        } else {
-                            x.setBranchNameDisplay(prefix + matchingMergeRequest.get().getTitle());
-                        }
-                        return true;
-                    }
+            if (config.getBranchesToWatch(project).contains(x.branchName) && (!forNotification || config.isShowNotificationForWatchedBranches())) {
+                logger.debug("Pipeline for branch ", x.branchName, " is in list of branches to watch and will be retained");
+                return true;
+            }
+            if (tags.contains(x.branchName)) {
+                logger.debug("Pipeline for ref ", x.branchName, " is in the list of tags and will be retained");
+                return true;
+            }
+            final Optional<MergeRequest> matchingMergeRequest = mergeRequests.stream()
+                    .filter(mr -> mr.getHeadPipeline() != null && Objects.equals(mr.getHeadPipeline().getRef(), x.branchName))
+                    .findFirst();
+            if (matchingMergeRequest.isPresent()) {
+                logger.debug("Branch with ref ", x.branchName, " matches MR ", matchingMergeRequest.get());
+                final String prefix = Strings.nullToEmpty(PipelineViewerConfigApp.getInstance().getMrPipelinePrefix());
+                if (PipelineViewerConfigApp.getInstance().getMrPipelineDisplayType() == PipelineViewerConfigApp.MrPipelineDisplayType.SOURCE_BRANCH) {
+                    x.setBranchNameDisplay(prefix + matchingMergeRequest.get().getSourceBranch());
+                } else {
+                    x.setBranchNameDisplay(prefix + matchingMergeRequest.get().getTitle());
+                }
+                return true;
+            }
                     logger.debug("Pipeline for branch ", x.branchName, " will be filtered out");
                     return false;
                 }
