@@ -7,7 +7,7 @@ import java.util.StringJoiner;
 
 public class PipelineJobStatus {
 
-    public final String branchName;
+    public String branchName;
     public final String projectId;
     public final ZonedDateTime creationTime;
     public final ZonedDateTime updateTime;
@@ -47,6 +47,10 @@ public class PipelineJobStatus {
 
     public String getBranchName() {
         return branchName;
+    }
+
+    public void setBranchName(String branchName) {
+        this.branchName = branchName;
     }
 
     public String getProjectId() {

@@ -87,6 +87,7 @@ public class PipelineFilter {
                 } else {
                     x.setBranchNameDisplay(prefix + matchingMergeRequest.get().getTitle());
                 }
+                x.mergeRequestLink = matchingMergeRequest.get().getWebUrl();
                 return true;
             }
                     logger.debug("Pipeline for branch ", x.branchName, " will be filtered out");

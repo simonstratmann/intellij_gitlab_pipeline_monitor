@@ -2,13 +2,14 @@
 
 ## [2.6.1]
 
-* Prevent NPE in PipelineFilter
-* Remove usages of deprecated IntelliJ API
+* The MR column entry will now link to the MR of an MR pipeline.
+* Prevent NPE in PipelineFilter.
+* Remove usages of deprecated IntelliJ API.
 
 ## [2.6.0]
 
-* Support for [merge request pipelines](https://docs.gitlab.com/ee/ci/pipelines/merge_request_pipelines.html)
-* Update build plugins
+* Support for [merge request pipelines](https://docs.gitlab.com/ee/ci/pipelines/merge_request_pipelines.html).
+* Update build plugins.
 
 ## [2.5.0]
 
