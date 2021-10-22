@@ -42,6 +42,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class NotifierService {
 
@@ -118,7 +119,7 @@ public class NotifierService {
 
         NotificationType notificationType;
         String content;
-        if (List.of("failed", "canceled", "skipped").contains(status.result)) {
+        if (Stream.of("failed", "canceled", "skipped").anyMatch(s -> status.result.equals(s))) {
             notificationType = NotificationType.ERROR;
         } else {
             notificationType = NotificationType.INFORMATION;
@@ -135,7 +136,7 @@ public class NotifierService {
             content = ConfigProvider.getInstance().getMappingByProjectId(status.getProjectId()).getProjectName() + " " + content;
         }
 
-        Notification notification = notificationGroup.createNotification("GitLab branch status", content, notificationType);
+        Notification notification = notificationGroup.createNotification("GitLab branch status", null, content, notificationType);
 
         notification.addAction(new NotificationAction("Open in Browser") {
             @Override
