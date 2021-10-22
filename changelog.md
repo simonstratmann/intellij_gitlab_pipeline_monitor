@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+## [2.6.2]
+
+* Fix rare NPE when trying to read tags.
+
 ## [2.6.1]
 
 * The MR column entry will now link to the MR of an MR pipeline.

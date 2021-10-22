@@ -126,6 +126,10 @@ public class GitService {
 
     public @NotNull List<String> getTags(GitRepository gitRepository) {
         logger.debug("Loading tags for ", gitRepository);
+        if (gitRepository == null) {
+            logger.warn("GitRepository is null");
+            return Collections.emptyList();
+        }
         final VirtualFile root = gitRepository.getRoot();
         final Future<List<String>> future = ApplicationManager.getApplication().executeOnPooledThread(() -> GitBranchUtil.getAllTags(project, root));
         try {
