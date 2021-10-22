@@ -10,7 +10,6 @@ import com.intellij.notification.Notifications;
 import com.intellij.notification.impl.NotificationsConfigurationImpl;
 import com.intellij.notification.impl.NotificationsManagerImpl;
 import com.intellij.openapi.actionSystem.AnActionEvent;
-import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.Balloon;
@@ -62,12 +61,12 @@ public class NotifierService {
 
     public NotifierService(Project project) {
         this.project = project;
-        statusFilter = ServiceManager.getService(project, PipelineFilter.class);
+        statusFilter = project.getService(PipelineFilter.class);
 
         errorNotificationGroup = NotificationGroupManager.getInstance().getNotificationGroup("de.sist.gitlab.pipelinemonitor.error");
 
         project.getMessageBus().connect().subscribe(ReloadListener.RELOAD, this::showStatusNotifications);
-        gitService = ServiceManager.getService(project, GitService.class);
+        gitService = project.getService(GitService.class);
     }
 
     public void showError(String error) {

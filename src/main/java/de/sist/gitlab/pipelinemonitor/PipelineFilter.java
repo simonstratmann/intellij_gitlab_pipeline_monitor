@@ -2,7 +2,6 @@ package de.sist.gitlab.pipelinemonitor;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
-import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import de.sist.gitlab.pipelinemonitor.config.ConfigProvider;
@@ -39,7 +38,7 @@ public class PipelineFilter {
         config = ConfigProvider.getInstance();
 
         this.project = project;
-        gitService = ServiceManager.getService(project, GitService.class);
+        gitService = project.getService(GitService.class);
     }
 
     public List<PipelineJobStatus> filterPipelines(Mapping mapping, List<PipelineJobStatus> toFilter, boolean forNotification) {

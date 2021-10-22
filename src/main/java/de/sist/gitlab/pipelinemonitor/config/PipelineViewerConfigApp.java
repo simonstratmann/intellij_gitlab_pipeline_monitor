@@ -1,8 +1,8 @@
 package de.sist.gitlab.pipelinemonitor.config;
 
 import com.google.common.base.Strings;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.PersistentStateComponent;
-import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.components.State;
 import com.intellij.openapi.components.Storage;
 import com.intellij.util.xmlb.XmlSerializerUtil;
@@ -158,6 +158,6 @@ public class PipelineViewerConfigApp implements PersistentStateComponent<Pipelin
     }
 
     public static PipelineViewerConfigApp getInstance() {
-        return ServiceManager.getService(PipelineViewerConfigApp.class);
+        return ApplicationManager.getApplication().getService(PipelineViewerConfigApp.class);
     }
 }

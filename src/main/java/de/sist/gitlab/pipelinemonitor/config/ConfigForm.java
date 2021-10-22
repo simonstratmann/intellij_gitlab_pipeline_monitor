@@ -1,7 +1,6 @@
 package de.sist.gitlab.pipelinemonitor.config;
 
 import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.ui.CollectionListModel;
@@ -62,8 +61,8 @@ public class ConfigForm {
         projectConfig.setShowLightsForBranch(lightsBranch.getText());
 
         ApplicationManager.getApplication().invokeLater(() -> {
-            ServiceManager.getService(project, BackgroundUpdateService.class).restartBackgroundTask();
-            ServiceManager.getService(project, LightsControl.class).initialize(project);
+            project.getService(BackgroundUpdateService.class).restartBackgroundTask();
+            project.getService(LightsControl.class).initialize(project);
         });
         ApplicationManager.getApplication().getMessageBus().syncPublisher(ConfigChangedListener.CONFIG_CHANGED).configChanged();
     }

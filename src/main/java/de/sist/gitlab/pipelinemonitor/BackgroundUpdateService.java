@@ -1,7 +1,6 @@
 package de.sist.gitlab.pipelinemonitor;
 
 import com.google.common.base.Stopwatch;
-import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressManager;
@@ -43,7 +42,7 @@ public class BackgroundUpdateService {
     public BackgroundUpdateService(Project project) {
         this.project = project;
 
-        gitlabService = ServiceManager.getService(project, GitlabService.class);
+        gitlabService = project.getService(GitlabService.class);
         messageBus = project.getMessageBus();
 
         backgroundTask = () -> {
@@ -76,8 +75,8 @@ public class BackgroundUpdateService {
                 logger.debug("Retrieved CONFIG_CHANGED event. Project is enabled. Starting background task if needed");
             }
         });
-        gitService = ServiceManager.getService(project, GitService.class);
-        notifierService = ServiceManager.getService(project, NotifierService.class);
+        gitService = project.getService(GitService.class);
+        notifierService = project.getService(NotifierService.class);
     }
 
     public synchronized void update(Project project, boolean triggeredByUser) {

@@ -3,6 +3,7 @@
 ## [2.6.1]
 
 * Prevent NPE in PipelineFilter
+* Remove usages of deprecated IntelliJ API
 
 ## [2.6.0]
 

@@ -9,7 +9,6 @@ import com.intellij.notification.NotificationType;
 import com.intellij.notification.NotificationsManager;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.util.io.HttpRequests;
@@ -62,7 +61,7 @@ public class GitlabService implements Disposable {
     private static final Pattern REMOTE_BEST_GUESS_PATTERN = Pattern.compile("(?<host>https?://[^/]*)/(?<projectPath>.*)");
     private static final List<String> INCOMPATIBLE_REMOTES = Arrays.asList("github.com", "bitbucket.com");
 
-    private final ConfigProvider config = ServiceManager.getService(ConfigProvider.class);
+    private final ConfigProvider config = ApplicationManager.getApplication().getService(ConfigProvider.class);
     private final Project project;
     private final Map<Mapping, List<PipelineJobStatus>> pipelineInfos = new HashMap<>();
     private final List<MergeRequest> mergeRequests = new ArrayList<>();
@@ -72,7 +71,7 @@ public class GitlabService implements Disposable {
 
     public GitlabService(Project project) {
         this.project = project;
-        gitService = ServiceManager.getService(project, GitService.class);
+        gitService = project.getService(GitService.class);
     }
 
     public void updatePipelineInfos() throws IOException {
@@ -278,7 +277,7 @@ public class GitlabService implements Disposable {
                     PipelineViewerConfigApp.getInstance().getRemotesAskAgainNextTime().add(mapping.getRemote());
                 } else {
                     ConfigProvider.saveToken(mapping, response.get().getLeft(), response.get().getRight());
-                    ServiceManager.getService(project, BackgroundUpdateService.class).update(project, false);
+                    project.getService(BackgroundUpdateService.class).update(project, false);
                     logger.info("New token entered for remote " + mapping.getRemote());
                 }
 

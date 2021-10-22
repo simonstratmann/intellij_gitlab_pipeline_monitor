@@ -4,7 +4,7 @@ package de.sist.gitlab.pipelinemonitor.config;
 import com.google.common.base.Strings;
 import com.intellij.credentialStore.CredentialAttributes;
 import com.intellij.ide.passwordSafe.PasswordSafe;
-import com.intellij.openapi.components.ServiceManager;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import de.sist.gitlab.pipelinemonitor.gitlab.GitlabService;
@@ -121,7 +121,7 @@ public class ConfigProvider {
     }
 
     public static ConfigProvider getInstance() {
-        return ServiceManager.getService(ConfigProvider.class);
+        return ApplicationManager.getApplication().getService(ConfigProvider.class);
     }
 
     public static void saveToken(Mapping mapping, String token, TokenType tokenType) {

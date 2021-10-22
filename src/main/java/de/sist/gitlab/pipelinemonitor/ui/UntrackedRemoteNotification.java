@@ -8,7 +8,6 @@ import com.intellij.openapi.Disposable;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Disposer;
@@ -94,7 +93,7 @@ public class UntrackedRemoteNotification extends Notification {
 
             logger.info("Adding mapping " + mapping);
             ConfigProvider.getInstance().getMappings().add(mapping);
-            ServiceManager.getService(project, BackgroundUpdateService.class).update(project, false);
+            project.getService(BackgroundUpdateService.class).update(project, false);
         } finally {
             Disposer.dispose(disposable);
         }

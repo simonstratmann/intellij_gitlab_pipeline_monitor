@@ -1,7 +1,7 @@
 package de.sist.gitlab.pipelinemonitor.update;
 
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.PersistentStateComponent;
-import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.components.State;
 import com.intellij.openapi.components.Storage;
 import com.intellij.util.xmlb.XmlSerializerUtil;
@@ -32,6 +32,6 @@ public class UpdateNotificationPersistance implements PersistentStateComponent<U
     }
 
     public static UpdateNotificationPersistance getInstance() {
-        return ServiceManager.getService(UpdateNotificationPersistance.class);
+        return ApplicationManager.getApplication().getService(UpdateNotificationPersistance.class);
     }
 }

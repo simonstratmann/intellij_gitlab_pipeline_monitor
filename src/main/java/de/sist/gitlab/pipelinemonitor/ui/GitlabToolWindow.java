@@ -8,7 +8,6 @@ import com.intellij.openapi.actionSystem.ActionToolbar;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.DefaultActionGroup;
 import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.fileEditor.FileEditor;
 import com.intellij.openapi.fileEditor.FileEditorManager;
@@ -113,11 +112,11 @@ public class GitlabToolWindow {
 
     public GitlabToolWindow(Project project) {
         this.project = project;
-        gitlabService = ServiceManager.getService(project, GitlabService.class);
-        backgroundUpdateService = ServiceManager.getService(project, BackgroundUpdateService.class);
+        gitlabService = project.getService(GitlabService.class);
+        backgroundUpdateService = project.getService(BackgroundUpdateService.class);
         messageBus = project.getMessageBus();
-        statusFilter = ServiceManager.getService(project, PipelineFilter.class);
-        gitService = ServiceManager.getService(project, GitService.class);
+        statusFilter = project.getService(PipelineFilter.class);
+        gitService = project.getService(GitService.class);
 
         tableModel = new PipelineTableModel();
         messageBus.connect().subscribe(ReloadListener.RELOAD, pipelineInfos -> ApplicationManager.getApplication().invokeLater(this::updatePipelinesDisplay));
