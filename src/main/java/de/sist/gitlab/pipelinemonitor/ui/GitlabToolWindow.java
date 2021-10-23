@@ -78,7 +78,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-@SuppressWarnings({"Convert2Lambda"})
+@SuppressWarnings({"Convert2Lambda", "DialogTitleCapitalization", "ReplaceNullCheck"})
 public class GitlabToolWindow {
 
     private static final Logger logger = Logger.getInstance(GitlabToolWindow.class);
@@ -154,9 +154,6 @@ public class GitlabToolWindow {
                 int rendererWidth = component.getPreferredSize().width;
                 TableColumn column = getColumnModel().getColumn(columnIndex);
                 column.setPreferredWidth(Math.max(rendererWidth + getIntercellSpacing().width, column.getPreferredWidth()));
-                if (columnIndex == 4 || columnIndex == 5) {
-//                    column.setPreferredWidth(36);
-                }
                 return component;
             }
         };
@@ -179,9 +176,9 @@ public class GitlabToolWindow {
         messageBus.connect().subscribe(ConfigChangedListener.CONFIG_CHANGED, () -> {
             handleEnabledState(project);
             showForAllCheckbox.setSelected(PipelineViewerConfigProject.getInstance(project).isShowPipelinesForAll());
-            toggleShowForAllCheckboxVisibility(project);
+            toggleShowForAllCheckboxVisibility();
         });
-        toggleShowForAllCheckboxVisibility(project);
+        toggleShowForAllCheckboxVisibility();
 
     }
 
@@ -355,7 +352,7 @@ public class GitlabToolWindow {
                     if (text == null || text.isEmpty()) {
                         tableSorter.setRowFilter(null);
                     } else {
-                        RowFilter<PipelineTableModel, Integer> filter = new RowFilter<PipelineTableModel, Integer>() {
+                        RowFilter<PipelineTableModel, Integer> filter = new RowFilter<>() {
                             @Override
                             public boolean include(Entry<? extends PipelineTableModel, ? extends Integer> entry) {
                                 return entry.getModel().rows.get(entry.getIdentifier()).getBranchNameDisplay().toLowerCase().contains(text.toLowerCase());
@@ -370,7 +367,7 @@ public class GitlabToolWindow {
         });
         showForAllCheckbox = new JCheckBox("Show all");
         showForAllCheckbox.setToolTipText("Switch between display of pipelines for current project and all associated projects");
-        toggleShowForAllCheckboxVisibility(project);
+        toggleShowForAllCheckboxVisibility();
         showForAllCheckbox.setSelected(PipelineViewerConfigProject.getInstance(project).isShowPipelinesForAll());
         showForAllCheckbox.addChangeListener(new ChangeListener() {
             @Override
@@ -388,7 +385,7 @@ public class GitlabToolWindow {
         tablePanel.add(new JBScrollPane(pipelineTable), BorderLayout.CENTER, 1);
     }
 
-    private void toggleShowForAllCheckboxVisibility(Project project) {
+    private void toggleShowForAllCheckboxVisibility() {
         final boolean doShow = gitService.getNonIgnoredRepositories().size() > 1;
         if (doShow) {
             if (Arrays.asList(actionPanel.getComponents()).contains(showForAllCheckbox)) {
@@ -413,7 +410,7 @@ public class GitlabToolWindow {
 
     private void updatePipelinesDisplay() {
         tableScrollPane.setEnabled(true);
-        toggleShowForAllCheckboxVisibility(project);
+        toggleShowForAllCheckboxVisibility();
 
         tableModel.rows.clear();
         tableModel.rows.addAll(getStatusesToShow());
@@ -462,7 +459,7 @@ public class GitlabToolWindow {
 
             List<PipelineJobStatus> statuses = new ArrayList<>(statusFilter.filterPipelines(mapping, mappingAndPipelines.getValue(), false));
             statuses.sort(Comparator.comparing(x -> ((PipelineJobStatus) x).creationTime).reversed());
-            Map<String, List<PipelineJobStatus>> branchesToStatuses = statuses.stream().collect(Collectors.groupingBy(x -> x.getBranchNameDisplay()));
+            Map<String, List<PipelineJobStatus>> branchesToStatuses = statuses.stream().collect(Collectors.groupingBy(PipelineJobStatus::getBranchNameDisplay));
             logger.debug("Found ", branchesToStatuses.size(), " branches to show pipelines for");
             for (Map.Entry<String, List<PipelineJobStatus>> entry : branchesToStatuses.entrySet()) {
                 Optional<PipelineJobStatus> firstFinalStatus = entry.getValue().stream().filter(this::isFinalStatus).findFirst();

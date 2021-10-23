@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+## [2.6.3]
+
+* Fix ClassCastException (due a weird bug in the IntelliJ code).
+
 ## [2.6.2]
 
 * Fix rare NPE when trying to read tags.

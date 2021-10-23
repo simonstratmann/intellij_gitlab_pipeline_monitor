@@ -9,6 +9,7 @@ import com.intellij.notification.NotificationType;
 import com.intellij.notification.NotificationsManager;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.util.io.HttpRequests;
@@ -61,7 +62,7 @@ public class GitlabService implements Disposable {
     private static final Pattern REMOTE_BEST_GUESS_PATTERN = Pattern.compile("(?<host>https?://[^/]*)/(?<projectPath>.*)");
     private static final List<String> INCOMPATIBLE_REMOTES = Arrays.asList("github.com", "bitbucket.com");
 
-    private final ConfigProvider config = ApplicationManager.getApplication().getService(ConfigProvider.class);
+    private final ConfigProvider config = ServiceManager.getService(ConfigProvider.class);
     private final Project project;
     private final Map<Mapping, List<PipelineJobStatus>> pipelineInfos = new HashMap<>();
     private final List<MergeRequest> mergeRequests = new ArrayList<>();
@@ -196,7 +197,7 @@ public class GitlabService implements Disposable {
         final String projectPath = hostProjectPathFromRemote.getProjectPath();
         final Optional<Data> data = GraphQl.makeCall(host, ConfigProvider.getToken(url, host), projectPath, Collections.emptyList(), true);
 
-        if (!data.isPresent()) {
+        if (data.isEmpty()) {
             logger.debug("Unable to determine if CI is enabled for " + url + " because the graphql query failed");
             return false;
         }
@@ -213,7 +214,7 @@ public class GitlabService implements Disposable {
 
     public static Optional<Mapping> createMappingWithProjectNameAndId(String remoteUrl, String host, String projectPath, String token, TokenType tokenType) {
         final Optional<Data> data = GraphQl.makeCall(host, token, projectPath, Collections.emptyList(), true);
-        if (!data.isPresent()) {
+        if (data.isEmpty()) {
             return Optional.empty();
         }
 
@@ -272,7 +273,7 @@ public class GitlabService implements Disposable {
                 final TokenType preselectedTokenType = tokenAndType.getLeft() == null ? TokenType.PERSONAL : tokenType;
                 final Optional<Pair<String, TokenType>> response = new TokenDialog("Unable to log in to gitlab. Please enter the access token for access to " + mapping.getRemote(), oldToken, preselectedTokenType).showDialog();
 
-                if (!response.isPresent() || Strings.isNullOrEmpty(response.get().getLeft())) {
+                if (response.isEmpty() || Strings.isNullOrEmpty(response.get().getLeft())) {
                     logger.info("No token entered, setting token to null for remote " + mapping.getRemote());
                     PipelineViewerConfigApp.getInstance().getRemotesAskAgainNextTime().add(mapping.getRemote());
                 } else {
@@ -325,7 +326,7 @@ public class GitlabService implements Disposable {
             }
         }
 
-        return Jackson.OBJECT_MAPPER.readValue(json, new TypeReference<List<PipelineTo>>() {
+        return Jackson.OBJECT_MAPPER.readValue(json, new TypeReference<>() {
         });
     }
 
