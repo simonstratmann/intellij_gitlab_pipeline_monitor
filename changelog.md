@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+## [2.6.4]
+
+* Report connection errors with info log level (so they aren't shown with the blinky red icon).
+
 ## [2.6.3]
 
 * Fix ClassCastException (due a weird bug in the IntelliJ code).

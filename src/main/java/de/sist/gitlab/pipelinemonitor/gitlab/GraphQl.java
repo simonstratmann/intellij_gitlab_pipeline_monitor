@@ -63,7 +63,7 @@ public class GraphQl {
         }
     }
 
-    public static Optional<Data> makeCall(String gitlabHost, String accessToken, String projectPath, List<String> sourceBranches, boolean asTest) {
+    public static Optional<Data> makeCall(String gitlabHost, String accessToken, String projectPath, List<String> sourceBranches) {
         final String graphQlUrl = gitlabHost + "/api/graphql";
 
         final String graphQlQuery = buildQuery(projectPath, sourceBranches);
@@ -72,8 +72,8 @@ public class GraphQl {
             logger.debug("Reading project data using URL ", graphQlUrl, " and query ", graphQlQuery);
 
             responseString = ApplicationManager.getApplication().executeOnPooledThread(() ->
-                    HttpRequests.post(graphQlUrl, "application/json")
-                            .readTimeout(ConfigProvider.getInstance().getConnectTimeoutSeconds() * 1000)
+                            HttpRequests.post(graphQlUrl, "application/json")
+                                    .readTimeout(ConfigProvider.getInstance().getConnectTimeoutSeconds() * 1000)
                             .connectTimeout(ConfigProvider.getInstance().getConnectTimeoutSeconds() * 1000)
                             //Is handled in connection step
                             .throwStatusCodeException(false)
@@ -89,11 +89,7 @@ public class GraphQl {
                                     request.write(graphQlQuery);
                                     response = request.readString();
                                 } catch (Exception e) {
-                                    if (asTest) {
-                                        logger.info("Error connecting to gitlab", e);
-                                    } else {
-                                        logger.error("Error connecting to gitlab", e);
-                                    }
+                                    logger.warn("Error connecting to gitlab", e);
                                     return null;
                                 }
                                 logger.debug("Got response from query\n:", response);
@@ -101,11 +97,7 @@ public class GraphQl {
                             }))
                     .get();
         } catch (Exception e) {
-            if (asTest) {
                 logger.info("Error loading project data using URL " + graphQlUrl + " and query " + graphQlQuery, e);
-            } else {
-                logger.error("Error loading project data using URL " + graphQlUrl + " and query " + graphQlQuery, e);
-            }
             return Optional.empty();
         }
         if (responseString == null) {
@@ -115,11 +107,7 @@ public class GraphQl {
         try {
             return Optional.of(parse(responseString));
         } catch (Exception e) {
-            if (asTest) {
                 logger.info("Error reading project data using URL " + graphQlUrl + " and query " + graphQlQuery + " with response " + responseString, e);
-            } else {
-                logger.error("Error reading project data using URL " + graphQlUrl + " and query " + graphQlQuery + " with response " + responseString, e);
-            }
             return Optional.empty();
         }
     }

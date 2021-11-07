@@ -97,7 +97,7 @@ public class GitlabService implements Disposable {
                 for (Mapping mapping : pipelineInfos.keySet()) {
                     logger.debug("Loading merge requests for remote ", mapping.getRemote());
                     final List<String> sourceBranches = new ArrayList<>(gitService.getTrackedBranches(mapping));
-                    final Optional<Data> data = GraphQl.makeCall(mapping.getHost(), ConfigProvider.getToken(mapping), mapping.getProjectPath(), sourceBranches, false);
+                    final Optional<Data> data = GraphQl.makeCall(mapping.getHost(), ConfigProvider.getToken(mapping), mapping.getProjectPath(), sourceBranches);
                     if (data.isPresent()) {
                         final List<MergeRequest> newMergeRequests = data.get().getProject().getMergeRequests().getEdges().stream().map(Edge::getMergeRequest).collect(Collectors.toList());
                         mergeRequests.addAll(newMergeRequests);
@@ -115,7 +115,7 @@ public class GitlabService implements Disposable {
                     }
                 }
             } catch (Exception e) {
-                logger.error("Unable to load merge requests", e);
+                logger.info("Unable to load merge requests", e);
             }
         }
     }
@@ -195,7 +195,7 @@ public class GitlabService implements Disposable {
 
         final String host = hostProjectPathFromRemote.getHost();
         final String projectPath = hostProjectPathFromRemote.getProjectPath();
-        final Optional<Data> data = GraphQl.makeCall(host, ConfigProvider.getToken(url, host), projectPath, Collections.emptyList(), true);
+        final Optional<Data> data = GraphQl.makeCall(host, ConfigProvider.getToken(url, host), projectPath, Collections.emptyList());
 
         if (data.isEmpty()) {
             logger.debug("Unable to determine if CI is enabled for " + url + " because the graphql query failed");
@@ -213,7 +213,7 @@ public class GitlabService implements Disposable {
     }
 
     public static Optional<Mapping> createMappingWithProjectNameAndId(String remoteUrl, String host, String projectPath, String token, TokenType tokenType) {
-        final Optional<Data> data = GraphQl.makeCall(host, token, projectPath, Collections.emptyList(), true);
+        final Optional<Data> data = GraphQl.makeCall(host, token, projectPath, Collections.emptyList());
         if (data.isEmpty()) {
             return Optional.empty();
         }

@@ -135,7 +135,7 @@ public class GitService {
         try {
             return future.get(3, TimeUnit.SECONDS);
         } catch (Exception e) {
-            logger.error("Error loading tags", e);
+            logger.info("Error loading tags", e);
             return Collections.emptyList();
         }
     }
