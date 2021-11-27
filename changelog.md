@@ -5,6 +5,8 @@
 * Fix NPE when accessing Gitlab instances older than v14.2. These will not support merge request pipelines. See [#28](https://gitlab.com/ppiag/intellij_gitlab_pipeline_monitor/-/issues/28)
   and [#32](https://gitlab.com/ppiag/intellij_gitlab_pipeline_monitor/-/issues/32)
 
+* Don't show notifications for previous pipelines (either when monitoring a new project or when starting IntelliJ with a project already monitored).
+
 ## [2.6.4]
 
 * Report connection errors with info log level (so they aren't shown with the blinky red icon).

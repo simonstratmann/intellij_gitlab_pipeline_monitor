@@ -78,7 +78,9 @@ public class NotifierService {
 //        enableDebugModeIfApplicable();
         if (shownNotifications == null) {
             //Don't show notifications for pipeline statuses from before the program was started
-            shownNotifications = mappingToPipelines.values().stream().flatMap(Collection::stream).collect(Collectors.toSet());
+            if (!mappingToPipelines.isEmpty()) {
+                shownNotifications = mappingToPipelines.values().stream().flatMap(Collection::stream).collect(Collectors.toSet());
+            }
             return;
         }
 
