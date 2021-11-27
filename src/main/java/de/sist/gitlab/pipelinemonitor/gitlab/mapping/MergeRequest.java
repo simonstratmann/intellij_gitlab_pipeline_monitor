@@ -1,6 +1,8 @@
 
 package de.sist.gitlab.pipelinemonitor.gitlab.mapping;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+
 import javax.annotation.Generated;
 
 @Generated("jsonschema2pojo")
@@ -47,13 +49,14 @@ public class MergeRequest {
 
     public static class HeadPipeline {
 
+        @JsonInclude(JsonInclude.Include.NON_NULL)
         private String ref;
-
 
         public String getRef() {
             return ref;
         }
 
+        @JsonInclude(JsonInclude.Include.NON_NULL)
         public void setRef(String ref) {
             this.ref = ref;
         }

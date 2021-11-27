@@ -6,16 +6,22 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.util.io.HttpRequests;
 import de.sist.gitlab.pipelinemonitor.Jackson;
 import de.sist.gitlab.pipelinemonitor.config.ConfigProvider;
+import de.sist.gitlab.pipelinemonitor.config.PipelineViewerConfigApp;
 import de.sist.gitlab.pipelinemonitor.gitlab.mapping.Data;
 import de.sist.gitlab.pipelinemonitor.gitlab.mapping.DataWrapper;
 
+import java.io.IOException;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
  * @author PPI AG
  */
+@SuppressWarnings("rawtypes")
 public class GraphQl {
 
     private static final Logger logger = Logger.getInstance(GitlabService.class);
@@ -33,7 +39,7 @@ public class GraphQl {
             "          webUrl\n" +
             "          title\n" +
             "          headPipeline {\n" +
-            "            ref\n" +
+            "            %s\n" +
             "          }" +
             "        }\n" +
             "      } \n" +
@@ -43,8 +49,9 @@ public class GraphQl {
 
     private static final String REQUEST_TEMPLATE = "{\"query\": \"%s\"}";
 
-    public static String buildQuery(String projectPath, List<String> sourceBranches) {
-        final String graphqlQuery = String.format(QUERY_TEMPLATE, projectPath, sourceBranches.stream().map(x -> "\"" + x + "\"").collect(Collectors.joining(",")));
+    private static String buildQuery(String projectPath, List<String> sourceBranches, boolean supportsRef) {
+        final String sourceBranchesString = sourceBranches.stream().map(x -> "\"" + x + "\"").collect(Collectors.joining(","));
+        final String graphqlQuery = String.format(QUERY_TEMPLATE, projectPath, sourceBranchesString, (supportsRef ? "ref" : "id"));
         return String.format(REQUEST_TEMPLATE, graphqlQuery.replace("\"", "\\\"").replaceAll("[\\r\\n|\\n]", ""));
     }
 
@@ -63,10 +70,43 @@ public class GraphQl {
         }
     }
 
+    private static Optional<Boolean> determineSupportsRef(String gitlabHost, String accessToken) {
+        final String version;
+        if (PipelineViewerConfigApp.getInstance().getGitlabInstanceInfos().containsKey(gitlabHost)) {
+            final PipelineViewerConfigApp.GitlabInfo info = PipelineViewerConfigApp.getInstance().getGitlabInstanceInfos().get(gitlabHost);
+            if (info.getLastCheck().isBefore(Instant.now().minus(1, ChronoUnit.DAYS))) {
+                version = info.getVersion();
+                return Optional.of(version.startsWith("14.2") || version.startsWith("15"));
+            }
+        }
+        try {
+            final String response = GitlabService.makeApiCall(gitlabHost + "/api/v4/version", accessToken);
+            final Map responseMap = Jackson.OBJECT_MAPPER.readValue(response, Map.class);
+            final PipelineViewerConfigApp.GitlabInfo info = new PipelineViewerConfigApp.GitlabInfo(gitlabHost, Instant.now());
+            info.setVersion((String) responseMap.get("version"));
+            PipelineViewerConfigApp.getInstance().getGitlabInstanceInfos().put(gitlabHost, info);
+            logger.debug("Updated gitlab info for " + gitlabHost + ": " + info);
+            version = (String) responseMap.get("version");
+        } catch (IOException e) {
+            logger.error("Unable to load API version", e);
+            return Optional.empty();
+        } catch (GitlabService.LoginException e) {
+            logger.info("Unable to log in to " + gitlabHost + " load API version");
+            return Optional.empty();
+        }
+
+        return Optional.of(version.startsWith("14.2") || version.startsWith("15"));
+    }
+
     public static Optional<Data> makeCall(String gitlabHost, String accessToken, String projectPath, List<String> sourceBranches) {
         final String graphQlUrl = gitlabHost + "/api/graphql";
 
-        final String graphQlQuery = buildQuery(projectPath, sourceBranches);
+        final Optional<Boolean> supportsRef = determineSupportsRef(gitlabHost, accessToken);
+        if (supportsRef.isEmpty()) {
+            return Optional.empty();
+        }
+
+        final String graphQlQuery = buildQuery(projectPath, sourceBranches, supportsRef.get());
         final String responseString;
         try {
             logger.debug("Reading project data using URL ", graphQlUrl, " and query ", graphQlQuery);
@@ -74,9 +114,9 @@ public class GraphQl {
             responseString = ApplicationManager.getApplication().executeOnPooledThread(() ->
                             HttpRequests.post(graphQlUrl, "application/json")
                                     .readTimeout(ConfigProvider.getInstance().getConnectTimeoutSeconds() * 1000)
-                            .connectTimeout(ConfigProvider.getInstance().getConnectTimeoutSeconds() * 1000)
-                            //Is handled in connection step
-                            .throwStatusCodeException(false)
+                                    .connectTimeout(ConfigProvider.getInstance().getConnectTimeoutSeconds() * 1000)
+                                    //Is handled in connection step
+                                    .throwStatusCodeException(false)
                             .connect(request -> {
                                 final String response;
                                 try {

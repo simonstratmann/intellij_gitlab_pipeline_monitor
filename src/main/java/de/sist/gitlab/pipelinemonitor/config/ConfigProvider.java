@@ -115,7 +115,6 @@ public class ConfigProvider {
         return PipelineViewerConfigApp.getInstance().isShowNotificationForWatchedBranches();
     }
 
-
     public boolean isShowConnectionErrorNotifications() {
         return PipelineViewerConfigApp.getInstance().isShowConnectionErrorNotifications();
     }

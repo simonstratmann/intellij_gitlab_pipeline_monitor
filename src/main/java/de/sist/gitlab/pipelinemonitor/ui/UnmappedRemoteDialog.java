@@ -180,7 +180,7 @@ public class UnmappedRemoteDialog extends JDialog {
         try {
             AtomicReference<Optional<Mapping>> mappingOptional = new AtomicReference<>();
             ProgressManager.getInstance().runProcessWithProgressSynchronously(() -> {
-                mappingOptional.set(GitlabService.createMappingWithProjectNameAndId(remoteUrl, hostInput.getText(), projectPathInput.getText(), accessTokenInput.getText(), radioButtonTokenPersonal.isSelected() ? TokenType.PERSONAL : TokenType.PROJECT));
+                mappingOptional.set(GitlabService.createMappingWithProjectNameAndId(remoteUrl, hostInput.getText(), projectPathInput.getText(), Strings.emptyToNull(accessTokenInput.getText()), radioButtonTokenPersonal.isSelected() ? TokenType.PERSONAL : TokenType.PROJECT));
             }, "Checking mapping...", false, null, rootPane);
             if (mappingOptional.get() == null || !mappingOptional.get().isPresent()) {
                 Messages.showWarningDialog("The connection to gitlab failed or the project could not be found.", "Gitlab Connection Error");

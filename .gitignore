@@ -5,3 +5,8 @@
 /build
 /.idea
 /out
+/docker/*/data/
+/docker/*/logs/
+/docker/*/config/
+#/docker/checkedOutProjects
+

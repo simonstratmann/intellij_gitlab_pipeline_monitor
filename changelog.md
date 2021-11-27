@@ -1,5 +1,10 @@
 ## [Unreleased]
 
+## [2.6.5]
+
+* Fix NPE when accessing Gitlab instances older than v14.2. These will not support merge request pipelines. See [#28](https://gitlab.com/ppiag/intellij_gitlab_pipeline_monitor/-/issues/28)
+  and [#32](https://gitlab.com/ppiag/intellij_gitlab_pipeline_monitor/-/issues/32)
+
 ## [2.6.4]
 
 * Report connection errors with info log level (so they aren't shown with the blinky red icon).

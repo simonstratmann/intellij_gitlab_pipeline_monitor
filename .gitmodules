@@ -1,0 +1,9 @@
+[submodule "docker/checkedOutProjects/regularpublicproject"]
+	path = docker/checkedOutProjects/regularpublicproject
+	url = http://gitlab.sist.int/root/regularpublicproject.git
+[submodule "docker/14.3/regularpublicproject"]
+	path = docker/14.3/regularpublicproject
+	url = http://gitlab.sist.int/root/regularpublicproject.git
+[submodule "docker/14.3/checkedOutProjects/regularpublicproject"]
+	path = docker/14.3/checkedOutProjects/regularpublicproject
+	url = http://gitlab.sist.int/root/regularpublicproject.git

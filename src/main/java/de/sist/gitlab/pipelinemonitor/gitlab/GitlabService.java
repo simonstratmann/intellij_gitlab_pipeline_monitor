@@ -289,7 +289,6 @@ public class GitlabService implements Disposable {
     }
 
     private List<PipelineTo> makePipelinesUrlCall(int page, Mapping mapping) throws IOException, LoginException {
-        final String accessToken = ConfigProvider.getToken(mapping);
         String url;
         try {
             URIBuilder uriBuilder = new URIBuilder(mapping.getHost() + "/api/v4/projects/" + mapping.getGitlabProjectId() + "/pipelines");
@@ -297,9 +296,9 @@ public class GitlabService implements Disposable {
             uriBuilder.addParameter("page", String.valueOf(page))
                     .addParameter("per_page", "100");
 
-            if (accessToken != null) {
+            if (ConfigProvider.getToken(mapping) != null) {
                 logger.debug("Using access token for access to ", uriBuilder);
-                uriBuilder.addParameter("private_token", accessToken);
+                uriBuilder.addParameter("private_token", ConfigProvider.getToken(mapping));
             } else {
                 logger.debug("No access token set for remote ", mapping.getRemote());
             }
@@ -308,11 +307,30 @@ public class GitlabService implements Disposable {
         } catch (URISyntaxException e) {
             throw new RuntimeException(e);
         }
-        String json;
-        try {
 
-            logger.debug("Calling URL ", url.replace(accessToken == null ? "<accessToken>" : accessToken, "<accessToken>"));
-            json = HttpRequests.request(url)
+        String json = makeApiCall(url, ConfigProvider.getToken(mapping));
+        return Jackson.OBJECT_MAPPER.readValue(json, new TypeReference<>() {
+        });
+    }
+
+    public static String makeApiCall(String url, String accessToken) throws IOException, LoginException {
+        try {
+            URIBuilder uriBuilder = new URIBuilder(url);
+
+            if (accessToken != null) {
+                uriBuilder.addParameter("private_token", accessToken);
+            }
+
+            url = uriBuilder.build().toString();
+        } catch (URISyntaxException e) {
+            throw new RuntimeException(e);
+        }
+
+        final String response;
+        try {
+            final String cleanedUrl = accessToken == null ? url : url.replace(accessToken, "<accessToken>");
+            logger.debug("Calling URL ", cleanedUrl);
+            response = HttpRequests.request(url)
                     .connectTimeout(ConfigProvider.getInstance().getConnectTimeoutSeconds() * 1000)
                     .readTimeout(ConfigProvider.getInstance().getConnectTimeoutSeconds() * 1000)
                     .readString();
@@ -322,12 +340,11 @@ public class GitlabService implements Disposable {
                 logger.info("Unable to load pipelines. Status code " + e.getStatusCode() + ". Message: " + e.getMessage());
                 throw new LoginException();
             } else {
-                throw new IOException("Unable to load pipelines from " + url + ". Status code: " + e.getStatusCode() + ". Status message: " + e.getMessage());
+                throw new IOException("Unable to access " + url + ". Status code: " + e.getStatusCode() + ". Status message: " + e.getMessage());
             }
         }
 
-        return Jackson.OBJECT_MAPPER.readValue(json, new TypeReference<>() {
-        });
+        return response;
     }
 
     public String getGitlabHtmlBaseUrl(String projectId) {
@@ -427,7 +444,7 @@ public class GitlabService implements Disposable {
 
     }
 
-    private static class LoginException extends Exception {
+    static class LoginException extends Exception {
     }
 
 

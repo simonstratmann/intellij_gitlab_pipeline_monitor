@@ -1,5 +1,6 @@
 package de.sist.gitlab.pipelinemonitor.config;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Strings;
 import com.intellij.openapi.components.PersistentStateComponent;
 import com.intellij.openapi.components.ServiceManager;
@@ -9,9 +10,12 @@ import com.intellij.util.xmlb.XmlSerializerUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 @State(name = "PipelineViewerConfigApp", storages = {@Storage("PipelineViewerConfigApp.xml")})
@@ -42,6 +46,7 @@ public class PipelineViewerConfigApp implements PersistentStateComponent<Pipelin
     private int connectTimeout = 10;
     private MrPipelineDisplayType mrPipelineDisplayType = MrPipelineDisplayType.SOURCE_BRANCH;
     private String mrPipelinePrefix = "MR: ";
+    private final Map<String, GitlabInfo> gitlabInstanceInfos = new HashMap<>();
 
     public List<Mapping> getMappings() {
         return mappings;
@@ -147,6 +152,10 @@ public class PipelineViewerConfigApp implements PersistentStateComponent<Pipelin
         this.mrPipelinePrefix = mrPipelinePrefix;
     }
 
+    public Map<String, GitlabInfo> getGitlabInstanceInfos() {
+        return gitlabInstanceInfos;
+    }
+
     @Override
     public @Nullable PipelineViewerConfigApp getState() {
         return this;
@@ -160,4 +169,42 @@ public class PipelineViewerConfigApp implements PersistentStateComponent<Pipelin
     public static PipelineViewerConfigApp getInstance() {
         return ServiceManager.getService(PipelineViewerConfigApp.class);
     }
+
+    public static class GitlabInfo {
+        private String version;
+        private Instant lastCheck = Instant.now();
+
+        public GitlabInfo() {
+        }
+
+        public GitlabInfo(String version, Instant lastCheck) {
+            this.version = version;
+            this.lastCheck = lastCheck;
+        }
+
+        public void setVersion(String version) {
+            this.version = version;
+        }
+
+        public void setLastCheck(Instant lastCheck) {
+            this.lastCheck = lastCheck;
+        }
+
+        public String getVersion() {
+            return version;
+        }
+
+        public Instant getLastCheck() {
+            return lastCheck;
+        }
+
+        @Override
+        public String toString() {
+            return MoreObjects.toStringHelper(this)
+                    .add("version", version)
+                    .add("lastCheck", lastCheck)
+                    .toString();
+        }
+    }
+
 }
