@@ -79,8 +79,9 @@ public class GraphQl {
                 return Optional.of(version.startsWith("14.2") || version.startsWith("15"));
             }
         }
+        final String url = gitlabHost + "/api/v4/version";
         try {
-            final String response = GitlabService.makeApiCall(gitlabHost + "/api/v4/version", accessToken);
+            final String response = GitlabService.makeApiCall(url, accessToken);
             final Map responseMap = Jackson.OBJECT_MAPPER.readValue(response, Map.class);
             final PipelineViewerConfigApp.GitlabInfo info = new PipelineViewerConfigApp.GitlabInfo(gitlabHost, Instant.now());
             info.setVersion((String) responseMap.get("version"));
@@ -88,7 +89,7 @@ public class GraphQl {
             logger.debug("Updated gitlab info for " + gitlabHost + ": " + info);
             version = (String) responseMap.get("version");
         } catch (IOException e) {
-            logger.error("Unable to load API version", e);
+            logger.error("Unable to load API version using URL " + url, e);
             return Optional.empty();
         } catch (GitlabService.LoginException e) {
             logger.info("Unable to log in to " + gitlabHost + " load API version");
@@ -98,12 +99,17 @@ public class GraphQl {
         return Optional.of(version.startsWith("14.2") || version.startsWith("15"));
     }
 
-    public static Optional<Data> makeCall(String gitlabHost, String accessToken, String projectPath, List<String> sourceBranches) {
+    public static Optional<Data> makeCall(String gitlabHost, String accessToken, String projectPath, List<String> sourceBranches, boolean mrRelevant) {
         final String graphQlUrl = gitlabHost + "/api/graphql";
 
-        final Optional<Boolean> supportsRef = determineSupportsRef(gitlabHost, accessToken);
-        if (supportsRef.isEmpty()) {
-            return Optional.empty();
+        final Optional<Boolean> supportsRef;
+        if (mrRelevant) {
+            supportsRef = determineSupportsRef(gitlabHost, accessToken);
+            if (supportsRef.isEmpty()) {
+                return Optional.empty();
+            }
+        } else {
+            supportsRef = Optional.of(false);
         }
 
         final String graphQlQuery = buildQuery(projectPath, sourceBranches, supportsRef.get());

@@ -97,7 +97,7 @@ public class GitlabService implements Disposable {
                 for (Mapping mapping : pipelineInfos.keySet()) {
                     logger.debug("Loading merge requests for remote ", mapping.getRemote());
                     final List<String> sourceBranches = new ArrayList<>(gitService.getTrackedBranches(mapping));
-                    final Optional<Data> data = GraphQl.makeCall(mapping.getHost(), ConfigProvider.getToken(mapping), mapping.getProjectPath(), sourceBranches);
+                    final Optional<Data> data = GraphQl.makeCall(mapping.getHost(), ConfigProvider.getToken(mapping), mapping.getProjectPath(), sourceBranches, true);
                     if (data.isPresent()) {
                         final List<MergeRequest> newMergeRequests = data.get().getProject().getMergeRequests().getEdges().stream().map(Edge::getMergeRequest).collect(Collectors.toList());
                         mergeRequests.addAll(newMergeRequests);
@@ -195,7 +195,7 @@ public class GitlabService implements Disposable {
 
         final String host = hostProjectPathFromRemote.getHost();
         final String projectPath = hostProjectPathFromRemote.getProjectPath();
-        final Optional<Data> data = GraphQl.makeCall(host, ConfigProvider.getToken(url, host), projectPath, Collections.emptyList());
+        final Optional<Data> data = GraphQl.makeCall(host, ConfigProvider.getToken(url, host), projectPath, Collections.emptyList(), false);
 
         if (data.isEmpty()) {
             logger.debug("Unable to determine if CI is enabled for " + url + " because the graphql query failed");
@@ -213,7 +213,7 @@ public class GitlabService implements Disposable {
     }
 
     public static Optional<Mapping> createMappingWithProjectNameAndId(String remoteUrl, String host, String projectPath, String token, TokenType tokenType) {
-        final Optional<Data> data = GraphQl.makeCall(host, token, projectPath, Collections.emptyList());
+        final Optional<Data> data = GraphQl.makeCall(host, token, projectPath, Collections.emptyList(), false);
         if (data.isEmpty()) {
             return Optional.empty();
         }
