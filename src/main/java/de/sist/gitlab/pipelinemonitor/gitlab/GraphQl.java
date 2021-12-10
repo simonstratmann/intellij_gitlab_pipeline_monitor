@@ -9,13 +9,13 @@ import de.sist.gitlab.pipelinemonitor.config.ConfigProvider;
 import de.sist.gitlab.pipelinemonitor.config.PipelineViewerConfigApp;
 import de.sist.gitlab.pipelinemonitor.gitlab.mapping.Data;
 import de.sist.gitlab.pipelinemonitor.gitlab.mapping.DataWrapper;
+import org.jetbrains.annotations.Nullable;
 
-import java.io.IOException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 /**
@@ -70,33 +70,38 @@ public class GraphQl {
         }
     }
 
-    private static Optional<Boolean> determineSupportsRef(String gitlabHost, String accessToken) {
-        final String version;
+    private static Optional<Boolean> determineSupportsRef(String gitlabHost, String accessToken, String projectPath, List<String> sourceBranches) {
         if (PipelineViewerConfigApp.getInstance().getGitlabInstanceInfos().containsKey(gitlabHost)) {
             final PipelineViewerConfigApp.GitlabInfo info = PipelineViewerConfigApp.getInstance().getGitlabInstanceInfos().get(gitlabHost);
             if (info.getLastCheck().isBefore(Instant.now().minus(1, ChronoUnit.DAYS))) {
-                version = info.getVersion();
-                return Optional.of(version.startsWith("14.2") || version.startsWith("15"));
+                logger.debug("Found recent supportsRef info for " + gitlabHost + ": " + info);
+                return Optional.of(info.isSupportsRef());
             }
         }
-        final String url = gitlabHost + "/api/v4/version";
+        boolean supportsRef;
+        final String graphQlUrl = gitlabHost + "/api/graphql";
         try {
-            final String response = GitlabService.makeApiCall(url, accessToken);
-            final Map responseMap = Jackson.OBJECT_MAPPER.readValue(response, Map.class);
-            final PipelineViewerConfigApp.GitlabInfo info = new PipelineViewerConfigApp.GitlabInfo(gitlabHost, Instant.now());
-            info.setVersion((String) responseMap.get("version"));
-            PipelineViewerConfigApp.getInstance().getGitlabInstanceInfos().put(gitlabHost, info);
-            logger.debug("Updated gitlab info for " + gitlabHost + ": " + info);
-            version = (String) responseMap.get("version");
-        } catch (IOException e) {
-            logger.error("Unable to load API version using URL " + url, e);
-            return Optional.empty();
-        } catch (GitlabService.LoginException e) {
-            logger.info("Unable to log in to " + gitlabHost + " load API version");
-            return Optional.empty();
+            final String graphQlQuery = buildQuery(projectPath, sourceBranches, true);
+            logger.debug("Reading project data using URL ", graphQlUrl, " and query ", graphQlQuery);
+
+            final String responseString = call(accessToken, graphQlUrl, graphQlQuery);
+            if (responseString == null || responseString.contains("Field 'ref' doesn't exist on type")) {
+                logger.info("Determined " + gitlabHost + " does not support ref from response: " + responseString);
+                supportsRef = false;
+
+            } else {
+                supportsRef = true;
+            }
+        } catch (Exception e) {
+            logger.info("Error determining if " + gitlabHost + " supports ref", e);
+            supportsRef = false;
         }
 
-        return Optional.of(version.startsWith("14.2") || version.startsWith("15"));
+        final PipelineViewerConfigApp.GitlabInfo info = new PipelineViewerConfigApp.GitlabInfo(Instant.now(), supportsRef);
+        PipelineViewerConfigApp.getInstance().getGitlabInstanceInfos().put(gitlabHost, info);
+        logger.debug("Updated gitlab info for " + gitlabHost + ": " + info);
+
+        return Optional.of(supportsRef);
     }
 
     public static Optional<Data> makeCall(String gitlabHost, String accessToken, String projectPath, List<String> sourceBranches, boolean mrRelevant) {
@@ -104,7 +109,7 @@ public class GraphQl {
 
         final Optional<Boolean> supportsRef;
         if (mrRelevant) {
-            supportsRef = determineSupportsRef(gitlabHost, accessToken);
+            supportsRef = determineSupportsRef(gitlabHost, accessToken, projectPath, sourceBranches);
             if (supportsRef.isEmpty()) {
                 return Optional.empty();
             }
@@ -117,33 +122,9 @@ public class GraphQl {
         try {
             logger.debug("Reading project data using URL ", graphQlUrl, " and query ", graphQlQuery);
 
-            responseString = ApplicationManager.getApplication().executeOnPooledThread(() ->
-                            HttpRequests.post(graphQlUrl, "application/json")
-                                    .readTimeout(ConfigProvider.getInstance().getConnectTimeoutSeconds() * 1000)
-                                    .connectTimeout(ConfigProvider.getInstance().getConnectTimeoutSeconds() * 1000)
-                                    //Is handled in connection step
-                                    .throwStatusCodeException(false)
-                            .connect(request -> {
-                                final String response;
-                                try {
-                                    if (accessToken != null) {
-                                        request.getConnection().setRequestProperty("Authorization", "Bearer " + accessToken);
-                                        logger.debug("Using access token with length ", accessToken.length());
-                                    } else {
-                                        logger.debug("Not using access token");
-                                    }
-                                    request.write(graphQlQuery);
-                                    response = request.readString();
-                                } catch (Exception e) {
-                                    logger.warn("Error connecting to gitlab", e);
-                                    return null;
-                                }
-                                logger.debug("Got response from query\n:", response);
-                                return response;
-                            }))
-                    .get();
+            responseString = call(accessToken, graphQlUrl, graphQlQuery);
         } catch (Exception e) {
-                logger.info("Error loading project data using URL " + graphQlUrl + " and query " + graphQlQuery, e);
+            logger.info("Error loading project data using URL " + graphQlUrl + " and query " + graphQlQuery, e);
             return Optional.empty();
         }
         if (responseString == null) {
@@ -153,8 +134,39 @@ public class GraphQl {
         try {
             return Optional.of(parse(responseString));
         } catch (Exception e) {
-                logger.info("Error reading project data using URL " + graphQlUrl + " and query " + graphQlQuery + " with response " + responseString, e);
+            logger.info("Error reading project data using URL " + graphQlUrl + " and query " + graphQlQuery + " with response " + responseString, e);
             return Optional.empty();
         }
+    }
+
+    @Nullable
+    private static String call(String accessToken, String graphQlUrl, String graphQlQuery) throws InterruptedException, ExecutionException {
+        final String responseString;
+        responseString = ApplicationManager.getApplication().executeOnPooledThread(() ->
+                        HttpRequests.post(graphQlUrl, "application/json")
+                                .readTimeout(ConfigProvider.getInstance().getConnectTimeoutSeconds() * 1000)
+                                .connectTimeout(ConfigProvider.getInstance().getConnectTimeoutSeconds() * 1000)
+                                //Is handled in connection step
+                                .throwStatusCodeException(false)
+                                .connect(request -> {
+                                    final String response;
+                                    try {
+                                        if (accessToken != null) {
+                                            request.getConnection().setRequestProperty("Authorization", "Bearer " + accessToken);
+                                            logger.debug("Using access token with length ", accessToken.length());
+                                        } else {
+                                            logger.debug("Not using access token");
+                                        }
+                                        request.write(graphQlQuery);
+                                        response = request.readString();
+                                    } catch (Exception e) {
+                                        logger.warn("Error connecting to gitlab", e);
+                                        return null;
+                                    }
+                                    logger.debug("Got response from query\n:", response);
+                                    return response;
+                                }))
+                .get();
+        return responseString;
     }
 }

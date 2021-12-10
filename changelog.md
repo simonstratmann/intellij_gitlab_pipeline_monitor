@@ -1,5 +1,14 @@
 ## [Unreleased]
 
+## [2.6.6]
+
+### Fixed
+
+- In 2.6.5 I added a check of the gitlab version to determine if a certain parameter is supported. Unfortunately I wasn't aware that the /api/version endpoint is protected and needs authentication even if you can access other API endpoints
+  without authentication. That means that for self hosted gitlab instances which don't require an access token to request a project's pipelines the version could not be determined and this was interpreted as the parameter not being
+  supported. I switched to an approach that's either hacky pragmatic - I just make a test query using the parameter and if gitlab tells me that parameter isn't supported I save this information. Long story short: MRs for pipelines should be
+  shown again.
+
 ### Changed
 
 - New changelog format which supports the display of latest changes in the plugins menu and on the Jetbrains plugin page.

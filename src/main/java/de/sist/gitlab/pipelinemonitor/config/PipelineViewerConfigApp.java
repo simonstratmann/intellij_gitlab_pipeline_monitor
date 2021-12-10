@@ -171,38 +171,39 @@ public class PipelineViewerConfigApp implements PersistentStateComponent<Pipelin
     }
 
     public static class GitlabInfo {
-        private String version;
         private Instant lastCheck = Instant.now();
+        private boolean supportsRef = false;
 
         public GitlabInfo() {
         }
 
-        public GitlabInfo(String version, Instant lastCheck) {
-            this.version = version;
+        public GitlabInfo(Instant lastCheck, boolean supportsRef) {
             this.lastCheck = lastCheck;
-        }
-
-        public void setVersion(String version) {
-            this.version = version;
+            this.supportsRef = supportsRef;
         }
 
         public void setLastCheck(Instant lastCheck) {
             this.lastCheck = lastCheck;
         }
 
-        public String getVersion() {
-            return version;
-        }
 
         public Instant getLastCheck() {
             return lastCheck;
         }
 
+        public boolean isSupportsRef() {
+            return supportsRef;
+        }
+
+        public void setSupportsRef(boolean supportsRef) {
+            this.supportsRef = supportsRef;
+        }
+
         @Override
         public String toString() {
             return MoreObjects.toStringHelper(this)
-                    .add("version", version)
                     .add("lastCheck", lastCheck)
+                    .add("supportsRef", supportsRef)
                     .toString();
         }
     }
