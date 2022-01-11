@@ -22,6 +22,9 @@ When the plugin detects a git remote that is unknown it try to determine if it's
 When you have time click the first action in it and a dialog will appear, asking you if you want to monitor pipelines for this remote (assuming it's associated with a gitlab project):<br>
 <img src="https://i.imgur.com/qQo1fvf.png" width="500" alt="Screenshot untracked remote"/>
 
+If you want to save tokens for longer than the lifetime of an IDE instance please make sure that they're actually saved: <a href="jetbrains://idea/settings?name=Appearance+%26+Behavior--System+Settings--Passwords">File | Settings |
+Appearance & Behavior | System Settings | Passwords</a>
+
 ## Troubleshooting
 
 Unfortunately gitlab returns an empty response if access to a private project was not possible due to an auth error. Therefore the plugin can't tell if the gitlab host is wrong, the project path is wrong or an invalid access token was used.

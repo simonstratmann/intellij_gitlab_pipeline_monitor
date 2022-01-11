@@ -24,7 +24,7 @@ import java.util.stream.Collectors;
 @SuppressWarnings("rawtypes")
 public class GraphQl {
 
-    private static final Logger logger = Logger.getInstance(GitlabService.class);
+    private static final Logger logger = Logger.getInstance(GraphQl.class);
 
     private static final String QUERY_TEMPLATE = "{\n" +
             "  project(fullPath: \"%s\") {\n" +
@@ -155,7 +155,7 @@ public class GraphQl {
                                             request.getConnection().setRequestProperty("Authorization", "Bearer " + accessToken);
                                             logger.debug("Using access token with length ", accessToken.length());
                                         } else {
-                                            logger.debug("Not using access token");
+                                            logger.debug("Not using access token as none is set");
                                         }
                                         request.write(graphQlQuery);
                                         response = request.readString();

@@ -115,7 +115,7 @@ public class BackgroundUpdateService {
             try {
                 logger.debug("Starting IntelliJ background task", (triggeredByUser ? " triggered by user" : ""));
                 gitlabService.checkForUnmappedRemotes(triggeredByUser);
-                gitlabService.updatePipelineInfos();
+                gitlabService.updatePipelineInfos(triggeredByUser);
                 gitlabService.updateMergeRequests();
                 if (!messageBus.isDisposed()) {
                     messageBus.syncPublisher(ReloadListener.RELOAD).reload(gitlabService.getPipelineInfos());

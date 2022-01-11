@@ -43,9 +43,11 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -65,6 +67,7 @@ public class GitlabService implements Disposable {
     private final ConfigProvider config = ServiceManager.getService(ConfigProvider.class);
     private final Project project;
     private final Map<Mapping, List<PipelineJobStatus>> pipelineInfos = new HashMap<>();
+    private final Set<Mapping> openTokenDialogsByMapping = new HashSet<>();
     private final List<MergeRequest> mergeRequests = new ArrayList<>();
     final GitService gitService;
     private boolean isCheckingForUnmappedRemotes;
@@ -75,10 +78,10 @@ public class GitlabService implements Disposable {
         gitService = project.getService(GitService.class);
     }
 
-    public void updatePipelineInfos() throws IOException {
+    public void updatePipelineInfos(boolean triggeredByUser) throws IOException {
         synchronized (pipelineInfos) {
             final Map<Mapping, List<PipelineJobStatus>> newMappingToPipelines = new HashMap<>();
-            for (Map.Entry<Mapping, List<PipelineTo>> entry : loadPipelines().entrySet()) {
+            for (Map.Entry<Mapping, List<PipelineTo>> entry : loadPipelines(triggeredByUser).entrySet()) {
                 final List<PipelineJobStatus> jobStatuses = entry.getValue().stream()
                         .map(pipeline -> new PipelineJobStatus(pipeline.getRef(), entry.getKey().getGitlabProjectId(), pipeline.getCreatedAt(), pipeline.getUpdatedAt(), pipeline.getStatus(), pipeline.getWebUrl(), pipeline.getSource()))
                         .sorted(Comparator.comparing(PipelineJobStatus::getUpdateTime, Comparator.nullsFirst(Comparator.naturalOrder())).reversed())
@@ -111,7 +114,7 @@ public class GitlabService implements Disposable {
                             }
                         }
                     } else {
-                        logger.debug("Unable to load pipelines for remote ", mapping.getRemote());
+                        logger.debug("Unable to load merge requests for remote ", mapping.getRemote());
                     }
                 }
             } catch (Exception e) {
@@ -155,7 +158,7 @@ public class GitlabService implements Disposable {
                             continue;
                         }
                         if (PipelineViewerConfigApp.getInstance().getRemotesAskAgainNextTime().contains(url) && !triggeredByUser) {
-                            logger.debug("Remote ", url, " is ignored until next plugin load and reload was not triggered by user");
+                            logger.debug("Remote ", url, " is ignored until next plugin load and reload was not triggered by user. Not showing notification.");
                             continue;
                         }
                         if (INCOMPATIBLE_REMOTES.stream().anyMatch(x -> url.toLowerCase().contains(x))) {
@@ -178,7 +181,6 @@ public class GitlabService implements Disposable {
                             final NotificationGroup notificationGroup = NotificationGroupManager.getInstance().getNotificationGroup("de.sist.gitlab.pipelinemonitor.unmappedRemote");
                             new UntrackedRemoteNotification(project, notificationGroup, url, hostProjectPathFromRemote.orElse(null)).notify(project);
                         }
-                        PipelineViewerConfigApp.getInstance().getRemotesAskAgainNextTime().add(url);
                     }
                 }
             }
@@ -230,7 +232,7 @@ public class GitlabService implements Disposable {
         return Optional.of(mapping);
     }
 
-    private Map<Mapping, List<PipelineTo>> loadPipelines() throws IOException {
+    private Map<Mapping, List<PipelineTo>> loadPipelines(boolean triggeredByUser) throws IOException {
         final Map<Mapping, List<PipelineTo>> projectToPipelines = new HashMap<>();
         final List<GitRepository> nonIgnoredRepositories = gitService.getNonIgnoredRepositories();
         if (nonIgnoredRepositories.isEmpty()) {
@@ -243,6 +245,10 @@ public class GitlabService implements Disposable {
                     final Mapping mapping = ConfigProvider.getInstance().getMappingByRemoteUrl(url);
                     if (mapping == null) {
                         logger.debug("No mapping found for remote url ", url);
+                        continue;
+                    }
+                    if (PipelineViewerConfigApp.getInstance().getRemotesAskAgainNextTime().contains(url) && !triggeredByUser) {
+                        logger.debug("Remote ", url, " is ignored until next plugin load and reload was not triggered by user. Not loading pipelines.");
                         continue;
                     }
                     logger.debug("Loading pipelines for remote ", mapping.getRemote());
@@ -260,27 +266,45 @@ public class GitlabService implements Disposable {
     private List<PipelineTo> loadPipelines(Mapping mapping) throws IOException {
         final List<PipelineTo> pipelines = new ArrayList<>();
         try {
+            if (openTokenDialogsByMapping.contains(mapping)) {
+                //No sense making queries
+                logger.debug("Not loading pipelines. Token dialog open for ", mapping);
+                return Collections.emptyList();
+            }
             //Note: Gitlab GraphQL does not return the ref (branch name): https://gitlab.com/gitlab-org/gitlab/-/issues/230405
             pipelines.addAll(makePipelinesUrlCall(1, mapping));
             pipelines.addAll(makePipelinesUrlCall(2, mapping));
         } catch (LoginException e) {
+            logger.debug("Login exception while loading pipelines", e);
             ApplicationManager.getApplication().invokeLater(() -> {
-
+                if (openTokenDialogsByMapping.contains(mapping)) {
+                    logger.debug("Not showing another token dialog for ", mapping);
+                    //Just to make sure
+                    return;
+                }
                 final Pair<String, TokenType> tokenAndType = ConfigProvider.getTokenAndType(mapping.getRemote(), mapping.getHost());
                 final String oldToken = Strings.isNullOrEmpty(tokenAndType.getLeft()) ? "<empty>" : tokenAndType.getLeft();
+                final String oldTokenForLog = Strings.isNullOrEmpty(tokenAndType.getLeft()) ? "<empty>" : "with length " + tokenAndType.getLeft().length();
                 final TokenType tokenType = tokenAndType.getRight();
-                logger.info("Login exception while loading pipelines, showing input dialog for token for remote " + mapping.getRemote());
+                logger.info("Showing input dialog for token for remote " + mapping.getRemote() + " with old token " + oldTokenForLog);
                 final TokenType preselectedTokenType = tokenAndType.getLeft() == null ? TokenType.PERSONAL : tokenType;
-                final Optional<Pair<String, TokenType>> response = new TokenDialog("Unable to log in to gitlab. Please enter the access token for access to " + mapping.getRemote(), oldToken, preselectedTokenType).showDialog();
+                openTokenDialogsByMapping.add(mapping);
+                final Optional<Pair<String, TokenType>> response = new TokenDialog("Unable to log in to gitlab. Please enter the access token for access to " + mapping.getRemote() + ". Enter nothing to delete it.", oldToken, preselectedTokenType).showDialog();
+                openTokenDialogsByMapping.remove(mapping);
 
-                if (response.isEmpty() || Strings.isNullOrEmpty(response.get().getLeft())) {
-                    logger.info("No token entered, setting token to null for remote " + mapping.getRemote());
+                if (response.isEmpty()) {
+                    logger.info("Token dialog cancelled, not changing anything. Will not load pipelines until next plugin load or triggered manually");
                     PipelineViewerConfigApp.getInstance().getRemotesAskAgainNextTime().add(mapping.getRemote());
+                } else if (Strings.isNullOrEmpty(response.get().getLeft())) {
+                    logger.info("No token entered, setting token to null for remote " + mapping.getRemote());
+                    ConfigProvider.saveToken(mapping, null, response.get().getRight());
                 } else {
-                    ConfigProvider.saveToken(mapping, response.get().getLeft(), response.get().getRight());
-                    project.getService(BackgroundUpdateService.class).update(project, false);
                     logger.info("New token entered for remote " + mapping.getRemote());
+                    ConfigProvider.saveToken(mapping, response.get().getLeft(), response.get().getRight());
                 }
+                PipelineViewerConfigApp.getInstance().getRemotesAskAgainNextTime().remove(mapping.getRemote());
+                project.getService(BackgroundUpdateService.class).update(project, false);
+                //Token has changed, user probably wants to retry
 
             });
             return Collections.emptyList();
@@ -337,7 +361,7 @@ public class GitlabService implements Disposable {
         } catch (HttpRequests.HttpStatusException e) {
             //Unfortunately gitlab returns a 404 if the project was found but could not be accessed. We must interpret 404 like 401
             if (e.getStatusCode() == 401 || e.getStatusCode() == 404) {
-                logger.info("Unable to load pipelines. Status code " + e.getStatusCode() + ". Message: " + e.getMessage());
+                logger.info("Unable to load pipelines. Interpreting as login error. Status code " + e.getStatusCode() + ". Message: " + e.getMessage());
                 throw new LoginException();
             } else {
                 throw new IOException("Unable to access " + url + ". Status code: " + e.getStatusCode() + ". Status message: " + e.getMessage());
