@@ -1,5 +1,6 @@
 package de.sist.gitlab.pipelinemonitor.config;
 
+import com.google.common.base.Strings;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.application.ApplicationManager;
@@ -22,6 +23,8 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 import javax.swing.event.DocumentEvent;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -52,6 +55,8 @@ public class ConfigFormApp {
     private JRadioButton radioMrPipelineBranchName;
     private JRadioButton radioMRPipelineTitle;
     private JTextField mrPipelinePrefixTextbox;
+    private JTextField maxTags;
+    private JLabel maxTagsLabel;
     private final CollectionListModel<String> mappingsModel = new CollectionListModel<>();
     private final CollectionListModel<String> ignoredRemotesModel = new CollectionListModel<>();
 
@@ -84,10 +89,29 @@ public class ConfigFormApp {
                 return new ValidationInfo("Please enter a numeric value", connectTimeout);
             }
         }).installOn(connectTimeout);
+        new ComponentValidator(disposable).withValidator(() -> {
+            if (maxTags.getText() == null) {
+                return null;
+            }
+            if (Integer.parseInt(connectTimeout.getText()) == 0) {
+                return new ValidationInfo("Please enter a positive value", connectTimeout);
+            }
+            ;
+            return null;
+
+        }).installOn(maxTags);
+
         connectTimeout.getDocument().addDocumentListener(new DocumentAdapter() {
             @Override
             protected void textChanged(@NotNull DocumentEvent e) {
                 ComponentValidator.getInstance(connectTimeout).ifPresent(ComponentValidator::revalidate);
+            }
+        });
+        showForTagsCheckBox.addChangeListener(new ChangeListener() {
+            @Override
+            public void stateChanged(ChangeEvent e) {
+                maxTags.setVisible(showForTagsCheckBox.isSelected());
+                maxTagsLabel.setVisible(showForTagsCheckBox.isSelected());
             }
         });
     }
@@ -97,6 +121,7 @@ public class ConfigFormApp {
         config.setShowNotificationForWatchedBranches(watchedBranchesNotificationCheckbox.isSelected());
         config.setShowConnectionErrors(showConnectionErrorsCheckbox.isSelected());
         config.setShowForTags(showForTagsCheckBox.isSelected());
+        config.setMaxLatestTags(Strings.isNullOrEmpty(maxTags.getText()) ? null : Integer.parseInt(maxTags.getText()));
         config.getMappings().clear();
         config.getMappings().addAll(mappingsModel.getItems().stream().map(Mapping::toMapping).collect(Collectors.toList()));
         config.getIgnoredRemotes().clear();
@@ -131,6 +156,7 @@ public class ConfigFormApp {
         showConnectionErrorsCheckbox.setSelected(config.isShowConnectionErrorNotifications());
         mergeRequestTargetBranch.setText(config.getMergeRequestTargetBranch());
         showForTagsCheckBox.setSelected(config.isShowForTags());
+        maxTags.setText(config.getMaxLatestTags() == null ? null : String.valueOf(config.getMaxLatestTags()));
         urlOpenerTextbox.setText(config.getUrlOpenerCommand());
         radioDisplayTypeIcons.setSelected(config.getDisplayType() == PipelineViewerConfigApp.DisplayType.ICON);
         radioDisplayTypeIds.setSelected(config.getDisplayType() == PipelineViewerConfigApp.DisplayType.ID);
@@ -145,6 +171,8 @@ public class ConfigFormApp {
                 .sorted()
                 .collect(Collectors.toList()));
         ignoredRemotesModel.replaceAll(ConfigProvider.getInstance().getIgnoredRemotes().stream().sorted().collect(Collectors.toList()));
+        maxTags.setVisible(showForTagsCheckBox.isSelected());
+        maxTagsLabel.setVisible(showForTagsCheckBox.isSelected());
     }
 
     public boolean isModified() {
@@ -153,15 +181,30 @@ public class ConfigFormApp {
                 || !Objects.equals(config.isShowNotificationForWatchedBranches(), watchedBranchesNotificationCheckbox.isSelected())
                 || !Objects.equals(config.isShowConnectionErrorNotifications(), showConnectionErrorsCheckbox.isSelected())
                 || !Objects.equals(config.isShowForTags(), showForTagsCheckBox.isSelected())
+                || isDifferentNumber(maxTags.getText(), config.getMaxLatestTags())
                 || !ConfigProvider.isEqualIgnoringEmptyOrNull(config.getUrlOpenerCommand(), urlOpenerTextbox.getText())
                 || !Objects.equals(new HashSet<>(ConfigProvider.getInstance().getIgnoredRemotes()), new HashSet<>(ignoredRemotesModel.getItems()))
-                || config.getConnectTimeout() != Integer.parseInt(connectTimeout.getText())
+                || isDifferentNumber(connectTimeout.getText(), config.getConnectTimeout())
                 || radioDisplayTypeIcons.isSelected() && config.getDisplayType() != PipelineViewerConfigApp.DisplayType.ICON
                 || radioDisplayTypeIds.isSelected() && config.getDisplayType() != PipelineViewerConfigApp.DisplayType.ID
                 || radioDisplayTypeLinks.isSelected() && config.getDisplayType() != PipelineViewerConfigApp.DisplayType.LINK
                 || radioMrPipelineBranchName.isSelected() && config.getMrPipelineDisplayType() != PipelineViewerConfigApp.MrPipelineDisplayType.SOURCE_BRANCH
                 || !Objects.equals(config.getMrPipelinePrefix(), mrPipelinePrefixTextbox.getText())
                 ;
+    }
+
+    private boolean isDifferentNumber(String numberAsString, Integer number) {
+        //null,1
+        //1,null
+        if (Strings.isNullOrEmpty(numberAsString) ^ number == null) {
+            return true;
+        }
+        //null, null
+        if (Strings.isNullOrEmpty(numberAsString) && number == null) {
+            return false;
+        }
+        //1,1
+        return !Integer.valueOf(numberAsString).equals(number);
     }
 
     public JPanel getMainPanel() {

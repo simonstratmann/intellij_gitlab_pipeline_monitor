@@ -42,17 +42,26 @@ public class PipelineFilter {
     }
 
     public List<PipelineJobStatus> filterPipelines(Mapping mapping, List<PipelineJobStatus> toFilter, boolean forNotification) {
-        final Set<String> tags = new HashSet<>();
+        Set<String> tags = new HashSet<>();
 
         GitRepository gitRepository = gitService.getRepositoryByRemoteUrl(mapping.getRemote());
         final Set<String> trackedBranches = gitService.getTrackedBranches(mapping);
         if (PipelineViewerConfigApp.getInstance().isShowForTags()) {
             final boolean outdated = lastTagUpdate.computeIfAbsent(gitRepository, x -> Instant.MIN.plusSeconds(TAG_INTERVAL)).isBefore(Instant.now().minusSeconds(TAG_INTERVAL));
-            if (outdated) {
-                repoToTags.put(gitRepository, gitService.getTags(gitRepository));
+            if (outdated || !repoToTags.containsKey(gitRepository)) {
+                logger.debug("Tags outdated or not yet initialized");
+                final List<String> allTags = gitService.getTags(gitRepository);
+                repoToTags.put(gitRepository, allTags);
                 lastTagUpdate.put(gitRepository, Instant.now());
             }
-            tags.addAll(repoToTags.get(gitRepository));
+            final List<String> cachedTags = repoToTags.get(gitRepository);
+            if (PipelineViewerConfigApp.getInstance().getMaxLatestTags() != null) {
+                tags.addAll(cachedTags.subList(0, Math.min(PipelineViewerConfigApp.getInstance().getMaxLatestTags(), cachedTags.size())));
+                logger.debug("Using the latest ", PipelineViewerConfigApp.getInstance().getMaxLatestTags(), " tags: ", tags);
+            } else {
+                tags.addAll(cachedTags);
+                logger.debug("Using all ", tags.size(), " tags");
+            }
         }
 
         if (logger.isDebugEnabled()) {

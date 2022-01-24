@@ -39,6 +39,7 @@ public class PipelineViewerConfigApp implements PersistentStateComponent<Pipelin
     private boolean showConnectionErrors = true;
     private List<String> ignoredRemotes = new ArrayList<>();
     private boolean showForTags = true;
+    private Integer maxLatestTags;
     private String urlOpenerCommand;
     @com.intellij.util.xmlb.annotations.Transient
     private final Set<String> remotesAskAgainNextTime = new HashSet<>();
@@ -106,6 +107,14 @@ public class PipelineViewerConfigApp implements PersistentStateComponent<Pipelin
 
     public void setShowForTags(boolean showForTags) {
         this.showForTags = showForTags;
+    }
+
+    public Integer getMaxLatestTags() {
+        return maxLatestTags;
+    }
+
+    public void setMaxLatestTags(Integer maxLatestTags) {
+        this.maxLatestTags = maxLatestTags;
     }
 
     public String getUrlOpenerCommand() {

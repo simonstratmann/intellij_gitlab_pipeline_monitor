@@ -2,9 +2,11 @@ package de.sist.gitlab.pipelinemonitor.git;
 
 import com.intellij.dvcs.DvcsUtil;
 import com.intellij.dvcs.repo.VcsRepositoryManager;
+import com.intellij.execution.process.ProcessOutputTypes;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.vcs.VcsException;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.util.messages.MessageBus;
 import de.sist.gitlab.pipelinemonitor.ReloadListener;
@@ -12,7 +14,6 @@ import de.sist.gitlab.pipelinemonitor.config.ConfigProvider;
 import de.sist.gitlab.pipelinemonitor.config.Mapping;
 import git4idea.GitLocalBranch;
 import git4idea.GitUtil;
-import git4idea.branch.GitBranchUtil;
 import git4idea.commands.Git;
 import git4idea.commands.GitCommand;
 import git4idea.commands.GitCommandResult;
@@ -131,13 +132,35 @@ public class GitService {
             return Collections.emptyList();
         }
         final VirtualFile root = gitRepository.getRoot();
-        final Future<List<String>> future = ApplicationManager.getApplication().executeOnPooledThread(() -> GitBranchUtil.getAllTags(project, root));
+        final Future<List<String>> future = ApplicationManager.getApplication().executeOnPooledThread(() -> getAllTags(project, root));
         try {
             return future.get(3, TimeUnit.SECONDS);
         } catch (Exception e) {
             logger.info("Error loading tags", e);
             return Collections.emptyList();
         }
+    }
+
+    private static List<String> getAllTags(@NotNull Project project, @NotNull VirtualFile root) throws VcsException {
+        GitLineHandler h = new GitLineHandler(project, root, GitCommand.TAG);
+        h.addParameters("-l");
+        h.addParameters("--sort=-creatordate");
+        h.setSilent(true);
+
+        List<String> tags = new ArrayList<>();
+        h.addLineListener((line, outputType) -> {
+            if (outputType != ProcessOutputTypes.STDOUT) {
+                return;
+            }
+            if (line.length() != 0) {
+                tags.add(line);
+            }
+        });
+
+        GitCommandResult result = Git.getInstance().runCommandWithoutCollectingOutput(h);
+        result.throwOnError();
+
+        return tags;
     }
 
     public Set<String> getTrackedBranches(Mapping mapping) {

@@ -1,5 +1,15 @@
 ## [Unreleased]
 
+## [2.7.0]
+
+### Added
+
+- Option to only show pipelines for the latest n tags.
+
+### Changed
+
+- New changelog format which supports the display of latest changes in the plugins menu and on the Jetbrains plugin page.
+
 ## [2.6.6]
 
 ### Fixed
