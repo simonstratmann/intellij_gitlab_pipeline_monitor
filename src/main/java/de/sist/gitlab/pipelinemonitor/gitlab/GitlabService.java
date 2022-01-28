@@ -352,8 +352,10 @@ public class GitlabService implements Disposable {
 
         final String response;
         try {
-            final String cleanedUrl = accessToken == null ? url : url.replace(accessToken, "<accessToken>");
-            logger.debug("Calling URL ", cleanedUrl);
+            if (GitlabAccessLogger.GITLAB_ACCESS_LOGGER.isDebugEnabled()) {
+                final String cleanedUrl = accessToken == null ? url : url.replace(accessToken, "<accessToken>");
+                GitlabAccessLogger.GITLAB_ACCESS_LOGGER.debug("Calling ", cleanedUrl);
+            }
             response = HttpRequests.request(url)
                     .connectTimeout(ConfigProvider.getInstance().getConnectTimeoutSeconds() * 1000)
                     .readTimeout(ConfigProvider.getInstance().getConnectTimeoutSeconds() * 1000)

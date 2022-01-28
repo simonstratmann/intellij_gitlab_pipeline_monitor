@@ -142,30 +142,35 @@ public class GraphQl {
     @Nullable
     private static String call(String accessToken, String graphQlUrl, String graphQlQuery) throws InterruptedException, ExecutionException {
         final String responseString;
-        responseString = ApplicationManager.getApplication().executeOnPooledThread(() ->
-                        HttpRequests.post(graphQlUrl, "application/json")
-                                .readTimeout(ConfigProvider.getInstance().getConnectTimeoutSeconds() * 1000)
-                                .connectTimeout(ConfigProvider.getInstance().getConnectTimeoutSeconds() * 1000)
-                                //Is handled in connection step
-                                .throwStatusCodeException(false)
-                                .connect(request -> {
-                                    final String response;
-                                    try {
-                                        if (accessToken != null) {
-                                            request.getConnection().setRequestProperty("Authorization", "Bearer " + accessToken);
-                                            logger.debug("Using access token with length ", accessToken.length());
-                                        } else {
-                                            logger.debug("Not using access token as none is set");
-                                        }
-                                        request.write(graphQlQuery);
-                                        response = request.readString();
-                                    } catch (Exception e) {
-                                        logger.warn("Error connecting to gitlab", e);
-                                        return null;
+        responseString = ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                    if (GitlabAccessLogger.GITLAB_ACCESS_LOGGER.isDebugEnabled()) {
+                        final String cleanedUrl = accessToken == null ? graphQlUrl : graphQlUrl.replace(accessToken, "<accessToken>");
+                        GitlabAccessLogger.GITLAB_ACCESS_LOGGER.debug("Calling ", cleanedUrl);
+                    }
+                    return HttpRequests.post(graphQlUrl, "application/json")
+                            .readTimeout(ConfigProvider.getInstance().getConnectTimeoutSeconds() * 1000)
+                            .connectTimeout(ConfigProvider.getInstance().getConnectTimeoutSeconds() * 1000)
+                            //Is handled in connection step
+                            .throwStatusCodeException(false)
+                            .connect(request -> {
+                                final String response;
+                                try {
+                                    if (accessToken != null) {
+                                        request.getConnection().setRequestProperty("Authorization", "Bearer " + accessToken);
+                                        logger.debug("Using access token with length ", accessToken.length());
+                                    } else {
+                                        logger.debug("Not using access token as none is set");
                                     }
-                                    logger.debug("Got response from query\n:", response);
-                                    return response;
-                                }))
+                                    request.write(graphQlQuery);
+                                    response = request.readString();
+                                } catch (Exception e) {
+                                    logger.warn("Error connecting to gitlab", e);
+                                    return null;
+                                }
+                                logger.debug("Got response from query\n:", response);
+                                return response;
+                            });
+                })
                 .get();
         return responseString;
     }
