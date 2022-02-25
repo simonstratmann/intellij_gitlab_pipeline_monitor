@@ -110,7 +110,7 @@ public class ConfigForm {
             }
         });
         branchesToWatchPanel.add(decorator.createPanel());
-        branchesToWatchPanel.setBorder(IdeBorderFactory.createTitledBorder("Branches / Tags to Always Watch"));
+        branchesToWatchPanel.setBorder(IdeBorderFactory.createTitledBorder("Branches / Tags to Always Watch (Wildcards Supported)"));
 
     }
 
@@ -131,7 +131,7 @@ public class ConfigForm {
             }
         });
         branchesToIgnorePanel.add(decorator.createPanel());
-        branchesToIgnorePanel.setBorder(IdeBorderFactory.createTitledBorder("Branches / Tags to Ignore"));
+        branchesToIgnorePanel.setBorder(IdeBorderFactory.createTitledBorder("Branches / Tags to Ignore (Wildcards Supported)"));
     }
 
 }

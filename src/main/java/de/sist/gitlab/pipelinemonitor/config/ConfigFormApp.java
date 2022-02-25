@@ -57,6 +57,8 @@ public class ConfigFormApp {
     private JTextField mrPipelinePrefixTextbox;
     private JTextField maxTags;
     private JLabel maxTagsLabel;
+    private JCheckBox checkBoxForBranchesWhichExist;
+    private JTextField maxAgeDays;
     private final CollectionListModel<String> mappingsModel = new CollectionListModel<>();
     private final CollectionListModel<String> ignoredRemotesModel = new CollectionListModel<>();
 
@@ -81,20 +83,27 @@ public class ConfigFormApp {
         mrPipelineBttonGroup.add(radioMrPipelineBranchName);
 
         final Disposable disposable = Disposer.newDisposable();
-        new ComponentValidator(disposable).withValidator(() -> {
-            try {
-                Integer.parseInt(connectTimeout.getText());
-                return null;
-            } catch (NumberFormatException nex) {
-                return new ValidationInfo("Please enter a numeric value", connectTimeout);
-            }
-        }).installOn(connectTimeout);
+        new ComponentValidator(disposable)
+                .withValidator(() -> {
+                    try {
+                        Integer.parseInt(connectTimeout.getText());
+                        return null;
+                    } catch (NumberFormatException nex) {
+                        return new ValidationInfo("Please enter a numeric value", connectTimeout);
+                    }
+                })
+                .installOn(connectTimeout)
+                .installOn(maxAgeDays);
         new ComponentValidator(disposable).withValidator(() -> {
             if (maxTags.getText() == null) {
                 return null;
             }
-            if (Integer.parseInt(connectTimeout.getText()) == 0) {
-                return new ValidationInfo("Please enter a positive value", connectTimeout);
+            try {
+                if (Integer.parseInt(connectTimeout.getText()) == 0) {
+                    return new ValidationInfo("Please enter a positive value", connectTimeout);
+                }
+            } catch (NumberFormatException e) {
+                return new ValidationInfo("Please enter a numeric value", connectTimeout);
             }
             ;
             return null;
@@ -137,6 +146,8 @@ public class ConfigFormApp {
         }
         config.setMrPipelineDisplayType(radioMRPipelineTitle.isSelected() ? PipelineViewerConfigApp.MrPipelineDisplayType.TITLE : PipelineViewerConfigApp.MrPipelineDisplayType.SOURCE_BRANCH);
         config.setMrPipelinePrefix(mrPipelinePrefixTextbox.getText());
+        config.setMaxAgeDays(Strings.isNullOrEmpty(maxAgeDays.getText()) ? null : Integer.parseInt(maxAgeDays.getText()));
+        config.setOnlyForRemoteBranchesExist(checkBoxForBranchesWhichExist.isSelected());
 
         List<String> statusesToWatch = new ArrayList<>();
 
@@ -165,6 +176,8 @@ public class ConfigFormApp {
         radioMRPipelineTitle.setSelected(config.getMrPipelineDisplayType() == PipelineViewerConfigApp.MrPipelineDisplayType.TITLE);
         radioMrPipelineBranchName.setSelected(config.getMrPipelineDisplayType() == PipelineViewerConfigApp.MrPipelineDisplayType.SOURCE_BRANCH);
         mrPipelinePrefixTextbox.setText(config.getMrPipelinePrefix());
+        maxAgeDays.setText(config.getMaxAgeDays() == null ? null : String.valueOf(config.getMaxAgeDays()));
+        checkBoxForBranchesWhichExist.setSelected(config.isOnlyForRemoteBranchesExist());
 
         mappingsModel.replaceAll(config.getMappings().stream()
                 .map(Mapping::toSerializable)
@@ -190,6 +203,8 @@ public class ConfigFormApp {
                 || radioDisplayTypeLinks.isSelected() && config.getDisplayType() != PipelineViewerConfigApp.DisplayType.LINK
                 || radioMrPipelineBranchName.isSelected() && config.getMrPipelineDisplayType() != PipelineViewerConfigApp.MrPipelineDisplayType.SOURCE_BRANCH
                 || !Objects.equals(config.getMrPipelinePrefix(), mrPipelinePrefixTextbox.getText())
+                || !Objects.equals(config.isOnlyForRemoteBranchesExist(), checkBoxForBranchesWhichExist.isSelected())
+                || isDifferentNumber(maxAgeDays.getText(), config.getMaxAgeDays())
                 ;
     }
 

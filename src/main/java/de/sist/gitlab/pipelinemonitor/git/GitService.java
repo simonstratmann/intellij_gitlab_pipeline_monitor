@@ -13,6 +13,7 @@ import de.sist.gitlab.pipelinemonitor.ReloadListener;
 import de.sist.gitlab.pipelinemonitor.config.ConfigProvider;
 import de.sist.gitlab.pipelinemonitor.config.Mapping;
 import git4idea.GitLocalBranch;
+import git4idea.GitRemoteBranch;
 import git4idea.GitUtil;
 import git4idea.commands.Git;
 import git4idea.commands.GitCommand;
@@ -176,6 +177,17 @@ public class GitService {
             }
         }
         return trackedBranches;
+    }
+
+    public Set<String> getRemoteBranches(Mapping mapping) {
+        GitRepository gitRepository = getRepositoryByRemoteUrl(mapping.getRemote());
+        if (gitRepository == null) {
+            //Can happen during shutdown or in other edge cases. Not much we can do
+            return Collections.emptySet();
+        }
+        return gitRepository.getBranches().getRemoteBranches().stream()
+                .map(GitRemoteBranch::getNameForRemoteOperations)
+                .collect(Collectors.toSet());
     }
 
 }

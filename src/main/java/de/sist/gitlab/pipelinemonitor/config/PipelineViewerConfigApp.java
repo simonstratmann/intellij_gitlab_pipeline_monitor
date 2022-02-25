@@ -48,6 +48,8 @@ public class PipelineViewerConfigApp implements PersistentStateComponent<Pipelin
     private MrPipelineDisplayType mrPipelineDisplayType = MrPipelineDisplayType.SOURCE_BRANCH;
     private String mrPipelinePrefix = "MR: ";
     private final Map<String, GitlabInfo> gitlabInstanceInfos = new HashMap<>();
+    private Integer maxAgeDays;
+    private boolean onlyForRemoteBranchesExist;
 
     public List<Mapping> getMappings() {
         return mappings;
@@ -159,6 +161,22 @@ public class PipelineViewerConfigApp implements PersistentStateComponent<Pipelin
 
     public void setMrPipelinePrefix(String mrPipelinePrefix) {
         this.mrPipelinePrefix = mrPipelinePrefix;
+    }
+
+    public Integer getMaxAgeDays() {
+        return maxAgeDays;
+    }
+
+    public void setMaxAgeDays(Integer maxAgeDays) {
+        this.maxAgeDays = maxAgeDays;
+    }
+
+    public boolean isOnlyForRemoteBranchesExist() {
+        return onlyForRemoteBranchesExist;
+    }
+
+    public void setOnlyForRemoteBranchesExist(boolean onlyForRemoteBranchesExist) {
+        this.onlyForRemoteBranchesExist = onlyForRemoteBranchesExist;
     }
 
     public Map<String, GitlabInfo> getGitlabInstanceInfos() {

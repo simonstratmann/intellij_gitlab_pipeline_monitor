@@ -636,7 +636,7 @@ public class GitlabToolWindow {
 
                 if (Objects.equals(PipelineViewerConfigProject.getInstance(project).getShowLightsForBranch(), branchName)) {
                     jLabel.setIcon(IconLoader.getIcon("/trafficLights.png", GitlabToolWindow.class));
-                } else if (ConfigProvider.getInstance().getBranchesToWatch(project).contains(branchName)) {
+                } else if (PipelineFilter.isMatch(branchName, ConfigProvider.getInstance().getBranchesToWatch(project))) {
                     jLabel.setIcon(AllIcons.General.InspectionsEye);
                 }
 

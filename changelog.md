@@ -1,5 +1,13 @@
 ## [Unreleased]
 
+## [2.8.0]
+
+### Added
+
+- The values for watched / ignored branches now support wildcards. For example if you want to show pipelines for all release branches watch "release/*".
+- You can ignore pipelines that are older than x days.
+- You can ignore pipelines for branches which don't exist on the remote (anymore).
+
 ## [2.7.0]
 
 ### Added
