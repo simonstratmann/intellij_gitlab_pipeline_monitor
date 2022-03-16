@@ -1,5 +1,11 @@
 ## [Unreleased]
 
+## [2.9.1]
+
+### Fixed
+
+- Show correct number of open notifications in banner.
+
 ## [2.9.0]
 
 ### Added
