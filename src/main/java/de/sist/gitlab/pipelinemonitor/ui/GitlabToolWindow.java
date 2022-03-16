@@ -90,6 +90,7 @@ public class GitlabToolWindow {
     private static final String NEW_MERGE_REQUEST_URL_TEMPLATE = "%GITLAB_URL%/-/merge_requests/new?utf8=%E2%9C%93&merge_request%5Bsource_project_id%5D=%PROJECT_ID%&merge_request%5Bsource_branch%5D=%SOURCE_BRANCH%&merge_request%5Btarget_project_id%5D=%PROJECT_ID%";
     private static final String NEW_MERGE_REQUEST_URL_TARGET_BRANCH_POSTFIX = "&merge_request%5Btarget_branch%5D=%TARGET_BRANCH%";
 
+    private final Banner banner = new Banner();
     private JPanel toolWindowContent;
     private final JTable pipelineTable;
     private JScrollPane tableScrollPane;
@@ -380,9 +381,41 @@ public class GitlabToolWindow {
             }
         });
         actionPanel.add(filterField);
+        actionPanel.add(banner);
+
+        addBanner(project);
 
         tablePanel.add(actionPanel, BorderLayout.NORTH, 0);
         tablePanel.add(new JBScrollPane(pipelineTable), BorderLayout.CENTER, 1);
+    }
+
+    private void addBanner(Project project) {
+        banner.setText("Waiting for decision how to handle untracked remote");
+
+        final AbstractAction openDialogAction = new AbstractAction("Open dialog") {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                final List<UntrackedRemoteNotification> alreadyOpenNotifications = UntrackedRemoteNotification.getAlreadyOpenNotifications(project);
+                for (UntrackedRemoteNotification openNotification : alreadyOpenNotifications) {
+                    openNotification.expire();
+                    openNotification.openDialogForUnmappedRemote();
+                }
+            }
+        };
+        banner.addAction(openDialogAction);
+        project.getMessageBus().connect().subscribe(UntrackedRemoteNotificationState.UNTRACKED_REMOTE_FOUND, isOpen -> {
+            logger.debug("Setting banner visible: ", isOpen);
+            banner.setVisible(isOpen);
+            if (isOpen) {
+                final List<UntrackedRemoteNotification> openNotifications = UntrackedRemoteNotification.getAlreadyOpenNotifications(project);
+                if (openNotifications.size() == 1) {
+                    openDialogAction.putValue(Action.NAME, "Open dialog");
+                } else {
+                    openDialogAction.putValue(Action.NAME, "Open " + openNotifications.size() + " dialogs");
+                }
+            }
+        });
+        banner.setVisible(false);
     }
 
     private void toggleShowForAllCheckboxVisibility() {
@@ -708,6 +741,7 @@ public class GitlabToolWindow {
         }
 
     }
+
 
     private static class TableRowDefinition {
         public String title;

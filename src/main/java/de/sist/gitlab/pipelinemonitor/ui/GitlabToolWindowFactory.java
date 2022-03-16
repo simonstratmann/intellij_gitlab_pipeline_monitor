@@ -12,7 +12,6 @@ import org.jetbrains.annotations.NotNull;
 public class GitlabToolWindowFactory implements ToolWindowFactory {
     // Create the tool window content.
     public void createToolWindowContent(@NotNull Project project, @NotNull ToolWindow toolWindow) {
-
         GitlabToolWindow myToolWindow = new GitlabToolWindow(project);
         ContentFactory contentFactory = ContentFactory.SERVICE.getInstance();
         Content content = contentFactory.createContent(myToolWindow.getContent(), "", false);

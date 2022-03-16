@@ -2,8 +2,9 @@
 package de.sist.gitlab.pipelinemonitor.ui;
 
 import com.intellij.notification.Notification;
-import com.intellij.notification.NotificationGroup;
+import com.intellij.notification.NotificationGroupManager;
 import com.intellij.notification.NotificationType;
+import com.intellij.notification.NotificationsManager;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
@@ -22,6 +23,9 @@ import de.sist.gitlab.pipelinemonitor.gitlab.GitlabService;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Arrays;
+import java.util.List;
+
 /**
  * @author PPI AG
  */
@@ -33,8 +37,8 @@ public class UntrackedRemoteNotification extends Notification {
     private final Project project;
     private final HostAndProjectPath hostProjectPathFromRemote;
 
-    public UntrackedRemoteNotification(Project project, NotificationGroup notificationGroup, String url, @Nullable HostAndProjectPath hostProjectPathFromRemote) {
-        super(notificationGroup.getDisplayId(), "Untracked remote found", "The remote " + url + " is not tracked by Gitlab Pipeline Viewer.", NotificationType.INFORMATION);
+    public UntrackedRemoteNotification(Project project, String url, @Nullable HostAndProjectPath hostProjectPathFromRemote) {
+        super(getNotificationGroupId(), "Untracked remote found", "The remote " + url + " is not tracked by Gitlab Pipeline Viewer.", NotificationType.INFORMATION);
         this.url = url;
         this.project = project;
         this.hostProjectPathFromRemote = hostProjectPathFromRemote;
@@ -42,7 +46,7 @@ public class UntrackedRemoteNotification extends Notification {
         final AnAction openDialog = new AnAction("Choose How to Handle Remote") {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
-                openDialogForUnmappedRemote(url);
+                openDialogForUnmappedRemote();
                 expire();
             }
         };
@@ -56,11 +60,27 @@ public class UntrackedRemoteNotification extends Notification {
             }
         };
         addAction(ignoreRemote);
+        whenExpired(() -> {
+            final boolean isOpen = !getAlreadyOpenNotifications(project).isEmpty();
+            logger.debug("Notifying project ", project, " if notifications are open with value ", isOpen);
+            project.getMessageBus().syncPublisher(UntrackedRemoteNotificationState.UNTRACKED_REMOTE_FOUND).handle(isOpen);
+        });
     }
 
-    private void openDialogForUnmappedRemote(String url) {
-        logger.info("Showing dialog for untracked " + url);
 
+    @NotNull
+    private static String getNotificationGroupId() {
+        return NotificationGroupManager.getInstance().getNotificationGroup("de.sist.gitlab.pipelinemonitor.unmappedRemote").getDisplayId();
+    }
+
+    public static List<UntrackedRemoteNotification> getAlreadyOpenNotifications(Project project) {
+        final UntrackedRemoteNotification[] openNotifications = NotificationsManager.getNotificationsManager().getNotificationsOfType(UntrackedRemoteNotification.class, project);
+        return Arrays.asList(openNotifications);
+    }
+
+
+    public void openDialogForUnmappedRemote() {
+        logger.info("Showing dialog for untracked " + url);
 
         final UnmappedRemoteDialog.Response response;
         final Disposable disposable = Disposer.newDisposable();

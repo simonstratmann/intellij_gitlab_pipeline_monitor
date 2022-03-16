@@ -6,7 +6,6 @@ import com.intellij.credentialStore.CredentialAttributesKt;
 import com.intellij.notification.NotificationGroup;
 import com.intellij.notification.NotificationGroupManager;
 import com.intellij.notification.NotificationType;
-import com.intellij.notification.NotificationsManager;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.ServiceManager;
@@ -29,6 +28,7 @@ import de.sist.gitlab.pipelinemonitor.gitlab.mapping.Edge;
 import de.sist.gitlab.pipelinemonitor.gitlab.mapping.MergeRequest;
 import de.sist.gitlab.pipelinemonitor.ui.TokenDialog;
 import de.sist.gitlab.pipelinemonitor.ui.UntrackedRemoteNotification;
+import de.sist.gitlab.pipelinemonitor.ui.UntrackedRemoteNotificationState;
 import git4idea.repo.GitRemote;
 import git4idea.repo.GitRepository;
 import org.apache.commons.lang3.StringUtils;
@@ -55,6 +55,7 @@ import java.util.stream.Collectors;
 public class GitlabService implements Disposable {
 
     public static final String ACCESS_TOKEN_CREDENTIALS_ATTRIBUTE = CredentialAttributesKt.generateServiceName("GitlabService", "accessToken");
+
 
     private static final Logger logger = Logger.getInstance(GitlabService.class);
 
@@ -165,8 +166,7 @@ public class GitlabService implements Disposable {
                             logger.debug("Remote URL ", url, " is incompatible");
                             continue;
                         }
-                        final UntrackedRemoteNotification[] openNotifications = NotificationsManager.getNotificationsManager().getNotificationsOfType(UntrackedRemoteNotification.class, project);
-                        if (Arrays.stream(openNotifications).anyMatch(x -> x.getUrl().equals(url))) {
+                        if (UntrackedRemoteNotification.getAlreadyOpenNotifications(project).stream().anyMatch(x -> x.getUrl().equals(url))) {
                             logger.debug("Remote URL ", url, " is already waiting for an answer");
                             continue;
                         }
@@ -178,8 +178,9 @@ public class GitlabService implements Disposable {
                             }
 
                             logger.debug("Showing notification for untracked remote ", url);
-                            final NotificationGroup notificationGroup = NotificationGroupManager.getInstance().getNotificationGroup("de.sist.gitlab.pipelinemonitor.unmappedRemote");
-                            new UntrackedRemoteNotification(project, notificationGroup, url, hostProjectPathFromRemote.orElse(null)).notify(project);
+                            new UntrackedRemoteNotification(project, url, hostProjectPathFromRemote.orElse(null)).notify(project);
+                            logger.debug("Notifying project ", project, " if that a new notification is shown");
+                            project.getMessageBus().syncPublisher(UntrackedRemoteNotificationState.UNTRACKED_REMOTE_FOUND).handle(true);
                         }
                     }
                 }

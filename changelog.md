@@ -1,5 +1,12 @@
 ## [Unreleased]
 
+## [2.9.0]
+
+### Added
+
+- The plugin shows a notification if an unmapped remote is found. If this notification is ignored long enough IntelliJ will send it to the background and add an entry to the Event Log.\
+  This could easily be overseen and result in users being confused why no pipelines are shown. Now a banner will be shown in the toolbar window and allow to open the dialog.
+
 ## [2.8.0]
 
 ### Added
