@@ -381,7 +381,6 @@ public class GitlabToolWindow {
             }
         });
         actionPanel.add(filterField);
-        actionPanel.add(banner);
 
         addBanner(project);
 
@@ -407,20 +406,26 @@ public class GitlabToolWindow {
         project.getMessageBus().connect().subscribe(UntrackedRemoteNotificationState.UNTRACKED_REMOTE_FOUND, isOpen -> {
             ApplicationManager.getApplication().invokeLater(() -> {
                 logger.debug("Setting banner visible: ", isOpen);
-                banner.setVisible(isOpen);
                 if (isOpen) {
+                    actionPanel.add(banner);
                     final List<UntrackedRemoteNotification> openNotifications = UntrackedRemoteNotification.getAlreadyOpenNotifications(project);
-                    if (openNotifications.size() == 1) {
+                    //Sometimes the number of notification dialogs is not yet correct and it thinks we don't have any open
+                    if (openNotifications.size() <= 1) {
                         openDialogAction.putValue(Action.NAME, "Open dialog");
                         banner.setText("Waiting for decision how to handle untracked remote");
                     } else {
                         openDialogAction.putValue(Action.NAME, "Open " + openNotifications.size() + " dialogs");
                         banner.setText("Waiting for decision how to handle untracked remotes");
                     }
+                } else {
+                    actionPanel.remove(banner);
                 }
             });
         });
-        banner.setVisible(false);
+
+
+        actionPanel.remove(banner);
+
     }
 
     private void toggleShowForAllCheckboxVisibility() {

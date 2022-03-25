@@ -1,5 +1,11 @@
 ## [Unreleased]
 
+## [2.9.2]
+
+### Fixed
+
+- Fix layout issue with horizontal scrolling bar being show when not needed.
+
 ## [2.9.1]
 
 ### Fixed
