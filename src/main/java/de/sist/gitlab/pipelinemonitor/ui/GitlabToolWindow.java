@@ -339,6 +339,7 @@ public class GitlabToolWindow {
         DefaultActionGroup actionGroup = new DefaultActionGroup(refreshActionButton, turnOffLightsAction, copyCurrentGitHash);
 
         ActionToolbar actionToolbar = ActionManager.getInstance().createActionToolbar(ActionPlaces.TOOLBAR, actionGroup, true);
+        actionToolbar.setTargetComponent(this.getContent());
 
         actionPanel = new JPanel(new MigLayout("ins 0, fill", "[left]0[left, fill]push[right]", "center"));
         actionPanel.add(actionToolbar.getComponent());

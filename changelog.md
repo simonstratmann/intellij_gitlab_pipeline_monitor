@@ -1,5 +1,11 @@
 ## [Unreleased]
 
+## [2.10.0]
+
+### Added
+
+- Option to automatically monitor all projects for a given host.
+
 ## [2.9.2]
 
 ### Fixed

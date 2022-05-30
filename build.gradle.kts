@@ -3,8 +3,8 @@ import org.jetbrains.changelog.markdownToHTML
 fun properties(key: String) = project.findProperty(key).toString()
 
 plugins {
-    id("org.jetbrains.intellij") version "1.1.6"
-    id("org.jetbrains.changelog") version "1.3.0"
+    id("org.jetbrains.intellij") version "1.6.0"
+    id("org.jetbrains.changelog") version "1.3.1"
     id("idea")
     id("java")
 }
@@ -26,7 +26,7 @@ repositories {
 }
 
 dependencies {
-    implementation("com.fasterxml.jackson.core:jackson-databind:2.13.1")
+    implementation("com.fasterxml.jackson.core:jackson-databind:2.13.3")
 }
 
 
@@ -103,6 +103,6 @@ tasks {
     }
 
     runIde {
-        jvmArgs("-Xmx4G", "-Didea.log.debug.categories=#de.sist")
+        jvmArgs("-Xmx4G", "-Didea.log.debug.categories=#de.sist", "-DgitlabPipelineViewerDebugging=true")
     }
 }

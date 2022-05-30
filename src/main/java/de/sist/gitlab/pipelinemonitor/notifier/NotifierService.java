@@ -62,7 +62,7 @@ public class NotifierService {
         this.project = project;
         statusFilter = project.getService(PipelineFilter.class);
 
-        errorNotificationGroup = NotificationGroupManager.getInstance().getNotificationGroup("de.sist.gitlab.pipelinemonitor.error");
+        errorNotificationGroup = NotificationGroupManager.getInstance().getNotificationGroup("de.sist.gitlab.pipelinemonitor.genericNotificationGroup");
 
         project.getMessageBus().connect().subscribe(ReloadListener.RELOAD, this::showStatusNotifications);
         gitService = project.getService(GitService.class);
@@ -71,7 +71,11 @@ public class NotifierService {
     public void showError(String error) {
         Notification notification = errorNotificationGroup.createNotification(error, NotificationType.ERROR);
         Notifications.Bus.notify(notification, project);
+    }
 
+    public void showInfo(String message) {
+        Notification notification = errorNotificationGroup.createNotification(message, NotificationType.INFORMATION);
+        Notifications.Bus.notify(notification, project);
     }
 
     private void showStatusNotifications(Map<Mapping, List<PipelineJobStatus>> mappingToPipelines) {
@@ -115,7 +119,7 @@ public class NotifierService {
         }
     }
 
-    private void showBalloonForStatus(PipelineJobStatus status, int index) {
+    public void showBalloonForStatus(PipelineJobStatus status, int index) {
         NotificationGroup notificationGroup = getNotificationGroupForStatus(status);
 
         NotificationType notificationType;
@@ -137,7 +141,7 @@ public class NotifierService {
             content = ConfigProvider.getInstance().getMappingByProjectId(status.getProjectId()).getProjectName() + " " + content;
         }
 
-        Notification notification = notificationGroup.createNotification("GitLab branch status", null, content, notificationType);
+        Notification notification = notificationGroup.createNotification("GitLab branch status", content, notificationType);
 
         notification.addAction(new NotificationAction("Open in Browser") {
             @Override
@@ -146,6 +150,7 @@ public class NotifierService {
                 notification.expire();
                 LightsControl.turnOffAllLights();
             }
+
         });
 
         logger.debug("Showing notification for status ", status);

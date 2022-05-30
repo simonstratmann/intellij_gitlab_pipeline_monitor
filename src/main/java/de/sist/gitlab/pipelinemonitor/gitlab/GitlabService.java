@@ -8,7 +8,6 @@ import com.intellij.notification.NotificationGroupManager;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.util.io.HttpRequests;
@@ -26,6 +25,7 @@ import de.sist.gitlab.pipelinemonitor.git.GitService;
 import de.sist.gitlab.pipelinemonitor.gitlab.mapping.Data;
 import de.sist.gitlab.pipelinemonitor.gitlab.mapping.Edge;
 import de.sist.gitlab.pipelinemonitor.gitlab.mapping.MergeRequest;
+import de.sist.gitlab.pipelinemonitor.notifier.NotifierService;
 import de.sist.gitlab.pipelinemonitor.ui.TokenDialog;
 import de.sist.gitlab.pipelinemonitor.ui.UntrackedRemoteNotification;
 import de.sist.gitlab.pipelinemonitor.ui.UntrackedRemoteNotificationState;
@@ -65,7 +65,7 @@ public class GitlabService implements Disposable {
     private static final Pattern REMOTE_BEST_GUESS_PATTERN = Pattern.compile("(?<host>https?://[^/]*)/(?<projectPath>.*)");
     private static final List<String> INCOMPATIBLE_REMOTES = Arrays.asList("github.com", "bitbucket.com");
 
-    private final ConfigProvider config = ServiceManager.getService(ConfigProvider.class);
+    private final ConfigProvider config = ApplicationManager.getApplication().getService(ConfigProvider.class);
     private final Project project;
     private final Map<Mapping, List<PipelineJobStatus>> pipelineInfos = new HashMap<>();
     private final Set<Mapping> openTokenDialogsByMapping = new HashSet<>();
@@ -176,10 +176,30 @@ public class GitlabService implements Disposable {
                             if (isCiDisabledForGitlabProject(url, hostProjectPathFromRemote.orElse(null))) {
                                 return;
                             }
+                            if (hostProjectPathFromRemote.isPresent()) {
+                                final String host = hostProjectPathFromRemote.get().getHost();
+                                final String projectPath = hostProjectPathFromRemote.get().getProjectPath();
+                                if (PipelineViewerConfigApp.getInstance().getAlwaysMonitorHosts().contains(host)) {
+                                    logger.debug("Host ", host, " is in the list of hosts for which to always monitor projects");
+                                    final String token = ConfigProvider.getToken(host, projectPath);
+                                    final Optional<Mapping> optionalMapping = createMappingWithProjectNameAndId(url, host, projectPath, token, TokenType.PERSONAL);
+                                    final NotifierService notifierService = project.getService(NotifierService.class);
+                                    if (optionalMapping.isPresent()) {
+                                        logger.debug("Successfully created mapping ", optionalMapping.get(), ". Will use it");
+                                        notifierService.showInfo("Gitlab Pipeline Viewer will monitor project " + project.getName());
+                                        ConfigProvider.getInstance().getMappings().add(optionalMapping.get());
+                                        project.getService(BackgroundUpdateService.class).update(project, false);
+                                        continue;
+                                    } else {
+                                        logger.info("Unable to automatically create mapping for project on host " + host);
+                                        notifierService.showError("Unable to automatically create mapping for project on host " + host);
+                                    }
+                                }
+                            }
 
                             logger.debug("Showing notification for untracked remote ", url);
                             new UntrackedRemoteNotification(project, url, hostProjectPathFromRemote.orElse(null)).notify(project);
-                            logger.debug("Notifying project ", project, " if that a new notification is shown");
+                            logger.debug("Notifying project ", project, " that a new notification is shown");
                             project.getMessageBus().syncPublisher(UntrackedRemoteNotificationState.UNTRACKED_REMOTE_FOUND).handle(true);
                         }
                     }
@@ -209,7 +229,7 @@ public class GitlabService implements Disposable {
             return false;
         }
         final NotificationGroup notificationGroup = NotificationGroupManager.getInstance().getNotificationGroup("de.sist.gitlab.pipelinemonitor.disabledCi");
-        notificationGroup.createNotification("Gitlab Pipeline Viewer - CI disabled", "Gitlab CI is disabled for " + url + ". Ignoring it.", NotificationType.INFORMATION, null).notify(project);
+        notificationGroup.createNotification("Gitlab Pipeline Viewer - CI disabled", "Gitlab CI is disabled for " + url + ". Ignoring it.", NotificationType.INFORMATION).notify(project);
         ConfigProvider.getInstance().getIgnoredRemotes().add(url);
         logger.info("Added " + url + " to list of ignored remotes because CI is disabled for its gitlab project");
         return true;
@@ -290,7 +310,8 @@ public class GitlabService implements Disposable {
                 logger.info("Showing input dialog for token for remote " + mapping.getRemote() + " with old token " + oldTokenForLog);
                 final TokenType preselectedTokenType = tokenAndType.getLeft() == null ? TokenType.PERSONAL : tokenType;
                 openTokenDialogsByMapping.add(mapping);
-                final Optional<Pair<String, TokenType>> response = new TokenDialog("Unable to log in to gitlab. Please enter the access token for access to " + mapping.getRemote() + ". Enter nothing to delete it.", oldToken, preselectedTokenType).showDialog();
+                final TokenDialog tokenDialog = new TokenDialog("Unable to log in to gitlab. Please enter the access token for access to " + mapping.getRemote() + ". Enter nothing to delete it.", oldToken, preselectedTokenType);
+                final Optional<Pair<String, TokenType>> response = tokenDialog.showDialog();
                 openTokenDialogsByMapping.remove(mapping);
 
                 if (response.isEmpty()) {

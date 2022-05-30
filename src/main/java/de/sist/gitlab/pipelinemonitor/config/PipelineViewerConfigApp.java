@@ -1,5 +1,6 @@
 package de.sist.gitlab.pipelinemonitor.config;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Strings;
 import com.intellij.openapi.components.PersistentStateComponent;
@@ -12,12 +13,15 @@ import org.jetbrains.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+@SuppressWarnings("unused")
 @State(name = "PipelineViewerConfigApp", storages = {@Storage("PipelineViewerConfigApp.xml")})
 public class PipelineViewerConfigApp implements PersistentStateComponent<PipelineViewerConfigApp> {
 
@@ -50,6 +54,7 @@ public class PipelineViewerConfigApp implements PersistentStateComponent<Pipelin
     private final Map<String, GitlabInfo> gitlabInstanceInfos = new HashMap<>();
     private Integer maxAgeDays;
     private boolean onlyForRemoteBranchesExist;
+    private Set<String> alwaysMonitorHosts = new HashSet<>();
 
     public List<Mapping> getMappings() {
         return mappings;
@@ -182,6 +187,38 @@ public class PipelineViewerConfigApp implements PersistentStateComponent<Pipelin
     public Map<String, GitlabInfo> getGitlabInstanceInfos() {
         return gitlabInstanceInfos;
     }
+
+    public Set<String> getAlwaysMonitorHosts() {
+        return alwaysMonitorHosts;
+    }
+
+    public String getAlwaysMonitorHostsAsString() {
+        return listToString(alwaysMonitorHosts);
+    }
+
+    public void setAlwaysMonitorHosts(Set<String> alwaysMonitorHosts) {
+        this.alwaysMonitorHosts = alwaysMonitorHosts;
+    }
+
+    public void setAlwaysMonitorHosts(String alwaysMonitorHosts) {
+        this.alwaysMonitorHosts = stringToSet(alwaysMonitorHosts);
+    }
+
+    public static String listToString(Collection<String> strings) {
+        return Joiner.on(";").join(strings);
+    }
+
+    public static Set<String> stringToSet(String string) {
+        if (Strings.isNullOrEmpty(string)) {
+            return new HashSet<>();
+        }
+        final String[] split = string.split(";");
+        if (split.length == 0) {
+            return new HashSet<>();
+        }
+        return new HashSet<>(Arrays.asList(split));
+    }
+
 
     @Override
     public @Nullable PipelineViewerConfigApp getState() {

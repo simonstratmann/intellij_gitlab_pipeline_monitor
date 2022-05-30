@@ -59,6 +59,7 @@ public class ConfigFormApp {
     private JLabel maxTagsLabel;
     private JCheckBox checkBoxForBranchesWhichExist;
     private JTextField maxAgeDays;
+    private JTextField textFieldAlwaysMonitor;
     private final CollectionListModel<String> mappingsModel = new CollectionListModel<>();
     private final CollectionListModel<String> ignoredRemotesModel = new CollectionListModel<>();
 
@@ -148,6 +149,7 @@ public class ConfigFormApp {
         config.setMrPipelinePrefix(mrPipelinePrefixTextbox.getText());
         config.setMaxAgeDays(Strings.isNullOrEmpty(maxAgeDays.getText()) ? null : Integer.parseInt(maxAgeDays.getText()));
         config.setOnlyForRemoteBranchesExist(checkBoxForBranchesWhichExist.isSelected());
+        config.setAlwaysMonitorHosts(textFieldAlwaysMonitor.getText());
 
         List<String> statusesToWatch = new ArrayList<>();
 
@@ -178,6 +180,7 @@ public class ConfigFormApp {
         mrPipelinePrefixTextbox.setText(config.getMrPipelinePrefix());
         maxAgeDays.setText(config.getMaxAgeDays() == null ? null : String.valueOf(config.getMaxAgeDays()));
         checkBoxForBranchesWhichExist.setSelected(config.isOnlyForRemoteBranchesExist());
+        textFieldAlwaysMonitor.setText(config.getAlwaysMonitorHostsAsString());
 
         mappingsModel.replaceAll(config.getMappings().stream()
                 .map(Mapping::toSerializable)
@@ -205,6 +208,7 @@ public class ConfigFormApp {
                 || !Objects.equals(config.getMrPipelinePrefix(), mrPipelinePrefixTextbox.getText())
                 || !Objects.equals(config.isOnlyForRemoteBranchesExist(), checkBoxForBranchesWhichExist.isSelected())
                 || isDifferentNumber(maxAgeDays.getText(), config.getMaxAgeDays())
+                || !Objects.equals(config.getAlwaysMonitorHostsAsString(), textFieldAlwaysMonitor.getText())
                 ;
     }
 
@@ -294,4 +298,7 @@ public class ConfigFormApp {
     }
 
 
+    private void createUIComponents() {
+        // TODO: place custom component creation code here
+    }
 }

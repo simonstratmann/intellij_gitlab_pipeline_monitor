@@ -44,7 +44,7 @@
         <postStartupActivity implementation="de.sist.gitlab.pipelinemonitor.update.AfterUpdateNotifier"/>
         <notificationGroup displayType="TOOL_WINDOW" id="de.sist.gitlab.pipelinemonitor.unmappedRemote" key="de.sist.gitlab.pipelinemonitor.unmappedRemote" bundle="gitlabBranchViewer"/>
         <notificationGroup displayType="STICKY_BALLOON" id="de.sist.gitlab.pipelinemonitor.disabledCi" key="de.sist.gitlab.pipelinemonitor.disabledCi" bundle="gitlabBranchViewer"/>
-        <notificationGroup displayType="STICKY_BALLOON" id="de.sist.gitlab.pipelinemonitor.error" key="de.sist.gitlab.pipelinemonitor.error" bundle="gitlabBranchViewer"/>
+        <notificationGroup displayType="STICKY_BALLOON" id="de.sist.gitlab.pipelinemonitor.genericNotificationGroup" key="de.sist.gitlab.pipelinemonitor.error" bundle="gitlabBranchViewer"/>
         <notificationGroup displayType="BALLOON" id="de.sist.gitlab.pipelinemonitor.pipelineStatus.pending" icon="/toolWindow/gitlab-icon.png" key="de.sist.gitlab.pipelinemonitor.pipelineStatus.pending" bundle="gitlabBranchViewer"
                            isLogByDefault="false"/>
         <notificationGroup displayType="BALLOON" id="de.sist.gitlab.pipelinemonitor.pipelineStatus.running" icon="/toolWindow/gitlab-icon.png" key="de.sist.gitlab.pipelinemonitor.pipelineStatus.running" bundle="gitlabBranchViewer"
@@ -63,6 +63,9 @@
         <action id="de.sist.gitlab.pipelinemonitor.OpenLastPipelineAction" class="de.sist.gitlab.pipelinemonitor.OpenLastPipelineAction" text="Open Last Pipeline"
                 description="Opens the last pipeline in the browser (like clicking its URL in the tool window)">
             <add-to-group group-id="VcsGroups" anchor="last"/>
+        </action>
+        <action id="de.sist.gitlab.pipelinemonitor.debug.ShowTestNotificationAction" class="de.sist.gitlab.pipelinemonitor.debug.ShowTestNotificationAction" text="Show gitlab test notification">
+            <add-to-group group-id="ToolsMenu" anchor="first"/>
         </action>
     </actions>
 
