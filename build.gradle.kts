@@ -88,11 +88,6 @@ tasks {
         })
     }
 
-    runPluginVerifier {
-        ideVersions.set(properties("pluginVerifierIdeVersions").split(',').map(String::trim).filter(String::isNotEmpty))
-    }
-
-
     publishPlugin {
         dependsOn("patchChangelog")
         token.set(System.getenv("PUBLISH_TOKEN"))
@@ -104,5 +99,10 @@ tasks {
 
     runIde {
         jvmArgs("-Xmx4G", "-Didea.log.debug.categories=#de.sist", "-DgitlabPipelineViewerDebugging=true")
+    }
+
+    buildSearchableOptions {
+        //Allows building the plugin while a sandbox is running
+        enabled = false
     }
 }

@@ -141,7 +141,7 @@ public class NotifierService {
             content = ConfigProvider.getInstance().getMappingByProjectId(status.getProjectId()).getProjectName() + " " + content;
         }
 
-        Notification notification = notificationGroup.createNotification("GitLab branch status", content, notificationType);
+        Notification notification = notificationGroup.createNotification("GitLab branch status", null, content, notificationType);
 
         notification.addAction(new NotificationAction("Open in Browser") {
             @Override
