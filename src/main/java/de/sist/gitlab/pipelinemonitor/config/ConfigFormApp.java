@@ -149,7 +149,7 @@ public class ConfigFormApp {
         config.setMrPipelinePrefix(mrPipelinePrefixTextbox.getText());
         config.setMaxAgeDays(Strings.isNullOrEmpty(maxAgeDays.getText()) ? null : Integer.parseInt(maxAgeDays.getText()));
         config.setOnlyForRemoteBranchesExist(checkBoxForBranchesWhichExist.isSelected());
-        config.setAlwaysMonitorHosts(textFieldAlwaysMonitor.getText());
+        config.setAlwaysMonitorHostsFromString(textFieldAlwaysMonitor.getText());
 
         List<String> statusesToWatch = new ArrayList<>();
 

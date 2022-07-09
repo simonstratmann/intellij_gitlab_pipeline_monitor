@@ -1,5 +1,15 @@
 ## [Unreleased]
 
+## [2.11.0]
+
+### Added
+
+- Mark pipelines that ran successfully but with warning. This uses an undocumented value in the pipeline state and may stop working at any time.
+
+### Fixed
+
+- Fix persistance of hosts for which to always monitor pipelines.
+
 ## [2.10.0]
 
 ### Added

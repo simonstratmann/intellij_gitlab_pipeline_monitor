@@ -200,7 +200,7 @@ public class PipelineViewerConfigApp implements PersistentStateComponent<Pipelin
         this.alwaysMonitorHosts = alwaysMonitorHosts;
     }
 
-    public void setAlwaysMonitorHosts(String alwaysMonitorHosts) {
+    public void setAlwaysMonitorHostsFromString(String alwaysMonitorHosts) {
         this.alwaysMonitorHosts = stringToSet(alwaysMonitorHosts);
     }
 
