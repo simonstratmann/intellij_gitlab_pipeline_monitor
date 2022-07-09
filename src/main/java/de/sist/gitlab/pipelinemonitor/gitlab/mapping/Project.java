@@ -10,6 +10,7 @@ public class Project {
     private String id;
     private boolean jobsEnabled;
     private MergeRequests mergeRequests;
+    private Pipelines pipelines;
 
     public String getName() {
         return name;
@@ -41,6 +42,15 @@ public class Project {
 
     public void setMergeRequests(MergeRequests mergeRequests) {
         this.mergeRequests = mergeRequests;
+    }
+
+
+    public Pipelines getPipelines() {
+        return pipelines;
+    }
+
+    public void setPipelines(Pipelines pipelines) {
+        this.pipelines = pipelines;
     }
 
 }

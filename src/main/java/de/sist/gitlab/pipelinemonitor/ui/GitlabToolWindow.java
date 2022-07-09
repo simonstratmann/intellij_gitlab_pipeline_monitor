@@ -57,6 +57,7 @@ import javax.swing.table.TableColumn;
 import javax.swing.table.TableRowSorter;
 import javax.swing.text.BadLocationException;
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Component;
 import java.awt.Cursor;
 import java.awt.Dimension;
@@ -120,7 +121,12 @@ public class GitlabToolWindow {
         gitService = project.getService(GitService.class);
 
         tableModel = new PipelineTableModel();
-        messageBus.connect().subscribe(ReloadListener.RELOAD, pipelineInfos -> ApplicationManager.getApplication().invokeLater(this::updatePipelinesDisplay));
+        messageBus.connect().subscribe(ReloadListener.RELOAD, new ReloadListener() {
+            @Override
+            public void reload(Map<Mapping, List<PipelineJobStatus>> pipelineInfos) {
+                ApplicationManager.getApplication().invokeLater(GitlabToolWindow.this::updatePipelinesDisplay);
+            }
+        });
         if (!gitlabService.getPipelineInfos().isEmpty()) {
             //Window was not displayed on startup and didn't receive any events, so we need to update the pipelines now
             ApplicationManager.getApplication().invokeLater(this::updatePipelinesDisplay);
@@ -174,10 +180,13 @@ public class GitlabToolWindow {
 
         createTablePanel(project);
         handleEnabledState(project);
-        messageBus.connect().subscribe(ConfigChangedListener.CONFIG_CHANGED, () -> {
-            handleEnabledState(project);
-            showForAllCheckbox.setSelected(PipelineViewerConfigProject.getInstance(project).isShowPipelinesForAll());
-            toggleShowForAllCheckboxVisibility();
+        messageBus.connect().subscribe(ConfigChangedListener.CONFIG_CHANGED, new ConfigChangedListener() {
+            @Override
+            public void configChanged() {
+                handleEnabledState(project);
+                showForAllCheckbox.setSelected(PipelineViewerConfigProject.getInstance(project).isShowPipelinesForAll());
+                toggleShowForAllCheckboxVisibility();
+            }
         });
         toggleShowForAllCheckboxVisibility();
 
@@ -404,7 +413,7 @@ public class GitlabToolWindow {
         };
         banner.addAction(openDialogAction);
 
-        project.getMessageBus().connect().subscribe(UntrackedRemoteNotificationState.UNTRACKED_REMOTE_FOUND, isOpen -> {
+        project.getMessageBus().connect().subscribe(UntrackedRemoteNotificationState.UNTRACKED_REMOTE_FOUND, (UntrackedRemoteNotificationState) isOpen -> {
             ApplicationManager.getApplication().invokeLater(() -> {
                 logger.debug("Setting banner visible: ", isOpen);
                 if (isOpen) {
@@ -705,6 +714,9 @@ public class GitlabToolWindow {
                     case "success":
                         label.setForeground(JBColor.GREEN);
                         break;
+                    case "success (warnings)":
+                        label.setForeground(new JBColor(new Color(195, 199, 22), new Color(195, 199, 22)));
+                        break;
                     case "failed":
                         label.setForeground(JBColor.RED);
                         break;
@@ -724,7 +736,13 @@ public class GitlabToolWindow {
         public List<TableRowDefinition> definitions = Arrays.asList(
                 new TableRowDefinition("Project", x -> x.projectId),
                 new TableRowDefinition("Branch", PipelineJobStatus::getBranchNameDisplay),
-                new TableRowDefinition("Result", x -> x.result),
+                new TableRowDefinition("Result", x -> {
+                    String result = x.result;
+                    if (x.statusGroup != null && x.statusGroup.contains("warnings")) {
+                        result += " (warnings)";
+                    }
+                    return result;
+                }),
                 new TableRowDefinition("Time", x -> x.creationTime),
                 new TableRowDefinition("Pipeline", x -> x.pipelineLink),
                 new TableRowDefinition("MR", x -> x.mergeRequestLink)

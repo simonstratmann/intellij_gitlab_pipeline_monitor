@@ -28,6 +28,8 @@ public class PipelineTo {
     @JsonProperty("source")
     private String source;
 
+    private String statusGroup;
+
     @JsonProperty("id")
     public Integer getId() {
         return id;

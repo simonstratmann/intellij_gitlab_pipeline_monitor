@@ -7,17 +7,20 @@ import java.util.StringJoiner;
 
 public class PipelineJobStatus {
 
+    private final Integer id;
     public String branchName;
     public final String projectId;
     public final ZonedDateTime creationTime;
     public final ZonedDateTime updateTime;
     public final String result;
+    public String statusGroup;
     public final String pipelineLink;
     public String mergeRequestLink;
     public final String source;
     private String branchNameDisplay;
 
-    public PipelineJobStatus(String ref, String projectId, ZonedDateTime creationTime, ZonedDateTime updatedAt, String result, String webUrl, String source) {
+    public PipelineJobStatus(Integer id, String ref, String projectId, ZonedDateTime creationTime, ZonedDateTime updatedAt, String result, String webUrl, String source) {
+        this.id = id;
         this.branchName = ref;
         this.projectId = projectId;
         this.pipelineLink = webUrl;
@@ -43,6 +46,10 @@ public class PipelineJobStatus {
                 Objects.equal(source, that.source) &&
                 Objects.equal(pipelineLink, that.pipelineLink)
                 ;
+    }
+
+    public Integer getId() {
+        return id;
     }
 
     public String getBranchName() {
@@ -88,6 +95,14 @@ public class PipelineJobStatus {
 
     public void setBranchNameDisplay(String branchNameDisplay) {
         this.branchNameDisplay = branchNameDisplay;
+    }
+
+    public String getStatusGroup() {
+        return statusGroup;
+    }
+
+    public void setStatusGroup(String statusGroup) {
+        this.statusGroup = statusGroup;
     }
 
     @Override

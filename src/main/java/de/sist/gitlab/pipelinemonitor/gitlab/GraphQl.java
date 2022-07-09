@@ -44,6 +44,14 @@ public class GraphQl {
             "        }\n" +
             "      } \n" +
             "    }\n" +
+            "    pipelines(status:SUCCESS) {\n" +
+            "        nodes {\n" +
+            "          id\n" +
+            "          detailedStatus {\n" +
+            "            group\n" +
+            "          }" +
+            "      } \n" +
+            "    }\n" +
             "  }\n" +
             "}\n";
 

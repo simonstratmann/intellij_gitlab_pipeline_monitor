@@ -2,6 +2,7 @@ package de.sist.gitlab.pipelinemonitor.git;
 
 import com.intellij.dvcs.DvcsUtil;
 import com.intellij.dvcs.repo.VcsRepositoryManager;
+import com.intellij.dvcs.repo.VcsRepositoryMappingListener;
 import com.intellij.execution.process.ProcessOutputTypes;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
@@ -21,6 +22,7 @@ import git4idea.commands.GitCommandResult;
 import git4idea.commands.GitLineHandler;
 import git4idea.config.GitVcsSettings;
 import git4idea.repo.GitRepository;
+import git4idea.repo.GitRepositoryChangeListener;
 import org.jetbrains.annotations.NotNull;
 
 import java.awt.Toolkit;
@@ -47,15 +49,15 @@ public class GitService {
     public GitService(Project project) {
         this.project = project;
         messageBus = project.getMessageBus();
-        project.getMessageBus().connect().subscribe(VcsRepositoryManager.VCS_REPOSITORY_MAPPING_UPDATED, () -> {
+        project.getMessageBus().connect().subscribe(VcsRepositoryManager.VCS_REPOSITORY_MAPPING_UPDATED, (VcsRepositoryMappingListener) () -> {
             logger.debug("Retrieved event VCS_REPOSITORY_MAPPING_UPDATED");
             fireGitEventIfReposChanged();
         });
-        project.getMessageBus().connect().subscribe(GitRepository.GIT_REPO_CHANGE, repository -> {
+        project.getMessageBus().connect().subscribe(GitRepository.GIT_REPO_CHANGE, (GitRepositoryChangeListener) repository -> {
             logger.debug("Retrieved event GIT_REPO_CHANGE");
             fireGitEventIfReposChanged();
         });
-        project.getMessageBus().connect().subscribe(ReloadListener.RELOAD, pipelineInfos -> fireGitEventIfReposChanged());
+        project.getMessageBus().connect().subscribe(ReloadListener.RELOAD, (ReloadListener) pipelineInfos -> fireGitEventIfReposChanged());
     }
 
     private void fireGitEventIfReposChanged() {

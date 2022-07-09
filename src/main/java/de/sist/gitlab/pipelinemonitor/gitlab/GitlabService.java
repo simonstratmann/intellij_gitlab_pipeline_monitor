@@ -23,8 +23,10 @@ import de.sist.gitlab.pipelinemonitor.config.PipelineViewerConfigProject;
 import de.sist.gitlab.pipelinemonitor.config.TokenType;
 import de.sist.gitlab.pipelinemonitor.git.GitService;
 import de.sist.gitlab.pipelinemonitor.gitlab.mapping.Data;
+import de.sist.gitlab.pipelinemonitor.gitlab.mapping.DetailedStatus;
 import de.sist.gitlab.pipelinemonitor.gitlab.mapping.Edge;
 import de.sist.gitlab.pipelinemonitor.gitlab.mapping.MergeRequest;
+import de.sist.gitlab.pipelinemonitor.gitlab.mapping.PipelineNode;
 import de.sist.gitlab.pipelinemonitor.notifier.NotifierService;
 import de.sist.gitlab.pipelinemonitor.ui.TokenDialog;
 import de.sist.gitlab.pipelinemonitor.ui.UntrackedRemoteNotification;
@@ -84,9 +86,10 @@ public class GitlabService implements Disposable {
             final Map<Mapping, List<PipelineJobStatus>> newMappingToPipelines = new HashMap<>();
             for (Map.Entry<Mapping, List<PipelineTo>> entry : loadPipelines(triggeredByUser).entrySet()) {
                 final List<PipelineJobStatus> jobStatuses = entry.getValue().stream()
-                        .map(pipeline -> new PipelineJobStatus(pipeline.getRef(), entry.getKey().getGitlabProjectId(), pipeline.getCreatedAt(), pipeline.getUpdatedAt(), pipeline.getStatus(), pipeline.getWebUrl(), pipeline.getSource()))
+                        .map(pipeline -> new PipelineJobStatus(pipeline.getId(), pipeline.getRef(), entry.getKey().getGitlabProjectId(), pipeline.getCreatedAt(), pipeline.getUpdatedAt(), pipeline.getStatus(), pipeline.getWebUrl(), pipeline.getSource()))
                         .sorted(Comparator.comparing(PipelineJobStatus::getUpdateTime, Comparator.nullsFirst(Comparator.naturalOrder())).reversed())
                         .collect(Collectors.toList());
+
                 newMappingToPipelines.put(entry.getKey(), jobStatuses);
             }
             pipelineInfos.clear();
@@ -94,7 +97,7 @@ public class GitlabService implements Disposable {
         }
     }
 
-    public void updateMergeRequests() {
+    public void updateFromGraphQl() {
         synchronized (pipelineInfos) {
             mergeRequests.clear();
             try {
@@ -108,10 +111,19 @@ public class GitlabService implements Disposable {
                         logger.debug("Loaded ", mergeRequests.size(), " pipelines for remote ", mapping.getRemote());
 
                         final Map<String, List<MergeRequest>> mergeRequestsBySourceBranch = mergeRequests.stream().collect(Collectors.groupingBy(MergeRequest::getSourceBranch));
+                        final Map<Integer, List<PipelineNode>> pipelinesByIid = data.get().getProject().getPipelines().getNodes().stream()
+                                .collect(Collectors.groupingBy(x -> Integer.parseInt(x.getId().substring(x.getId().lastIndexOf("/") + 1))));
                         for (PipelineJobStatus pipelineJobStatus : pipelineInfos.get(mapping)) {
                             final List<MergeRequest> mergeRequestsForPipeline = mergeRequestsBySourceBranch.get(pipelineJobStatus.branchName);
                             if (mergeRequestsForPipeline != null && mergeRequestsForPipeline.size() > 0) {
                                 pipelineJobStatus.mergeRequestLink = mergeRequestsForPipeline.get(0).getWebUrl();
+                            }
+                            final List<PipelineNode> pipelineNodesForPipeline = pipelinesByIid.get(pipelineJobStatus.getId());
+                            if (pipelineNodesForPipeline != null && pipelineNodesForPipeline.size() > 0) {
+                                final DetailedStatus detailedStatus = pipelineNodesForPipeline.get(0).getDetailedStatus();
+                                if (detailedStatus != null) {
+                                    pipelineJobStatus.statusGroup = detailedStatus.getGroup();
+                                }
                             }
                         }
                     } else {
@@ -342,12 +354,6 @@ public class GitlabService implements Disposable {
             uriBuilder.addParameter("page", String.valueOf(page))
                     .addParameter("per_page", "100");
 
-            if (ConfigProvider.getToken(mapping) != null) {
-                logger.debug("Using access token for access to ", uriBuilder);
-                uriBuilder.addParameter("private_token", ConfigProvider.getToken(mapping));
-            } else {
-                logger.debug("No access token set for remote ", mapping.getRemote());
-            }
 
             url = uriBuilder.build().toString();
         } catch (URISyntaxException e) {
@@ -364,6 +370,7 @@ public class GitlabService implements Disposable {
             URIBuilder uriBuilder = new URIBuilder(url);
 
             if (accessToken != null) {
+                logger.debug("Using access token for access to ", url);
                 uriBuilder.addParameter("private_token", accessToken);
             }
 
