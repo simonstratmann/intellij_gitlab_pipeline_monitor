@@ -14,6 +14,7 @@ import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.fileEditor.FileEditorManagerEvent;
 import com.intellij.openapi.fileEditor.FileEditorManagerListener;
 import com.intellij.openapi.fileEditor.FileEditorProvider;
+import com.intellij.openapi.ide.CopyPasteManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.JBPopupMenu;
 import com.intellij.openapi.util.IconLoader;
@@ -27,6 +28,7 @@ import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.table.JBTable;
 import com.intellij.util.messages.MessageBus;
+import com.intellij.util.ui.TextTransferable;
 import de.sist.gitlab.pipelinemonitor.BackgroundUpdateService;
 import de.sist.gitlab.pipelinemonitor.DateTime;
 import de.sist.gitlab.pipelinemonitor.PipelineFilter;
@@ -262,6 +264,20 @@ public class GitlabToolWindow {
                 brancher.checkout(selectedPipelineStatus.getBranchName(), false, GitUtil.getRepositoryManager(project).getRepositories(), null);
             }
         });
+        branchPopupMenu.add(new AbstractAction("Copy pipeline URL to clipboard") {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                CopyPasteManager.getInstance().setContents(new TextTransferable(selectedPipelineStatus.getPipelineLink()));
+            }
+        });
+        if (selectedPipelineStatus.getMergeRequestLink() != null) {
+            branchPopupMenu.add(new AbstractAction("Copy merge request URL to clipboard") {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    CopyPasteManager.getInstance().setContents(new TextTransferable(selectedPipelineStatus.getMergeRequestLink()));
+                }
+            });
+        }
 
         return branchPopupMenu;
     }

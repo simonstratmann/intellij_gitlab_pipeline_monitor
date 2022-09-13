@@ -5,6 +5,7 @@
 ### Added
 
 - Option to run updates in background, i.e. without showing a progress bar
+- Copy pipeline / merge request URL to clipboard via context menu
 
 ## [2.11.0]
 
