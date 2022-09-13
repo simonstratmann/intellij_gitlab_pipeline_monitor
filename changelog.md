@@ -1,5 +1,11 @@
 ## [Unreleased]
 
+## [2.12.0]
+
+### Added
+
+- Option to run updates in background, i.e. without showing a progress bar
+
 ## [2.11.0]
 
 ### Added

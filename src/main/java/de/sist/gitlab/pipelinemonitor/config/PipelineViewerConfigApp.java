@@ -55,6 +55,7 @@ public class PipelineViewerConfigApp implements PersistentStateComponent<Pipelin
     private Integer maxAgeDays;
     private boolean onlyForRemoteBranchesExist;
     private Set<String> alwaysMonitorHosts = new HashSet<>();
+    private boolean showProgressBar = true;
 
     public List<Mapping> getMappings() {
         return mappings;
@@ -219,6 +220,13 @@ public class PipelineViewerConfigApp implements PersistentStateComponent<Pipelin
         return new HashSet<>(Arrays.asList(split));
     }
 
+    public boolean isShowProgressBar() {
+        return showProgressBar;
+    }
+
+    public void setShowProgressBar(boolean showProgressBar) {
+        this.showProgressBar = showProgressBar;
+    }
 
     @Override
     public @Nullable PipelineViewerConfigApp getState() {

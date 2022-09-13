@@ -1,6 +1,7 @@
 package de.sist.gitlab.pipelinemonitor;
 
 import com.google.common.base.Stopwatch;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressManager;
@@ -9,8 +10,10 @@ import com.intellij.openapi.progress.impl.BackgroundableProcessIndicator;
 import com.intellij.openapi.project.Project;
 import com.intellij.util.concurrency.AppExecutorUtil;
 import com.intellij.util.messages.MessageBus;
+import com.intellij.util.messages.MessageBusConnection;
 import de.sist.gitlab.pipelinemonitor.config.ConfigChangedListener;
 import de.sist.gitlab.pipelinemonitor.config.ConfigProvider;
+import de.sist.gitlab.pipelinemonitor.config.PipelineViewerConfigApp;
 import de.sist.gitlab.pipelinemonitor.config.PipelineViewerConfigProject;
 import de.sist.gitlab.pipelinemonitor.git.GitInitListener;
 import de.sist.gitlab.pipelinemonitor.git.GitService;
@@ -53,7 +56,8 @@ public class BackgroundUpdateService {
             update(project, false);
         };
 
-        project.getMessageBus().connect().subscribe(GitInitListener.GIT_INITIALIZED, gitRepository -> {
+        final MessageBusConnection messageBusConnection = project.getMessageBus().connect();
+        messageBusConnection.subscribe(GitInitListener.GIT_INITIALIZED, (GitInitListener) gitRepository -> {
             logger.debug("Retrieved GIT_INITIALIZED event. Starting background task if needed");
             //If the background task is started at once for some reason the progress indicator is never closed
             if (isActive) {
@@ -67,13 +71,14 @@ public class BackgroundUpdateService {
             scheduledFuture = AppExecutorUtil.getAppScheduledExecutorService().scheduleWithFixedDelay(backgroundTask, 5, UPDATE_DELAY, TimeUnit.SECONDS);
             isActive = true;
         });
-        project.getMessageBus().connect().subscribe(ConfigChangedListener.CONFIG_CHANGED, () -> {
+        messageBusConnection.subscribe(ConfigChangedListener.CONFIG_CHANGED, (ConfigChangedListener) () -> {
             if (!PipelineViewerConfigProject.getInstance(project).isEnabled()) {
                 logger.debug("Retrieved CONFIG_CHANGED event. Project is disabled. Stopping background task if needed");
                 stopBackgroundTask();
             } else {
                 logger.debug("Retrieved CONFIG_CHANGED event. Project is enabled. Starting background task if needed");
             }
+
         });
         gitService = project.getService(GitService.class);
         notifierService = project.getService(NotifierService.class);
@@ -83,27 +88,37 @@ public class BackgroundUpdateService {
         if (isRunning) {
             return;
         }
-        Task.Backgroundable updateTask = new Task.Backgroundable(project, "Loading gitLab pipelines", false) {
-            @Override
-            public void run(@NotNull ProgressIndicator indicator) {
-                Stopwatch stopwatch = Stopwatch.createStarted();
+        Runnable updateRunnable = () -> {
+            Stopwatch stopwatch = Stopwatch.createStarted();
+            getUpdateRunnable(triggeredByUser).run();
+            //For some stupid reason the progress bar is not removed if the process returns too quickly
+            if (stopwatch.elapsed(TimeUnit.MILLISECONDS) < 1000) {
                 try {
-                    getUpdateRunnable(triggeredByUser).run();
-                    //For some stupid reason the progress bar is not removed if the process returns too quickly
-                    if (stopwatch.elapsed(TimeUnit.MILLISECONDS) < 1000) {
-                        try {
-                            Thread.sleep(500);
-                        } catch (InterruptedException ignored) {
-                        }
-                    }
-                } finally {
-                    indicator.stop();
+                    Thread.sleep(500);
+                } catch (InterruptedException ignored) {
                 }
             }
         };
+        if (PipelineViewerConfigApp.getInstance().isShowProgressBar()) {
 
-        final BackgroundableProcessIndicator updateProgressIndicator = new BackgroundableProcessIndicator(updateTask);
-        ProgressManager.getInstance().runProcessWithProgressAsynchronously(updateTask, updateProgressIndicator);
+            Task.Backgroundable updateTask = new Task.Backgroundable(project, "Loading gitLab pipelines", false) {
+                @Override
+                public void run(@NotNull ProgressIndicator indicator) {
+                    try {
+                        updateRunnable.run();
+                    } finally {
+                        indicator.stop();
+                    }
+                }
+            };
+
+            final BackgroundableProcessIndicator updateProgressIndicator = new BackgroundableProcessIndicator(updateTask);
+            ProgressManager.getInstance().runProcessWithProgressAsynchronously(updateTask, updateProgressIndicator);
+        } else {
+            ApplicationManager.getApplication().executeOnPooledThread(updateRunnable);
+        }
+
+
     }
 
     private Runnable getUpdateRunnable(boolean triggeredByUser) {

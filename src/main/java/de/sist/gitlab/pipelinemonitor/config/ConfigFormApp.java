@@ -60,6 +60,7 @@ public class ConfigFormApp {
     private JCheckBox checkBoxForBranchesWhichExist;
     private JTextField maxAgeDays;
     private JTextField textFieldAlwaysMonitor;
+    private JCheckBox checkBoxShowProgressBar;
     private final CollectionListModel<String> mappingsModel = new CollectionListModel<>();
     private final CollectionListModel<String> ignoredRemotesModel = new CollectionListModel<>();
 
@@ -150,6 +151,7 @@ public class ConfigFormApp {
         config.setMaxAgeDays(Strings.isNullOrEmpty(maxAgeDays.getText()) ? null : Integer.parseInt(maxAgeDays.getText()));
         config.setOnlyForRemoteBranchesExist(checkBoxForBranchesWhichExist.isSelected());
         config.setAlwaysMonitorHostsFromString(textFieldAlwaysMonitor.getText());
+        config.setShowProgressBar(checkBoxShowProgressBar.isSelected());
 
         List<String> statusesToWatch = new ArrayList<>();
 
@@ -181,6 +183,7 @@ public class ConfigFormApp {
         maxAgeDays.setText(config.getMaxAgeDays() == null ? null : String.valueOf(config.getMaxAgeDays()));
         checkBoxForBranchesWhichExist.setSelected(config.isOnlyForRemoteBranchesExist());
         textFieldAlwaysMonitor.setText(config.getAlwaysMonitorHostsAsString());
+        checkBoxShowProgressBar.setSelected(config.isShowProgressBar());
 
         mappingsModel.replaceAll(config.getMappings().stream()
                 .map(Mapping::toSerializable)
@@ -209,6 +212,7 @@ public class ConfigFormApp {
                 || !Objects.equals(config.isOnlyForRemoteBranchesExist(), checkBoxForBranchesWhichExist.isSelected())
                 || isDifferentNumber(maxAgeDays.getText(), config.getMaxAgeDays())
                 || !Objects.equals(config.getAlwaysMonitorHostsAsString(), textFieldAlwaysMonitor.getText())
+                || config.isShowProgressBar() != checkBoxShowProgressBar.isSelected()
                 ;
     }
 
