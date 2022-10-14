@@ -82,57 +82,56 @@ public class GitlabService implements Disposable {
     }
 
     public void updatePipelineInfos(boolean triggeredByUser) throws IOException {
-        synchronized (pipelineInfos) {
-            final Map<Mapping, List<PipelineJobStatus>> newMappingToPipelines = new HashMap<>();
-            for (Map.Entry<Mapping, List<PipelineTo>> entry : loadPipelines(triggeredByUser).entrySet()) {
-                final List<PipelineJobStatus> jobStatuses = entry.getValue().stream()
-                        .map(pipeline -> new PipelineJobStatus(pipeline.getId(), pipeline.getRef(), entry.getKey().getGitlabProjectId(), pipeline.getCreatedAt(), pipeline.getUpdatedAt(), pipeline.getStatus(), pipeline.getWebUrl(), pipeline.getSource()))
-                        .sorted(Comparator.comparing(PipelineJobStatus::getUpdateTime, Comparator.nullsFirst(Comparator.naturalOrder())).reversed())
-                        .collect(Collectors.toList());
+        final Map<Mapping, List<PipelineJobStatus>> newMappingToPipelines = new HashMap<>();
+        for (Map.Entry<Mapping, List<PipelineTo>> entry : loadPipelines(triggeredByUser).entrySet()) {
+            final List<PipelineJobStatus> jobStatuses = entry.getValue().stream()
+                    .map(pipeline -> new PipelineJobStatus(pipeline.getId(), pipeline.getRef(), entry.getKey().getGitlabProjectId(), pipeline.getCreatedAt(), pipeline.getUpdatedAt(), pipeline.getStatus(), pipeline.getWebUrl(), pipeline.getSource()))
+                    .sorted(Comparator.comparing(PipelineJobStatus::getUpdateTime, Comparator.nullsFirst(Comparator.naturalOrder())).reversed())
+                    .collect(Collectors.toList());
 
-                newMappingToPipelines.put(entry.getKey(), jobStatuses);
-            }
+            newMappingToPipelines.put(entry.getKey(), jobStatuses);
+        }
+        synchronized (pipelineInfos) {
             pipelineInfos.clear();
             pipelineInfos.putAll(newMappingToPipelines);
         }
     }
 
     public void updateFromGraphQl() {
-        synchronized (pipelineInfos) {
-            mergeRequests.clear();
-            try {
-                for (Mapping mapping : pipelineInfos.keySet()) {
-                    logger.debug("Loading merge requests for remote ", mapping.getRemote());
-                    final List<String> sourceBranches = new ArrayList<>(gitService.getTrackedBranches(mapping));
-                    final Optional<Data> data = GraphQl.makeCall(mapping.getHost(), ConfigProvider.getToken(mapping), mapping.getProjectPath(), sourceBranches, true);
-                    if (data.isPresent()) {
-                        final List<MergeRequest> newMergeRequests = data.get().getProject().getMergeRequests().getEdges().stream().map(Edge::getMergeRequest).collect(Collectors.toList());
-                        mergeRequests.addAll(newMergeRequests);
-                        logger.debug("Loaded ", mergeRequests.size(), " pipelines for remote ", mapping.getRemote());
+        final Map<Mapping, List<PipelineJobStatus>> localPipelineInfos = new HashMap<>(pipelineInfos);
+        mergeRequests.clear();
+        try {
+            for (Mapping mapping : localPipelineInfos.keySet()) {
+                logger.debug("Loading merge requests for remote ", mapping.getRemote());
+                final List<String> sourceBranches = new ArrayList<>(gitService.getTrackedBranches(mapping));
+                final Optional<Data> data = GraphQl.makeCall(mapping.getHost(), ConfigProvider.getToken(mapping), mapping.getProjectPath(), sourceBranches, true);
+                if (data.isPresent()) {
+                    final List<MergeRequest> newMergeRequests = data.get().getProject().getMergeRequests().getEdges().stream().map(Edge::getMergeRequest).collect(Collectors.toList());
+                    mergeRequests.addAll(newMergeRequests);
+                    logger.debug("Loaded ", mergeRequests.size(), " pipelines for remote ", mapping.getRemote());
 
-                        final Map<String, List<MergeRequest>> mergeRequestsBySourceBranch = mergeRequests.stream().collect(Collectors.groupingBy(MergeRequest::getSourceBranch));
-                        final Map<Integer, List<PipelineNode>> pipelinesByIid = data.get().getProject().getPipelines().getNodes().stream()
-                                .collect(Collectors.groupingBy(x -> Integer.parseInt(x.getId().substring(x.getId().lastIndexOf("/") + 1))));
-                        for (PipelineJobStatus pipelineJobStatus : pipelineInfos.get(mapping)) {
-                            final List<MergeRequest> mergeRequestsForPipeline = mergeRequestsBySourceBranch.get(pipelineJobStatus.branchName);
-                            if (mergeRequestsForPipeline != null && mergeRequestsForPipeline.size() > 0) {
-                                pipelineJobStatus.mergeRequestLink = mergeRequestsForPipeline.get(0).getWebUrl();
-                            }
-                            final List<PipelineNode> pipelineNodesForPipeline = pipelinesByIid.get(pipelineJobStatus.getId());
-                            if (pipelineNodesForPipeline != null && pipelineNodesForPipeline.size() > 0) {
-                                final DetailedStatus detailedStatus = pipelineNodesForPipeline.get(0).getDetailedStatus();
-                                if (detailedStatus != null) {
-                                    pipelineJobStatus.statusGroup = detailedStatus.getGroup();
-                                }
+                    final Map<String, List<MergeRequest>> mergeRequestsBySourceBranch = mergeRequests.stream().collect(Collectors.groupingBy(MergeRequest::getSourceBranch));
+                    final Map<Integer, List<PipelineNode>> pipelinesByIid = data.get().getProject().getPipelines().getNodes().stream()
+                            .collect(Collectors.groupingBy(x -> Integer.parseInt(x.getId().substring(x.getId().lastIndexOf("/") + 1))));
+                    for (PipelineJobStatus pipelineJobStatus : localPipelineInfos.get(mapping)) {
+                        final List<MergeRequest> mergeRequestsForPipeline = mergeRequestsBySourceBranch.get(pipelineJobStatus.branchName);
+                        if (mergeRequestsForPipeline != null && mergeRequestsForPipeline.size() > 0) {
+                            pipelineJobStatus.mergeRequestLink = mergeRequestsForPipeline.get(0).getWebUrl();
+                        }
+                        final List<PipelineNode> pipelineNodesForPipeline = pipelinesByIid.get(pipelineJobStatus.getId());
+                        if (pipelineNodesForPipeline != null && pipelineNodesForPipeline.size() > 0) {
+                            final DetailedStatus detailedStatus = pipelineNodesForPipeline.get(0).getDetailedStatus();
+                            if (detailedStatus != null) {
+                                pipelineJobStatus.statusGroup = detailedStatus.getGroup();
                             }
                         }
-                    } else {
-                        logger.debug("Unable to load merge requests for remote ", mapping.getRemote());
                     }
+                } else {
+                    logger.debug("Unable to load merge requests for remote ", mapping.getRemote());
                 }
-            } catch (Exception e) {
-                logger.info("Unable to load merge requests", e);
             }
+        } catch (Exception e) {
+            logger.info("Unable to load merge requests", e);
         }
     }
 

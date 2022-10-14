@@ -1,5 +1,11 @@
 ## [Unreleased]
 
+## [2.13.0]
+
+### Fixed
+
+- UI freezes while loading pipeline results have been fixed
+
 ## [2.12.0]
 
 ### Added
