@@ -1,5 +1,11 @@
 ## [Unreleased]
 
+## [2.13.1]
+
+### Fixed
+
+- "AlreadyDisposedException" thrown sometimes.
+
 ## [2.13.0]
 
 ### Fixed

@@ -49,6 +49,9 @@ public class BackgroundUpdateService {
         messageBus = project.getMessageBus();
 
         backgroundTask = () -> {
+            if (project.isDisposed()) {
+                return;
+            }
             if (!PipelineViewerConfigProject.getInstance(project).isEnabled()) {
                 stopBackgroundTask();
                 return;
