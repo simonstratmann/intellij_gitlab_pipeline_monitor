@@ -28,6 +28,7 @@ import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.table.JBTable;
 import com.intellij.util.messages.MessageBus;
+import com.intellij.util.messages.MessageBusConnection;
 import com.intellij.util.ui.TextTransferable;
 import de.sist.gitlab.pipelinemonitor.BackgroundUpdateService;
 import de.sist.gitlab.pipelinemonitor.DateTime;
@@ -123,9 +124,14 @@ public class GitlabToolWindow {
         gitService = project.getService(GitService.class);
 
         tableModel = new PipelineTableModel();
-        messageBus.connect().subscribe(ReloadListener.RELOAD, new ReloadListener() {
+        final MessageBusConnection messageBusConnection = messageBus.connect();
+        messageBusConnection.subscribe(ReloadListener.RELOAD, new ReloadListener() {
             @Override
             public void reload(Map<Mapping, List<PipelineJobStatus>> pipelineInfos) {
+                if (project.isDisposed()) {
+                    messageBusConnection.disconnect();
+                    return;
+                }
                 ApplicationManager.getApplication().invokeLater(GitlabToolWindow.this::updatePipelinesDisplay);
             }
         });
@@ -182,9 +188,13 @@ public class GitlabToolWindow {
 
         createTablePanel(project);
         handleEnabledState(project);
-        messageBus.connect().subscribe(ConfigChangedListener.CONFIG_CHANGED, new ConfigChangedListener() {
+        messageBusConnection.subscribe(ConfigChangedListener.CONFIG_CHANGED, new ConfigChangedListener() {
             @Override
             public void configChanged() {
+                if (project.isDisposed()) {
+                    messageBusConnection.disconnect();
+                    return;
+                }
                 handleEnabledState(project);
                 showForAllCheckbox.setSelected(PipelineViewerConfigProject.getInstance(project).isShowPipelinesForAll());
                 toggleShowForAllCheckboxVisibility();
