@@ -379,23 +379,27 @@ public class GitlabService implements Disposable {
         }
 
         final String response;
+        final String cleanedUrl = accessToken == null ? url : url.replace(accessToken, "<accessToken>");
+        if (GitlabAccessLogger.GITLAB_ACCESS_LOGGER.isDebugEnabled()) {
+            GitlabAccessLogger.GITLAB_ACCESS_LOGGER.debug("Calling ", cleanedUrl);
+        }
         try {
-            if (GitlabAccessLogger.GITLAB_ACCESS_LOGGER.isDebugEnabled()) {
-                final String cleanedUrl = accessToken == null ? url : url.replace(accessToken, "<accessToken>");
-                GitlabAccessLogger.GITLAB_ACCESS_LOGGER.debug("Calling ", cleanedUrl);
-            }
             response = HttpRequests.request(url)
                     .connectTimeout(ConfigProvider.getInstance().getConnectTimeoutSeconds() * 1000)
                     .readTimeout(ConfigProvider.getInstance().getConnectTimeoutSeconds() * 1000)
                     .readString();
-        } catch (HttpRequests.HttpStatusException e) {
-            //Unfortunately gitlab returns a 404 if the project was found but could not be accessed. We must interpret 404 like 401
-            if (e.getStatusCode() == 401 || e.getStatusCode() == 404) {
-                logger.info("Unable to load pipelines. Interpreting as login error. Status code " + e.getStatusCode() + ". Message: " + e.getMessage());
-                throw new LoginException();
-            } else {
-                throw new IOException("Unable to access " + url + ". Status code: " + e.getStatusCode() + ". Status message: " + e.getMessage());
+        } catch (IOException e) {
+            if (e instanceof HttpRequests.HttpStatusException) {
+                HttpRequests.HttpStatusException statusException = (HttpRequests.HttpStatusException) e;
+                //Unfortunately gitlab returns a 404 if the project was found but could not be accessed. We must interpret 404 like 401
+                if (statusException.getStatusCode() == 401 || statusException.getStatusCode() == 404) {
+                    logger.info("Unable to load pipelines. Interpreting as login error. Status code " + statusException.getStatusCode() + ". Message: " + statusException.getMessage());
+                    throw new LoginException("Unable to login to " + cleanedUrl);
+                } else {
+                    throw new IOException("Unable to access " + cleanedUrl + ". Status code: " + statusException.getStatusCode() + ". Status message: " + e.getMessage());
+                }
             }
+            throw new IOException("Unable to access " + cleanedUrl + ". Error message: " + e.getMessage(), e);
         }
 
         return response;
@@ -499,6 +503,10 @@ public class GitlabService implements Disposable {
     }
 
     static class LoginException extends Exception {
+
+        public LoginException(String message) {
+            super(message);
+        }
     }
 
 
