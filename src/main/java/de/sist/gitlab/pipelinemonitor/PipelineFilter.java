@@ -73,16 +73,19 @@ public class PipelineFilter {
         if (logger.isDebugEnabled()) {
             logger.debug("Will retain branches that are contained in these checked out branches: ", Joiner.on(", ").join(trackedBranches));
         }
+        if (project.isDisposed()) {
+            return Collections.emptyList();
+        }
         final List<MergeRequest> mergeRequests = project.getService(GitlabService.class).getMergeRequests();
         final List<PipelineJobStatus> statuses = toFilter.stream().filter(x -> {
-                    if (PipelineFilter.isMatch(x.branchName, config.getBranchesToIgnore(project))) {
-                        logger.debug("Pipeline for branch ", x.branchName, " is ignored and will be filtered out");
-                        return false;
-                    }
-                    if (appConfig.isOnlyForRemoteBranchesExist() && !remoteBranches.contains(x.branchName)) {
-                        logger.debug("Pipeline for branch ", x.branchName, " is for a remote branch that doesn't exist and will be filtered out");
-                        return false;
-                    }
+            if (PipelineFilter.isMatch(x.branchName, config.getBranchesToIgnore(project))) {
+                logger.debug("Pipeline for branch ", x.branchName, " is ignored and will be filtered out");
+                return false;
+            }
+            if (appConfig.isOnlyForRemoteBranchesExist() && !remoteBranches.contains(x.branchName)) {
+                logger.debug("Pipeline for branch ", x.branchName, " is for a remote branch that doesn't exist and will be filtered out");
+                return false;
+            }
                     if (appConfig.getMaxAgeDays() != null && x.creationTime.isBefore(ZonedDateTime.now().minusDays(appConfig.getMaxAgeDays()))) {
                         logger.debug("Pipeline for branch ", x.branchName, " is older than ", appConfig.getMaxAgeDays(), " days and will be removed. Creation time: ", x.creationTime);
                         return false;

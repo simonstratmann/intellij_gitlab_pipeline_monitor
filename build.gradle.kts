@@ -3,8 +3,8 @@ import org.jetbrains.changelog.markdownToHTML
 fun properties(key: String) = project.findProperty(key).toString()
 
 plugins {
-    id("org.jetbrains.intellij") version "1.9.0"
-    id("org.jetbrains.changelog") version "1.3.1"
+    id("org.jetbrains.intellij") version "1.13.3"
+    id("org.jetbrains.changelog") version "2.0.0"
     id("idea")
     id("java")
 }
@@ -27,6 +27,7 @@ repositories {
 
 dependencies {
     implementation("com.fasterxml.jackson.core:jackson-databind:2.13.3")
+    implementation("dev.failsafe:failsafe:3.3.1")
 }
 
 

@@ -1,5 +1,12 @@
 ## [Unreleased]
 
+## [2.14.0]
+
+### Added
+
+- Only the first connection error after a successful connection will be reported. This should prevent notification
+  spamming when your internet connection is down or VPN is disconnected. See #64
+
 ## [2.13.2]
 
 ### Fixed

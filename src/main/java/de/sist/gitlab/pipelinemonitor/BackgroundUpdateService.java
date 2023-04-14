@@ -41,6 +41,7 @@ public class BackgroundUpdateService {
     private final Project project;
     private final GitlabService gitlabService;
     private final MessageBus messageBus;
+    private boolean connectionFailureReported;
 
     public BackgroundUpdateService(Project project) {
         this.project = project;
@@ -138,11 +139,15 @@ public class BackgroundUpdateService {
                 if (!messageBus.isDisposed()) {
                     messageBus.syncPublisher(ReloadListener.RELOAD).reload(gitlabService.getPipelineInfos());
                 }
+                connectionFailureReported = false;
                 logger.debug("Finished IntelliJ background task");
             } catch (IOException e) {
                 logger.info("Connection error: " + e.getMessage(), e);
                 if (ConfigProvider.getInstance().isShowConnectionErrorNotifications()) {
-                    notifierService.showError("Unable to connect to gitlab: " + e);
+                    if (!connectionFailureReported) {
+                        notifierService.showError("Unable to connect to gitlab: " + e);
+                        connectionFailureReported = true;
+                    }
                 }
             } finally {
                 isRunning = false;

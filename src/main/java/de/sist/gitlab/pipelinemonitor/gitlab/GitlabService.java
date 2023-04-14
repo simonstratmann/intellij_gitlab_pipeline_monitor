@@ -31,6 +31,8 @@ import de.sist.gitlab.pipelinemonitor.notifier.NotifierService;
 import de.sist.gitlab.pipelinemonitor.ui.TokenDialog;
 import de.sist.gitlab.pipelinemonitor.ui.UntrackedRemoteNotification;
 import de.sist.gitlab.pipelinemonitor.ui.UntrackedRemoteNotificationState;
+import dev.failsafe.Failsafe;
+import dev.failsafe.RetryPolicy;
 import git4idea.repo.GitRemote;
 import git4idea.repo.GitRepository;
 import org.apache.commons.lang3.StringUtils;
@@ -40,6 +42,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -66,6 +69,11 @@ public class GitlabService implements Disposable {
     private static final Pattern REMOTE_GIT_HTTP_PATTERN = Pattern.compile("(?<scheme>https?:\\/\\/)(?<url>.*)(\\.git)?");
     private static final Pattern REMOTE_BEST_GUESS_PATTERN = Pattern.compile("(?<host>https?://[^/]*)/(?<projectPath>.*)");
     private static final List<String> INCOMPATIBLE_REMOTES = Arrays.asList("github.com", "bitbucket.com");
+    private static final RetryPolicy<String> RETRY_POLICY = RetryPolicy.<String>builder()
+            .handle(IOException.class, LoginException.class)
+            .withDelay(Duration.ofSeconds(1))
+            .withMaxRetries(5)
+            .build();
 
     private final ConfigProvider config = ApplicationManager.getApplication().getService(ConfigProvider.class);
     private final Project project;
@@ -359,7 +367,7 @@ public class GitlabService implements Disposable {
             throw new RuntimeException(e);
         }
 
-        String json = makeApiCall(url, ConfigProvider.getToken(mapping));
+        final String json = Failsafe.with(RETRY_POLICY).get(() -> makeApiCall(url, ConfigProvider.getToken(mapping)));
         return Jackson.OBJECT_MAPPER.readValue(json, new TypeReference<>() {
         });
     }
