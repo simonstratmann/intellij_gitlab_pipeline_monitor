@@ -145,8 +145,11 @@ public class BackgroundUpdateService {
                 logger.info("Connection error: " + e.getMessage(), e);
                 if (ConfigProvider.getInstance().isShowConnectionErrorNotifications()) {
                     if (!connectionFailureReported) {
+                        logger.debug("Showing notification for first connection error after a successful connection");
                         notifierService.showError("Unable to connect to gitlab: " + e);
                         connectionFailureReported = true;
+                    } else {
+                        logger.debug("Not notification for connection error because one was already shown");
                     }
                 }
             } finally {
