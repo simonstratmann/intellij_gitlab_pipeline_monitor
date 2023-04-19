@@ -1,3 +1,6 @@
+import org.jetbrains.changelog.Changelog
+import org.jetbrains.changelog.ChangelogSectionUrlBuilder
+import org.jetbrains.changelog.date
 import org.jetbrains.changelog.markdownToHTML
 
 fun properties(key: String) = project.findProperty(key).toString()
@@ -46,8 +49,16 @@ intellij {
 }
 
 changelog {
+    header.set(provider { "[${version.get()}] - ${date()}" })
+    headerParserRegex.set("""(\d+\.\d+.\d+)""".toRegex())
     version.set(properties("pluginVersion"))
-    groups.set(emptyList())
+    groups.set(listOf("Added", "Changed", "Fixed"))
+    itemPrefix.set("-")
+    keepUnreleasedSection.set(true)
+    unreleasedTerm.set("[Unreleased]")
+    lineSeparator.set("\n")
+    combinePreReleases.set(true)
+    sectionUrlBuilder.set(ChangelogSectionUrlBuilder { repositoryUrl, currentVersion, previousVersion, isUnreleased -> "foo" })
 }
 
 tasks {
@@ -81,11 +92,15 @@ tasks {
             }.joinToString("\n").run { markdownToHTML(this) }
         )
 
-        // Get the latest available change notes from the changelog file
+        version.set(properties("pluginVersion"))
         changeNotes.set(provider {
-            changelog.run {
-                getOrNull(properties("pluginVersion")) ?: getLatest()
-            }.toHTML()
+            changelog.renderItem(
+                changelog
+                    .getLatest()
+                    .withHeader(false)
+                    .withEmptySections(false),
+                Changelog.OutputType.HTML
+            )
         })
     }
 
