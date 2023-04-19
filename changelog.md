@@ -9,6 +9,11 @@
 ### Fixed
 
 - Connection errors were being shown even when disabled.
+- Login errors were not properly detected so the plugin didn't ask for access tokens.
+
+### Changed
+
+- Connection errors will now be shown if the user triggered a reload, even when they were already shown before.
 
 ## [2.14.0]
 

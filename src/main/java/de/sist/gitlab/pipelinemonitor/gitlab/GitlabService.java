@@ -32,6 +32,7 @@ import de.sist.gitlab.pipelinemonitor.ui.TokenDialog;
 import de.sist.gitlab.pipelinemonitor.ui.UntrackedRemoteNotification;
 import de.sist.gitlab.pipelinemonitor.ui.UntrackedRemoteNotificationState;
 import dev.failsafe.Failsafe;
+import dev.failsafe.FailsafeException;
 import dev.failsafe.RetryPolicy;
 import git4idea.repo.GitRemote;
 import git4idea.repo.GitRepository;
@@ -314,7 +315,10 @@ public class GitlabService implements Disposable {
             //Note: Gitlab GraphQL does not return the ref (branch name): https://gitlab.com/gitlab-org/gitlab/-/issues/230405
             pipelines.addAll(makePipelinesUrlCall(1, mapping));
             pipelines.addAll(makePipelinesUrlCall(2, mapping));
-        } catch (LoginException e) {
+        } catch (FailsafeException | LoginException e) {
+            if (e instanceof FailsafeException && e.getCause() instanceof IOException) {
+                throw (IOException) e.getCause();
+            }
             logger.debug("Login exception while loading pipelines", e);
             ApplicationManager.getApplication().invokeLater(() -> {
                 if (openTokenDialogsByMapping.contains(mapping)) {

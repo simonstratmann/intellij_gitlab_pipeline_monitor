@@ -145,7 +145,7 @@ public class BackgroundUpdateService {
             } catch (FailsafeException | IOException e) {
                 logger.info("Connection error: " + e.getMessage(), e);
                 if (ConfigProvider.getInstance().isShowConnectionErrorNotifications()) {
-                    if (!connectionFailureReported) {
+                    if (!connectionFailureReported || triggeredByUser) {
                         logger.debug("Showing notification for first connection error after a successful connection");
                         notifierService.showError("Unable to connect to gitlab: " + e);
                         connectionFailureReported = true;
