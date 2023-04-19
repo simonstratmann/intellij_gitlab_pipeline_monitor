@@ -19,6 +19,7 @@ import de.sist.gitlab.pipelinemonitor.git.GitInitListener;
 import de.sist.gitlab.pipelinemonitor.git.GitService;
 import de.sist.gitlab.pipelinemonitor.gitlab.GitlabService;
 import de.sist.gitlab.pipelinemonitor.notifier.NotifierService;
+import dev.failsafe.FailsafeException;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
@@ -141,7 +142,7 @@ public class BackgroundUpdateService {
                 }
                 connectionFailureReported = false;
                 logger.debug("Finished IntelliJ background task");
-            } catch (IOException e) {
+            } catch (FailsafeException | IOException e) {
                 logger.info("Connection error: " + e.getMessage(), e);
                 if (ConfigProvider.getInstance().isShowConnectionErrorNotifications()) {
                     if (!connectionFailureReported) {
