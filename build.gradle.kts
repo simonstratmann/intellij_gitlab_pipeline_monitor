@@ -1,6 +1,5 @@
 import org.jetbrains.changelog.Changelog
 import org.jetbrains.changelog.ChangelogSectionUrlBuilder
-import org.jetbrains.changelog.date
 import org.jetbrains.changelog.markdownToHTML
 
 fun properties(key: String) = project.findProperty(key).toString()
@@ -49,7 +48,7 @@ intellij {
 }
 
 changelog {
-    header.set(provider { "[${version.get()}] - ${date()}" })
+    header.set(provider { "${version.get()}" })
     headerParserRegex.set("""(\d+\.\d+.\d+)""".toRegex())
     version.set(properties("pluginVersion"))
     groups.set(listOf("Added", "Changed", "Fixed"))

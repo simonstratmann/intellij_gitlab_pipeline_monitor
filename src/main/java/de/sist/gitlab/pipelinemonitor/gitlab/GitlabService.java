@@ -346,6 +346,7 @@ public class GitlabService implements Disposable {
                 if (response.isEmpty()) {
                     logger.info("Token dialog cancelled, not changing anything. Will not load pipelines until next plugin load or triggered manually");
                     PipelineViewerConfigApp.getInstance().getRemotesAskAgainNextTime().add(mapping.getRemote());
+                    return;
                 } else if (Strings.isNullOrEmpty(response.get().getLeft())) {
                     logger.info("No token entered, setting token to null for remote " + mapping.getRemote());
                     ConfigProvider.saveToken(mapping, null, response.get().getRight());

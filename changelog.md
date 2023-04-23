@@ -1,12 +1,10 @@
 # Changelog
 
-## [Unreleased]
-
-### Added
-
-### Changed
+## 2.14.2
 
 ### Fixed
+
+- Do not ask for token again until an update is triggered by the user or the project has reopened.
 
 ## 2.14.1
 
