@@ -1,6 +1,14 @@
 # Changelog
 
-## [2.14.1]
+## [Unreleased]
+
+### Added
+
+### Changed
+
+### Fixed
+
+## 2.14.1
 
 ### Added
 
@@ -15,35 +23,30 @@
 
 - Connection errors will now be shown if the user triggered a reload, even when they were already shown before.
 
-## [2.14.0]
+## 2.14.0
 
 ### Added
-
 - Only the first connection error after a successful connection will be reported. This should prevent notification
   spamming when your internet connection is down or VPN is disconnected. See #64
 
-## [2.13.2]
+## 2.13.2
 
 ### Fixed
-
 - "AlreadyDisposedException" thrown sometimes (somewhere else).
 
-## [2.13.1]
+## 2.13.1
 
 ### Fixed
-
 - "AlreadyDisposedException" thrown sometimes.
 
 ## 2.13.0
 
 ### Fixed
-
 - UI freezes while loading pipeline results have been fixed.
 
 ## 2.12.0
 
 ### Added
-
 - Option to run updates in background, i.e. without showing a progress bar.
 - Copy pipeline / merge request URL to clipboard via context menu.
 

@@ -203,11 +203,17 @@ public class GitlabService implements Disposable {
                                     logger.debug("Host ", host, " is in the list of hosts for which to always monitor projects");
                                     final String token = ConfigProvider.getToken(host, projectPath);
                                     final Optional<Mapping> optionalMapping = createMappingWithProjectNameAndId(url, host, projectPath, token, TokenType.PERSONAL);
+                                    if (project.isDisposed()) {
+                                        return;
+                                    }
                                     final NotifierService notifierService = project.getService(NotifierService.class);
                                     if (optionalMapping.isPresent()) {
                                         logger.debug("Successfully created mapping ", optionalMapping.get(), ". Will use it");
                                         notifierService.showInfo("Gitlab Pipeline Viewer will monitor project " + project.getName());
                                         ConfigProvider.getInstance().getMappings().add(optionalMapping.get());
+                                        if (project.isDisposed()) {
+                                            return;
+                                        }
                                         project.getService(BackgroundUpdateService.class).update(project, false);
                                         continue;
                                     } else {
@@ -348,6 +354,9 @@ public class GitlabService implements Disposable {
                     ConfigProvider.saveToken(mapping, response.get().getLeft(), response.get().getRight());
                 }
                 PipelineViewerConfigApp.getInstance().getRemotesAskAgainNextTime().remove(mapping.getRemote());
+                if (project.isDisposed()) {
+                    return;
+                }
                 project.getService(BackgroundUpdateService.class).update(project, false);
                 //Token has changed, user probably wants to retry
 
