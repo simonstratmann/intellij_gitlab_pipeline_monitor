@@ -2,14 +2,18 @@
 
 ## [Unreleased]
 
-## 2.15.0
+### Added
 
 ### Changed
 
+### Fixed
+
+## 2.15.0
+
+### Changed
 - IntelliJ 2023+ is now required
 
 ### Fixed
-
 - "Thread context already set error" when showing the token dialog.
 
 ## 2.14.2

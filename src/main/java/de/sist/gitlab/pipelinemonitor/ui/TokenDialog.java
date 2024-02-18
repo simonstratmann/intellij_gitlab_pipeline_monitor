@@ -32,12 +32,11 @@ public class TokenDialog extends JDialog {
     }
 
     public static class Wrapper extends DialogWrapper {
-
         private final TokenDialog tokenDialog;
         private final Consumer<Pair<String, TokenType>> responseConsumer;
 
         public Wrapper(Project project, String message, String oldToken, TokenType tokenType, Consumer<Pair<String, TokenType>> responseConsumer) {
-            super(project, false, IdeModalityType.PROJECT);
+            super(project, false, IdeModalityType.IDE);
             this.tokenDialog = new TokenDialog(message, oldToken, tokenType);
             this.responseConsumer = responseConsumer;
             setTitle("Gitlab Pipeline Viewer - Access Token");

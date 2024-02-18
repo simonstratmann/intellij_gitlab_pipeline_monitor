@@ -5,12 +5,15 @@ import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.fileEditor.*;
+import com.intellij.openapi.fileEditor.FileEditorManager;
+import com.intellij.openapi.fileEditor.FileEditorManagerEvent;
+import com.intellij.openapi.fileEditor.FileEditorManagerListener;
+import com.intellij.openapi.fileEditor.FileOpenedSyncListener;
+import com.intellij.openapi.fileEditor.ex.FileEditorWithProvider;
 import com.intellij.openapi.ide.CopyPasteManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.JBPopupMenu;
 import com.intellij.openapi.util.IconLoader;
-import com.intellij.openapi.util.Pair;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.ui.AnActionButton;
 import com.intellij.ui.DocumentAdapter;
@@ -54,7 +57,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-@SuppressWarnings({"Convert2Lambda", "DialogTitleCapitalization", "ReplaceNullCheck"})
+@SuppressWarnings({"Convert2Lambda", "ReplaceNullCheck"})
 public class GitlabToolWindow {
 
     private static final Logger logger = Logger.getInstance(GitlabToolWindow.class);
@@ -177,15 +180,15 @@ public class GitlabToolWindow {
     }
 
     private void updateTableWhenMonitoringMultipleRemotesButOnlyShowingPipelinesForOne() {
-        messageBus.connect().subscribe(FileEditorManagerListener.FILE_EDITOR_MANAGER, new FileEditorManagerListener() {
-
-            // TODO sist 18.02.2024: Unsure how to fix deprecation
+        messageBus.connect().subscribe(FileOpenedSyncListener.TOPIC, new FileOpenedSyncListener() {
             @Override
-            public void fileOpenedSync(@NotNull FileEditorManager source, @NotNull VirtualFile file, @NotNull Pair<FileEditor[], FileEditorProvider[]> editors) {
+            public void fileOpenedSync(@NotNull FileEditorManager source, @NotNull VirtualFile file, @NotNull List<FileEditorWithProvider> editorsWithProviders) {
                 if (gitlabService.getPipelineInfos().size() > 1 && !showForAllCheckbox.isSelected()) {
                     updatePipelinesDisplay();
                 }
             }
+        });
+        messageBus.connect().subscribe(FileEditorManagerListener.FILE_EDITOR_MANAGER, new FileEditorManagerListener() {
 
             @Override
             public void selectionChanged(@NotNull FileEditorManagerEvent event) {
@@ -285,81 +288,26 @@ public class GitlabToolWindow {
         return url;
     }
 
-    private PipelineJobStatus getSelectedBranch(Point pointClicked) {
-        SelectedCell cell;
+    private PipelineJobStatus getSelectedBranch() {
+        int selectedRow;
         try {
-            cell = getSelectedTableCell(pointClicked);
+            selectedRow = getSelectedTableRow();
         } catch (ArrayIndexOutOfBoundsException e) {
             return null;
         }
-        if (cell.rowIndex == -1 || cell.rowIndex > tableModel.rows.size()) {
+        if (selectedRow == -1 || selectedRow > tableModel.rows.size()) {
             return null;
         }
-        return tableModel.rows.get(cell.rowIndex);
+        return tableModel.rows.get(selectedRow);
     }
 
-    private SelectedCell getSelectedTableCell(Point pointClicked) {
+    private int getSelectedTableRow() {
         int viewRow = pipelineTable.getSelectedRow();
-        int selectedColumn = pipelineTable.columnAtPoint(pointClicked);
-        int modelRow = pipelineTable.convertRowIndexToModel(viewRow);
-
-        return new SelectedCell(modelRow, selectedColumn, tableModel.getValueAt(modelRow, selectedColumn));
+        return pipelineTable.convertRowIndexToModel(viewRow);
     }
 
     private void createTablePanel(Project project) {
-        AnActionButton refreshActionButton = new AnActionButton("Refresh", AllIcons.Actions.Refresh) {
-            @Override
-            public void actionPerformed(@NotNull AnActionEvent e) {
-                backgroundUpdateService.update(project, true);
-            }
-
-            @Override
-            public JComponent getContextComponent() {
-                return pipelineTable;
-            }
-
-            @Override
-            public @NotNull ActionUpdateThread getActionUpdateThread() {
-                return ActionUpdateThread.BGT;
-            }
-        };
-
-        AnActionButton turnOffLightsAction = new AnActionButton("Turn Off Lights", IconLoader.getIcon("/trafficLightsOff.png", GitlabToolWindow.class)) {
-            @Override
-            public void actionPerformed(@NotNull AnActionEvent e) {
-                LightsControl.turnOffAllLights();
-            }
-
-            @Override
-            public JComponent getContextComponent() {
-                return pipelineTable;
-            }
-
-            @Override
-            public @NotNull ActionUpdateThread getActionUpdateThread() {
-                return ActionUpdateThread.BGT;
-            }
-        };
-
-        AnActionButton copyCurrentGitHash = new AnActionButton("Copy current git hash to clipboard", "Copy current git hash to clipboard", null) {
-            @Override
-            public void actionPerformed(@NotNull AnActionEvent e) {
-                gitService.copyHashToClipboard();
-            }
-
-            @Override
-            public JComponent getContextComponent() {
-                return pipelineTable;
-            }
-
-            @Override
-            public @NotNull ActionUpdateThread getActionUpdateThread() {
-                return ActionUpdateThread.BGT;
-            }
-        };
-
-
-        DefaultActionGroup actionGroup = new DefaultActionGroup(refreshActionButton, turnOffLightsAction, copyCurrentGitHash);
+        DefaultActionGroup actionGroup = getDefaultActionGroup(project);
 
         ActionToolbar actionToolbar = ActionManager.getInstance().createActionToolbar(ActionPlaces.TOOLBAR, actionGroup, true);
         actionToolbar.setTargetComponent(this.getContent());
@@ -412,6 +360,32 @@ public class GitlabToolWindow {
         tablePanel.add(new JBScrollPane(pipelineTable), BorderLayout.CENTER, 1);
     }
 
+    @NotNull
+    private DefaultActionGroup getDefaultActionGroup(Project project) {
+        AnActionButton refreshActionButton = new ActionButton("Refresh", AllIcons.Actions.Refresh) {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                backgroundUpdateService.update(project, true);
+            }
+        };
+
+        AnActionButton turnOffLightsAction = new ActionButton("Turn Off Lights", IconLoader.getIcon("/trafficLightsOff.png", GitlabToolWindow.class)) {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                LightsControl.turnOffAllLights();
+            }
+        };
+
+        AnActionButton copyCurrentGitHash = new ActionButton("Copy current git hash to clipboard", "Copy current git hash to clipboard") {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                gitService.copyHashToClipboard();
+            }
+        };
+
+        return new DefaultActionGroup(refreshActionButton, turnOffLightsAction, copyCurrentGitHash);
+    }
+
     private void addBanner(Project project) {
         banner.setText("Waiting for decision how to handle untracked remote");
 
@@ -427,25 +401,24 @@ public class GitlabToolWindow {
         };
         banner.addAction(openDialogAction);
 
-        project.getMessageBus().connect().subscribe(UntrackedRemoteNotificationState.UNTRACKED_REMOTE_FOUND, (UntrackedRemoteNotificationState) isOpen -> {
-            ApplicationManager.getApplication().invokeLater(() -> {
-                logger.debug("Setting banner visible: ", isOpen);
-                if (isOpen) {
-                    actionPanel.add(banner);
-                    final List<UntrackedRemoteNotification> openNotifications = UntrackedRemoteNotification.getAlreadyOpenNotifications(project);
-                    //Sometimes the number of notification dialogs is not yet correct and it thinks we don't have any open
-                    if (openNotifications.size() <= 1) {
-                        openDialogAction.putValue(Action.NAME, "Open dialog");
-                        banner.setText("Waiting for decision how to handle untracked remote");
+        project.getMessageBus().connect().subscribe(UntrackedRemoteNotificationState.UNTRACKED_REMOTE_FOUND, (UntrackedRemoteNotificationState) isOpen ->
+                ApplicationManager.getApplication().invokeLater(() -> {
+                    logger.debug("Setting banner visible: ", isOpen);
+                    if (isOpen) {
+                        actionPanel.add(banner);
+                        final List<UntrackedRemoteNotification> openNotifications = UntrackedRemoteNotification.getAlreadyOpenNotifications(project);
+                        //Sometimes the number of notification dialogs is not yet correct and it thinks we don't have any open
+                        if (openNotifications.size() <= 1) {
+                            openDialogAction.putValue(Action.NAME, "Open dialog");
+                            banner.setText("Waiting for decision how to handle untracked remote");
+                        } else {
+                            openDialogAction.putValue(Action.NAME, "Open " + openNotifications.size() + " dialogs");
+                            banner.setText("Waiting for decision how to handle untracked remotes");
+                        }
                     } else {
-                        openDialogAction.putValue(Action.NAME, "Open " + openNotifications.size() + " dialogs");
-                        banner.setText("Waiting for decision how to handle untracked remotes");
+                        actionPanel.remove(banner);
                     }
-                } else {
-                    actionPanel.remove(banner);
-                }
-            });
-        });
+                }));
 
 
         actionPanel.remove(banner);
@@ -575,7 +548,7 @@ public class GitlabToolWindow {
             public void mouseClicked(MouseEvent e) {
                 PipelineJobStatus selectedPipelineStatus;
                 try {
-                    selectedPipelineStatus = getSelectedBranch(e.getPoint());
+                    selectedPipelineStatus = getSelectedBranch();
                 } catch (Exception ex) {
                     //Can happen in some (unknown) cases, probably when the table is updated while the mouse is clicked
                     logger.debug(ex);
@@ -785,6 +758,27 @@ public class GitlabToolWindow {
 
     }
 
+    private abstract class ActionButton extends AnActionButton {
+        public ActionButton(String text, Icon icon) {
+            super(text, icon);
+        }
+
+        public ActionButton(String text, String description) {
+            super(text, description, null);
+        }
+
+        @Override
+        public JComponent getContextComponent() {
+            return pipelineTable;
+        }
+
+        @Override
+        public @NotNull ActionUpdateThread getActionUpdateThread() {
+            return ActionUpdateThread.BGT;
+        }
+
+    }
+
 
     private static class TableRowDefinition {
         public String title;
@@ -796,15 +790,4 @@ public class GitlabToolWindow {
         }
     }
 
-    private static class SelectedCell {
-        private final int rowIndex;
-        private final int columnIndex;
-        private final Object cellContent;
-
-        public SelectedCell(int rowIndex, int columnIndex, Object cellContent) {
-            this.rowIndex = rowIndex;
-            this.columnIndex = columnIndex;
-            this.cellContent = cellContent;
-        }
-    }
 }

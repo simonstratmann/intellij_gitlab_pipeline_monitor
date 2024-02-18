@@ -3,8 +3,6 @@ package de.sist.gitlab.pipelinemonitor.lights;
 import com.sun.jna.Library;
 import com.sun.jna.Pointer;
 
-import java.util.Arrays;
-
 @SuppressWarnings({"unused", "UnusedReturnValue"})
 public interface LightsWindowsLibrary extends LightsApi, Library {
 
@@ -34,9 +32,13 @@ public interface LightsWindowsLibrary extends LightsApi, Library {
     default void turnOnColor(Pointer cw, Light light, boolean turnOthersOff) {
         FCWSetSwitch(cw, 0, light.index, 1);
         if (turnOthersOff) {
-            Arrays.stream(Light.values()).filter(x -> x != light).forEach(x -> {
-                FCWSetSwitch(cw, 0, x.index, 0);
-            });
+            //With a stream we get this warning from IntelliJ:
+            //#Attempt to execute an *invokeinterface* instruction on a private method de.sist.gitlab.pipelinemonitor.lights.LightsWindowsLibrary.lambda$turnOnColor$1(Pointer cw, LightsApi.Light x)
+            for (Light x : Light.values()) {
+                if (x != light) {
+                    FCWSetSwitch(cw, 0, x.index, 0);
+                }
+            }
         }
     }
 
@@ -45,9 +47,9 @@ public interface LightsWindowsLibrary extends LightsApi, Library {
     }
 
     default void turnAllOff(Pointer cw) {
-        Arrays.stream(Light.values()).forEach(x -> {
+        for (Light x : Light.values()) {
             FCWSetSwitch(cw, 0, x.index, 0);
-        });
+        }
     }
 
 }
