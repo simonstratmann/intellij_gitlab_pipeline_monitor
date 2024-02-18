@@ -3,8 +3,8 @@ package de.sist.gitlab.pipelinemonitor.config;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Strings;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.PersistentStateComponent;
-import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.components.State;
 import com.intellij.openapi.components.Storage;
 import com.intellij.util.xmlb.XmlSerializerUtil;
@@ -12,14 +12,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 @SuppressWarnings("unused")
 @State(name = "PipelineViewerConfigApp", storages = {@Storage("PipelineViewerConfigApp.xml")})
@@ -239,7 +232,7 @@ public class PipelineViewerConfigApp implements PersistentStateComponent<Pipelin
     }
 
     public static PipelineViewerConfigApp getInstance() {
-        return ServiceManager.getService(PipelineViewerConfigApp.class);
+        return ApplicationManager.getApplication().getService(PipelineViewerConfigApp.class);
     }
 
     public static class GitlabInfo {

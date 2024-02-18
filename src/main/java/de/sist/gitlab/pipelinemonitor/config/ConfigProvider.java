@@ -4,7 +4,7 @@ package de.sist.gitlab.pipelinemonitor.config;
 import com.google.common.base.Strings;
 import com.intellij.credentialStore.CredentialAttributes;
 import com.intellij.ide.passwordSafe.PasswordSafe;
-import com.intellij.openapi.components.ServiceManager;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import de.sist.gitlab.pipelinemonitor.gitlab.GitlabService;
@@ -22,8 +22,6 @@ import java.util.concurrent.locks.ReentrantLock;
 public class ConfigProvider {
 
     private static final com.intellij.openapi.diagnostic.Logger logger = Logger.getInstance(ConfigProvider.class);
-
-    public static final int READ_TIMEOUT = 5_000;
 
     private boolean isConfigOpen;
     private final Lock lock = new ReentrantLock();
@@ -120,7 +118,7 @@ public class ConfigProvider {
     }
 
     public static ConfigProvider getInstance() {
-        return ServiceManager.getService(ConfigProvider.class);
+        return ApplicationManager.getApplication().getService(ConfigProvider.class);
     }
 
     public static void saveToken(Mapping mapping, String token, TokenType tokenType) {
@@ -128,7 +126,7 @@ public class ConfigProvider {
         final String passwordKey = tokenType == TokenType.PERSONAL ? mapping.getHost() : mapping.getRemote();
         logger.debug("Saving token with length ", (token == null ? 0 : token.length()), (tokenType == TokenType.PERSONAL ? " for host " : " for remote "), passwordKey);
         final CredentialAttributes credentialAttributes = new CredentialAttributes(GitlabService.ACCESS_TOKEN_CREDENTIALS_ATTRIBUTE + passwordKey, passwordKey);
-        PasswordSafe.getInstance().setPassword(credentialAttributes, Strings.emptyToNull(token));
+        PasswordSafe.getInstance().setPassword(credentialAttributes, token == null ? null : Strings.emptyToNull(token));
         if (tokenType == TokenType.PERSONAL) {
             //Delete token saved for this remote as it's now superseded by the personal access token
             PasswordSafe.getInstance().setPassword(new CredentialAttributes(GitlabService.ACCESS_TOKEN_CREDENTIALS_ATTRIBUTE + mapping.getRemote(), mapping.getRemote()), null);
@@ -168,8 +166,8 @@ public class ConfigProvider {
         return Pair.of(token, tokenType);
     }
 
-    public static boolean isEqualIgnoringEmptyOrNull(String a, String b) {
-        return Strings.nullToEmpty(a).equals(Strings.nullToEmpty(b));
+    public static boolean isNotEqualIgnoringEmptyOrNull(String a, String b) {
+        return !Strings.nullToEmpty(a).equals(Strings.nullToEmpty(b));
     }
 
 

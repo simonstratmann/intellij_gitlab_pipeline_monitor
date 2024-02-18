@@ -2,18 +2,10 @@ package de.sist.gitlab.pipelinemonitor.ui;
 
 import com.google.common.base.Strings;
 import com.intellij.icons.AllIcons;
-import com.intellij.openapi.actionSystem.ActionManager;
-import com.intellij.openapi.actionSystem.ActionPlaces;
-import com.intellij.openapi.actionSystem.ActionToolbar;
-import com.intellij.openapi.actionSystem.AnActionEvent;
-import com.intellij.openapi.actionSystem.DefaultActionGroup;
+import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.fileEditor.FileEditor;
-import com.intellij.openapi.fileEditor.FileEditorManager;
-import com.intellij.openapi.fileEditor.FileEditorManagerEvent;
-import com.intellij.openapi.fileEditor.FileEditorManagerListener;
-import com.intellij.openapi.fileEditor.FileEditorProvider;
+import com.intellij.openapi.fileEditor.*;
 import com.intellij.openapi.ide.CopyPasteManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.JBPopupMenu;
@@ -30,17 +22,8 @@ import com.intellij.ui.table.JBTable;
 import com.intellij.util.messages.MessageBus;
 import com.intellij.util.messages.MessageBusConnection;
 import com.intellij.util.ui.TextTransferable;
-import de.sist.gitlab.pipelinemonitor.BackgroundUpdateService;
-import de.sist.gitlab.pipelinemonitor.DateTime;
-import de.sist.gitlab.pipelinemonitor.PipelineFilter;
-import de.sist.gitlab.pipelinemonitor.PipelineJobStatus;
-import de.sist.gitlab.pipelinemonitor.ReloadListener;
-import de.sist.gitlab.pipelinemonitor.UrlOpener;
-import de.sist.gitlab.pipelinemonitor.config.ConfigChangedListener;
-import de.sist.gitlab.pipelinemonitor.config.ConfigProvider;
-import de.sist.gitlab.pipelinemonitor.config.Mapping;
-import de.sist.gitlab.pipelinemonitor.config.PipelineViewerConfigApp;
-import de.sist.gitlab.pipelinemonitor.config.PipelineViewerConfigProject;
+import de.sist.gitlab.pipelinemonitor.*;
+import de.sist.gitlab.pipelinemonitor.config.*;
 import de.sist.gitlab.pipelinemonitor.git.GitService;
 import de.sist.gitlab.pipelinemonitor.gitlab.GitlabService;
 import de.sist.gitlab.pipelinemonitor.lights.LightsControl;
@@ -59,25 +42,14 @@ import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumn;
 import javax.swing.table.TableRowSorter;
 import javax.swing.text.BadLocationException;
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Component;
-import java.awt.Cursor;
-import java.awt.Dimension;
-import java.awt.Point;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.font.TextAttribute;
 import java.time.ZonedDateTime;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -206,6 +178,8 @@ public class GitlabToolWindow {
 
     private void updateTableWhenMonitoringMultipleRemotesButOnlyShowingPipelinesForOne() {
         messageBus.connect().subscribe(FileEditorManagerListener.FILE_EDITOR_MANAGER, new FileEditorManagerListener() {
+
+            // TODO sist 18.02.2024: Unsure how to fix deprecation
             @Override
             public void fileOpenedSync(@NotNull FileEditorManager source, @NotNull VirtualFile file, @NotNull Pair<FileEditor[], FileEditorProvider[]> editors) {
                 if (gitlabService.getPipelineInfos().size() > 1 && !showForAllCheckbox.isSelected()) {
@@ -344,6 +318,10 @@ public class GitlabToolWindow {
                 return pipelineTable;
             }
 
+            @Override
+            public @NotNull ActionUpdateThread getActionUpdateThread() {
+                return ActionUpdateThread.BGT;
+            }
         };
 
         AnActionButton turnOffLightsAction = new AnActionButton("Turn Off Lights", IconLoader.getIcon("/trafficLightsOff.png", GitlabToolWindow.class)) {
@@ -356,6 +334,11 @@ public class GitlabToolWindow {
             public JComponent getContextComponent() {
                 return pipelineTable;
             }
+
+            @Override
+            public @NotNull ActionUpdateThread getActionUpdateThread() {
+                return ActionUpdateThread.BGT;
+            }
         };
 
         AnActionButton copyCurrentGitHash = new AnActionButton("Copy current git hash to clipboard", "Copy current git hash to clipboard", null) {
@@ -367,6 +350,11 @@ public class GitlabToolWindow {
             @Override
             public JComponent getContextComponent() {
                 return pipelineTable;
+            }
+
+            @Override
+            public @NotNull ActionUpdateThread getActionUpdateThread() {
+                return ActionUpdateThread.BGT;
             }
         };
 
@@ -398,7 +386,7 @@ public class GitlabToolWindow {
                         tableSorter.setRowFilter(filter);
                     }
                 } catch (BadLocationException ex) {
-                    logger.error(e);
+                    logger.error(ex);
                 }
             }
         });

@@ -1,12 +1,6 @@
 package de.sist.gitlab.pipelinemonitor.notifier;
 
-import com.intellij.notification.Notification;
-import com.intellij.notification.NotificationAction;
-import com.intellij.notification.NotificationDisplayType;
-import com.intellij.notification.NotificationGroup;
-import com.intellij.notification.NotificationGroupManager;
-import com.intellij.notification.NotificationType;
-import com.intellij.notification.Notifications;
+import com.intellij.notification.*;
 import com.intellij.notification.impl.NotificationsConfigurationImpl;
 import com.intellij.notification.impl.NotificationsManagerImpl;
 import com.intellij.openapi.actionSystem.AnActionEvent;
@@ -20,27 +14,16 @@ import com.intellij.openapi.wm.WindowManager;
 import com.intellij.ui.BalloonImpl;
 import com.intellij.ui.BalloonLayoutData;
 import com.intellij.ui.awt.RelativePoint;
-import de.sist.gitlab.pipelinemonitor.DateTime;
-import de.sist.gitlab.pipelinemonitor.PipelineFilter;
-import de.sist.gitlab.pipelinemonitor.PipelineJobStatus;
-import de.sist.gitlab.pipelinemonitor.ReloadListener;
-import de.sist.gitlab.pipelinemonitor.UrlOpener;
+import de.sist.gitlab.pipelinemonitor.*;
 import de.sist.gitlab.pipelinemonitor.config.ConfigProvider;
 import de.sist.gitlab.pipelinemonitor.config.Mapping;
 import de.sist.gitlab.pipelinemonitor.git.GitService;
 import de.sist.gitlab.pipelinemonitor.lights.LightsControl;
 import org.jetbrains.annotations.NotNull;
 
-import java.awt.Dimension;
-import java.awt.Point;
-import java.awt.Rectangle;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashSet;
+import java.awt.*;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class NotifierService {
@@ -141,7 +124,7 @@ public class NotifierService {
             content = ConfigProvider.getInstance().getMappingByProjectId(status.getProjectId()).getProjectName() + " " + content;
         }
 
-        Notification notification = notificationGroup.createNotification("GitLab branch status", null, content, notificationType);
+        Notification notification = notificationGroup.createNotification("GitLab branch status", content, notificationType);
 
         notification.addAction(new NotificationAction("Open in Browser") {
             @Override

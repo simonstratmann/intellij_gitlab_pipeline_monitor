@@ -55,7 +55,7 @@ public class GitlabService implements Disposable {
             .withMaxRetries(5)
             .build();
 
-    private final ConfigProvider config = ApplicationManager.getApplication().getService(ConfigProvider.class);
+    private final ConfigProvider config = ConfigProvider.getInstance();
     private final Project project;
     private final Map<Mapping, List<PipelineJobStatus>> pipelineInfos = new HashMap<>();
     private final Set<Mapping> openTokenDialogsByMapping = new HashSet<>();
@@ -94,7 +94,7 @@ public class GitlabService implements Disposable {
                 final List<String> sourceBranches = new ArrayList<>(gitService.getTrackedBranches(mapping));
                 final Optional<Data> data = GraphQl.makeCall(mapping.getHost(), ConfigProvider.getToken(mapping), mapping.getProjectPath(), sourceBranches, true);
                 if (data.isPresent()) {
-                    final List<MergeRequest> newMergeRequests = data.get().getProject().getMergeRequests().getEdges().stream().map(Edge::getMergeRequest).collect(Collectors.toList());
+                    final List<MergeRequest> newMergeRequests = data.get().getProject().getMergeRequests().getEdges().stream().map(Edge::getMergeRequest).toList();
                     mergeRequests.addAll(newMergeRequests);
                     logger.debug("Loaded ", mergeRequests.size(), " pipelines for remote ", mapping.getRemote());
 
@@ -103,11 +103,11 @@ public class GitlabService implements Disposable {
                             .collect(Collectors.groupingBy(x -> Integer.parseInt(x.getId().substring(x.getId().lastIndexOf("/") + 1))));
                     for (PipelineJobStatus pipelineJobStatus : localPipelineInfos.get(mapping)) {
                         final List<MergeRequest> mergeRequestsForPipeline = mergeRequestsBySourceBranch.get(pipelineJobStatus.branchName);
-                        if (mergeRequestsForPipeline != null && mergeRequestsForPipeline.size() > 0) {
+                        if (mergeRequestsForPipeline != null && !mergeRequestsForPipeline.isEmpty()) {
                             pipelineJobStatus.mergeRequestLink = mergeRequestsForPipeline.get(0).getWebUrl();
                         }
                         final List<PipelineNode> pipelineNodesForPipeline = pipelinesByIid.get(pipelineJobStatus.getId());
-                        if (pipelineNodesForPipeline != null && pipelineNodesForPipeline.size() > 0) {
+                        if (pipelineNodesForPipeline != null && !pipelineNodesForPipeline.isEmpty()) {
                             final DetailedStatus detailedStatus = pipelineNodesForPipeline.get(0).getDetailedStatus();
                             if (detailedStatus != null) {
                                 pipelineJobStatus.statusGroup = detailedStatus.getGroup();
@@ -234,7 +234,7 @@ public class GitlabService implements Disposable {
             return false;
         }
         final NotificationGroup notificationGroup = NotificationGroupManager.getInstance().getNotificationGroup("de.sist.gitlab.pipelinemonitor.disabledCi");
-        notificationGroup.createNotification("Gitlab Pipeline Viewer - CI disabled", "Gitlab CI is disabled for " + url + ". Ignoring it.", NotificationType.INFORMATION, null).notify(project);
+        notificationGroup.createNotification("Gitlab Pipeline Viewer - CI disabled", "Gitlab CI is disabled for " + url + ". Ignoring it.", NotificationType.INFORMATION).notify(project);
         ConfigProvider.getInstance().getIgnoredRemotes().add(url);
         logger.info("Added " + url + " to list of ignored remotes because CI is disabled for its gitlab project");
         return true;
@@ -398,8 +398,7 @@ public class GitlabService implements Disposable {
                     .readTimeout(ConfigProvider.getInstance().getConnectTimeoutSeconds() * 1000)
                     .readString();
         } catch (IOException e) {
-            if (e instanceof HttpRequests.HttpStatusException) {
-                HttpRequests.HttpStatusException statusException = (HttpRequests.HttpStatusException) e;
+            if (e instanceof HttpRequests.HttpStatusException statusException) {
                 //Unfortunately gitlab returns a 404 if the project was found but could not be accessed. We must interpret 404 like 401
                 if (statusException.getStatusCode() == 401 || statusException.getStatusCode() == 404) {
                     logger.info("Unable to load pipelines. Interpreting as login error. Status code " + statusException.getStatusCode() + ". Message: " + statusException.getMessage());
@@ -511,7 +510,7 @@ public class GitlabService implements Disposable {
 
     }
 
-    static class LoginException extends Exception {
+    public static class LoginException extends Exception {
 
         public LoginException(String message) {
             super(message);

@@ -2,6 +2,7 @@ package de.sist.gitlab.pipelinemonitor.config;
 
 import com.intellij.openapi.options.Configurable;
 import com.intellij.openapi.options.ConfigurationException;
+import com.intellij.openapi.util.Disposer;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
@@ -47,7 +48,7 @@ public class GitlabApplicationConfigurable implements Configurable {
     @Override
     public void disposeUIResources() {
         ConfigProvider.getInstance().setConfigClosed();
-        configForm.disposable.dispose();
+        Disposer.dispose(configForm.disposable);
         configForm = null;
     }
 

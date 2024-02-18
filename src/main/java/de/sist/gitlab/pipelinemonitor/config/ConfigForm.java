@@ -78,11 +78,11 @@ public class ConfigForm {
 
     public boolean isModified() {
         return
-                !ConfigProvider.isEqualIgnoringEmptyOrNull(projectConfig.getShowLightsForBranch(), lightsBranch.getText())
-                        || !ConfigProvider.isEqualIgnoringEmptyOrNull(projectConfig.getMergeRequestTargetBranch(), mergeRequestTargetBranch.getText())
-                        || !new HashSet<>(branchesToWatchListModel.getItems()).equals(new HashSet<>(projectConfig.getBranchesToWatch()))
-                        || !new HashSet<>(branchesToIgnoreListModel.getItems()).equals(new HashSet<>(projectConfig.getBranchesToIgnore()))
-                        || enabledCheckbox.isSelected() != projectConfig.isEnabled()
+                ConfigProvider.isNotEqualIgnoringEmptyOrNull(projectConfig.getShowLightsForBranch(), lightsBranch.getText())
+                || ConfigProvider.isNotEqualIgnoringEmptyOrNull(projectConfig.getMergeRequestTargetBranch(), mergeRequestTargetBranch.getText())
+                || !new HashSet<>(branchesToWatchListModel.getItems()).equals(new HashSet<>(projectConfig.getBranchesToWatch()))
+                || !new HashSet<>(branchesToIgnoreListModel.getItems()).equals(new HashSet<>(projectConfig.getBranchesToIgnore()))
+                || enabledCheckbox.isSelected() != projectConfig.isEnabled()
                 ;
     }
 

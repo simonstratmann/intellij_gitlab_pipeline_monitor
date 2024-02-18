@@ -2,6 +2,7 @@ package de.sist.gitlab.pipelinemonitor.config;
 
 import com.google.common.base.Strings;
 import com.intellij.openapi.Disposable;
+import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
@@ -10,7 +11,10 @@ import com.intellij.openapi.ui.ComponentValidator;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.ui.ValidationInfo;
 import com.intellij.openapi.util.Disposer;
-import com.intellij.ui.*;
+import com.intellij.ui.CollectionListModel;
+import com.intellij.ui.DocumentAdapter;
+import com.intellij.ui.IdeBorderFactory;
+import com.intellij.ui.ToolbarDecorator;
 import com.intellij.ui.components.JBList;
 import de.sist.gitlab.pipelinemonitor.BackgroundUpdateService;
 import de.sist.gitlab.pipelinemonitor.lights.LightsControl;
@@ -19,8 +23,6 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
-import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
 import javax.swing.event.DocumentEvent;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -103,7 +105,6 @@ public class ConfigFormApp {
             } catch (NumberFormatException e) {
                 return new ValidationInfo("Please enter a numeric value", connectTimeout);
             }
-            ;
             return null;
 
         }).installOn(maxTags);
@@ -115,12 +116,9 @@ public class ConfigFormApp {
                 ComponentValidator.getInstance(connectTimeout).ifPresent(ComponentValidator::revalidate);
             }
         });
-        showForTagsCheckBox.addChangeListener(new ChangeListener() {
-            @Override
-            public void stateChanged(ChangeEvent e) {
-                maxTags.setVisible(showForTagsCheckBox.isSelected());
-                maxTagsLabel.setVisible(showForTagsCheckBox.isSelected());
-            }
+        showForTagsCheckBox.addChangeListener(e -> {
+            maxTags.setVisible(showForTagsCheckBox.isSelected());
+            maxTagsLabel.setVisible(showForTagsCheckBox.isSelected());
         });
     }
 
@@ -132,7 +130,7 @@ public class ConfigFormApp {
         config.setShowForTags(showForTagsCheckBox.isSelected());
         config.setMaxLatestTags(Strings.isNullOrEmpty(maxTags.getText()) ? null : Integer.parseInt(maxTags.getText()));
         config.getMappings().clear();
-        config.getMappings().addAll(mappingsModel.getItems().stream().map(Mapping::toMapping).collect(Collectors.toList()));
+        config.getMappings().addAll(mappingsModel.getItems().stream().map(Mapping::toMapping).toList());
         config.getIgnoredRemotes().clear();
         config.getIgnoredRemotes().addAll(ignoredRemotesModel.getItems());
         config.setUrlOpenerCommand(urlOpenerTextbox.getText());
@@ -193,24 +191,24 @@ public class ConfigFormApp {
     }
 
     public boolean isModified() {
-        return !mappingsModel.getItems().stream().map(Mapping::toMapping).collect(Collectors.toList()).equals(config.getMappings())
-                || !ConfigProvider.isEqualIgnoringEmptyOrNull(config.getMergeRequestTargetBranch(), mergeRequestTargetBranch.getText())
-                || !Objects.equals(config.isShowNotificationForWatchedBranches(), watchedBranchesNotificationCheckbox.isSelected())
-                || !Objects.equals(config.isShowConnectionErrorNotifications(), showConnectionErrorsCheckbox.isSelected())
-                || !Objects.equals(config.isShowForTags(), showForTagsCheckBox.isSelected())
-                || isDifferentNumber(maxTags.getText(), config.getMaxLatestTags())
-                || !ConfigProvider.isEqualIgnoringEmptyOrNull(config.getUrlOpenerCommand(), urlOpenerTextbox.getText())
-                || !Objects.equals(new HashSet<>(ConfigProvider.getInstance().getIgnoredRemotes()), new HashSet<>(ignoredRemotesModel.getItems()))
-                || isDifferentNumber(connectTimeout.getText(), config.getConnectTimeout())
-                || radioDisplayTypeIcons.isSelected() && config.getDisplayType() != PipelineViewerConfigApp.DisplayType.ICON
-                || radioDisplayTypeIds.isSelected() && config.getDisplayType() != PipelineViewerConfigApp.DisplayType.ID
-                || radioDisplayTypeLinks.isSelected() && config.getDisplayType() != PipelineViewerConfigApp.DisplayType.LINK
-                || radioMrPipelineBranchName.isSelected() && config.getMrPipelineDisplayType() != PipelineViewerConfigApp.MrPipelineDisplayType.SOURCE_BRANCH
-                || !Objects.equals(config.getMrPipelinePrefix(), mrPipelinePrefixTextbox.getText())
-                || !Objects.equals(config.isOnlyForRemoteBranchesExist(), checkBoxForBranchesWhichExist.isSelected())
-                || isDifferentNumber(maxAgeDays.getText(), config.getMaxAgeDays())
-                || !Objects.equals(config.getAlwaysMonitorHostsAsString(), textFieldAlwaysMonitor.getText())
-                || config.isShowProgressBar() != checkBoxShowProgressBar.isSelected()
+        return !mappingsModel.getItems().stream().map(Mapping::toMapping).toList().equals(config.getMappings())
+               || ConfigProvider.isNotEqualIgnoringEmptyOrNull(config.getMergeRequestTargetBranch(), mergeRequestTargetBranch.getText())
+               || !Objects.equals(config.isShowNotificationForWatchedBranches(), watchedBranchesNotificationCheckbox.isSelected())
+               || !Objects.equals(config.isShowConnectionErrorNotifications(), showConnectionErrorsCheckbox.isSelected())
+               || !Objects.equals(config.isShowForTags(), showForTagsCheckBox.isSelected())
+               || isDifferentNumber(maxTags.getText(), config.getMaxLatestTags())
+               || ConfigProvider.isNotEqualIgnoringEmptyOrNull(config.getUrlOpenerCommand(), urlOpenerTextbox.getText())
+               || !Objects.equals(new HashSet<>(ConfigProvider.getInstance().getIgnoredRemotes()), new HashSet<>(ignoredRemotesModel.getItems()))
+               || isDifferentNumber(connectTimeout.getText(), config.getConnectTimeout())
+               || radioDisplayTypeIcons.isSelected() && config.getDisplayType() != PipelineViewerConfigApp.DisplayType.ICON
+               || radioDisplayTypeIds.isSelected() && config.getDisplayType() != PipelineViewerConfigApp.DisplayType.ID
+               || radioDisplayTypeLinks.isSelected() && config.getDisplayType() != PipelineViewerConfigApp.DisplayType.LINK
+               || radioMrPipelineBranchName.isSelected() && config.getMrPipelineDisplayType() != PipelineViewerConfigApp.MrPipelineDisplayType.SOURCE_BRANCH
+               || !Objects.equals(config.getMrPipelinePrefix(), mrPipelinePrefixTextbox.getText())
+               || !Objects.equals(config.isOnlyForRemoteBranchesExist(), checkBoxForBranchesWhichExist.isSelected())
+               || isDifferentNumber(maxAgeDays.getText(), config.getMaxAgeDays())
+               || !Objects.equals(config.getAlwaysMonitorHostsAsString(), textFieldAlwaysMonitor.getText())
+               || config.isShowProgressBar() != checkBoxShowProgressBar.isSelected()
                 ;
     }
 
@@ -261,7 +259,8 @@ public class ConfigFormApp {
         });
 
 
-        final AnActionButton tokenButton = new AnActionButton("Set Access Token") {
+        final AnAction tokenAction = new AnAction("Set Access Token") {
+
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
                 for (String mappingString : mappingList.getSelectedValuesList()) {
@@ -279,9 +278,13 @@ public class ConfigFormApp {
                 }
             }
 
+            @Override
+            public void update(@NotNull AnActionEvent e) {
+                e.getPresentation().setEnabled(!mappingList.getSelectedValuesList().isEmpty());
+            }
         };
-        tokenButton.addCustomUpdater(e -> !mappingList.getSelectedValuesList().isEmpty());
-        decorator.addExtraAction(tokenButton);
+
+        decorator.addExtraAction(tokenAction);
         mappingsPanel.add(decorator.createPanel());
         mappingsPanel.setBorder(IdeBorderFactory.createTitledBorder("Git Remote To Gitlab Project Mapping"));
     }
