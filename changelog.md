@@ -1,24 +1,32 @@
 # Changelog
 
-## 2.14.2
+## [Unreleased]
+
+## 2.15.0
+
+### Changed
+
+- IntelliJ 2023+ is now required
 
 ### Fixed
 
+- "Thread context already set error" when showing the token dialog.
+
+## 2.14.2
+
+### Fixed
 - Do not ask for token again until an update is triggered by the user or the project has reopened.
 
 ## 2.14.1
 
 ### Added
-
 - The "What's new" section will now be properly filled.
 
 ### Fixed
-
 - Connection errors were being shown even when disabled.
 - Login errors were not properly detected so the plugin didn't ask for access tokens.
 
 ### Changed
-
 - Connection errors will now be shown if the user triggered a reload, even when they were already shown before.
 
 ## 2.14.0

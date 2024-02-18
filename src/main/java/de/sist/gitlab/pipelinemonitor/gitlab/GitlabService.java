@@ -11,22 +11,10 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.util.io.HttpRequests;
-import de.sist.gitlab.pipelinemonitor.BackgroundUpdateService;
-import de.sist.gitlab.pipelinemonitor.HostAndProjectPath;
-import de.sist.gitlab.pipelinemonitor.Jackson;
-import de.sist.gitlab.pipelinemonitor.PipelineJobStatus;
-import de.sist.gitlab.pipelinemonitor.PipelineTo;
-import de.sist.gitlab.pipelinemonitor.config.ConfigProvider;
-import de.sist.gitlab.pipelinemonitor.config.Mapping;
-import de.sist.gitlab.pipelinemonitor.config.PipelineViewerConfigApp;
-import de.sist.gitlab.pipelinemonitor.config.PipelineViewerConfigProject;
-import de.sist.gitlab.pipelinemonitor.config.TokenType;
+import de.sist.gitlab.pipelinemonitor.*;
+import de.sist.gitlab.pipelinemonitor.config.*;
 import de.sist.gitlab.pipelinemonitor.git.GitService;
-import de.sist.gitlab.pipelinemonitor.gitlab.mapping.Data;
-import de.sist.gitlab.pipelinemonitor.gitlab.mapping.DetailedStatus;
-import de.sist.gitlab.pipelinemonitor.gitlab.mapping.Edge;
-import de.sist.gitlab.pipelinemonitor.gitlab.mapping.MergeRequest;
-import de.sist.gitlab.pipelinemonitor.gitlab.mapping.PipelineNode;
+import de.sist.gitlab.pipelinemonitor.gitlab.mapping.*;
 import de.sist.gitlab.pipelinemonitor.notifier.NotifierService;
 import de.sist.gitlab.pipelinemonitor.ui.TokenDialog;
 import de.sist.gitlab.pipelinemonitor.ui.UntrackedRemoteNotification;
@@ -44,16 +32,7 @@ import org.jetbrains.annotations.NotNull;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -339,21 +318,29 @@ public class GitlabService implements Disposable {
                 logger.info("Showing input dialog for token for remote " + mapping.getRemote() + " with old token " + oldTokenForLog);
                 final TokenType preselectedTokenType = tokenAndType.getLeft() == null ? TokenType.PERSONAL : tokenType;
                 openTokenDialogsByMapping.add(mapping);
-                final TokenDialog tokenDialog = new TokenDialog("Unable to log in to gitlab. Please enter the access token for access to " + mapping.getRemote() + ". Enter nothing to delete it.", oldToken, preselectedTokenType);
-                final Optional<Pair<String, TokenType>> response = tokenDialog.showDialog();
+
+                boolean clickedOk = new TokenDialog.Wrapper(project, "Unable to log in to gitlab. Please enter the access token for access to " + mapping.getRemote() + ". Enter nothing to delete it.", oldToken, preselectedTokenType,
+                        response -> {
+                            if (Strings.isNullOrEmpty(response.getLeft())) {
+                                logger.info("No token entered, setting token to null for remote " + mapping.getRemote());
+                                ConfigProvider.saveToken(mapping, null, response.getRight());
+                            } else {
+                                logger.info("New token entered for remote " + mapping.getRemote());
+                                ConfigProvider.saveToken(mapping, response.getLeft(), response.getRight());
+                            }
+                        })
+                        .showAndGet();
+
                 openTokenDialogsByMapping.remove(mapping);
 
-                if (response.isEmpty()) {
+                if (!clickedOk) {
                     logger.info("Token dialog cancelled, not changing anything. Will not load pipelines until next plugin load or triggered manually");
                     PipelineViewerConfigApp.getInstance().getRemotesAskAgainNextTime().add(mapping.getRemote());
                     return;
-                } else if (Strings.isNullOrEmpty(response.get().getLeft())) {
-                    logger.info("No token entered, setting token to null for remote " + mapping.getRemote());
-                    ConfigProvider.saveToken(mapping, null, response.get().getRight());
-                } else {
-                    logger.info("New token entered for remote " + mapping.getRemote());
-                    ConfigProvider.saveToken(mapping, response.get().getLeft(), response.get().getRight());
+
                 }
+
+
                 PipelineViewerConfigApp.getInstance().getRemotesAskAgainNextTime().remove(mapping.getRemote());
                 if (project.isDisposed()) {
                     return;

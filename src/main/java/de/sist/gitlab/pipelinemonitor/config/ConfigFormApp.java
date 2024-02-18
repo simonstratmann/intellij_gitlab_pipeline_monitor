@@ -10,11 +10,7 @@ import com.intellij.openapi.ui.ComponentValidator;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.ui.ValidationInfo;
 import com.intellij.openapi.util.Disposer;
-import com.intellij.ui.AnActionButton;
-import com.intellij.ui.CollectionListModel;
-import com.intellij.ui.DocumentAdapter;
-import com.intellij.ui.IdeBorderFactory;
-import com.intellij.ui.ToolbarDecorator;
+import com.intellij.ui.*;
 import com.intellij.ui.components.JBList;
 import de.sist.gitlab.pipelinemonitor.BackgroundUpdateService;
 import de.sist.gitlab.pipelinemonitor.lights.LightsControl;
@@ -30,7 +26,6 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @SuppressWarnings("unused")
@@ -64,6 +59,7 @@ public class ConfigFormApp {
     private final CollectionListModel<String> mappingsModel = new CollectionListModel<>();
     private final CollectionListModel<String> ignoredRemotesModel = new CollectionListModel<>();
 
+    Disposable disposable;
 
     public ConfigFormApp() {
         appConfigPanel.setBorder(IdeBorderFactory.createTitledBorder("GitLab Settings (Application Scope)"));
@@ -84,7 +80,7 @@ public class ConfigFormApp {
         mrPipelineBttonGroup.add(radioMRPipelineTitle);
         mrPipelineBttonGroup.add(radioMrPipelineBranchName);
 
-        final Disposable disposable = Disposer.newDisposable();
+        disposable = Disposer.newDisposable();
         new ComponentValidator(disposable)
                 .withValidator(() -> {
                     try {
@@ -112,6 +108,7 @@ public class ConfigFormApp {
 
         }).installOn(maxTags);
 
+
         connectTimeout.getDocument().addDocumentListener(new DocumentAdapter() {
             @Override
             protected void textChanged(@NotNull DocumentEvent e) {
@@ -126,6 +123,7 @@ public class ConfigFormApp {
             }
         });
     }
+
 
     public void apply() {
         config.setMergeRequestTargetBranch(mergeRequestTargetBranch.getText());
@@ -272,10 +270,12 @@ public class ConfigFormApp {
                     final String token = tokenAndType.getLeft();
                     final TokenType tokenType = tokenAndType.getRight();
                     final TokenType preselectedTokenType = token == null ? TokenType.PERSONAL : tokenType;
-                    final Optional<Pair<String, TokenType>> response = new TokenDialog("Please enter the access token for " + mapping.getRemote(), token, preselectedTokenType).showDialog();
-                    response.ifPresent(pair -> {
-                        ConfigProvider.saveToken(mapping, pair.getLeft(), pair.getRight());
-                    });
+                    new TokenDialog.Wrapper(e.getProject(),
+                            "Please enter the access token for " + mapping.getRemote(),
+                            token,
+                            preselectedTokenType,
+                            response -> ConfigProvider.saveToken(mapping, response.getLeft(), response.getRight()))
+                            .show();
                 }
             }
 

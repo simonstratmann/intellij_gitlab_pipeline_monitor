@@ -1,31 +1,24 @@
 package de.sist.gitlab.pipelinemonitor.ui;
 
+import com.intellij.openapi.project.Project;
+import com.intellij.openapi.ui.DialogWrapper;
 import de.sist.gitlab.pipelinemonitor.config.TokenType;
 import org.apache.commons.lang3.tuple.Pair;
+import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.KeyEvent;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
-import java.util.Optional;
+import java.util.function.Consumer;
 
 public class TokenDialog extends JDialog {
     private JPanel contentPane;
-    private JButton buttonOK;
-    private JButton buttonCancel;
     private JLabel messageLabel;
     private JRadioButton radioButtonPersonalToken;
     private JRadioButton radioButtonProjectToken;
     private JTextField token;
 
-    private Pair<String, TokenType> response;
-
     public TokenDialog(String message, String oldToken, TokenType tokenType) {
         setContentPane(contentPane);
         setModal(true);
-        getRootPane().setDefaultButton(buttonOK);
         messageLabel.setText(message);
         token.setText(oldToken);
         final ButtonGroup buttonGroup = new ButtonGroup();
@@ -36,43 +29,32 @@ public class TokenDialog extends JDialog {
         } else {
             radioButtonProjectToken.setSelected(true);
         }
-
-        buttonOK.addActionListener(e -> onOK());
-
-        buttonCancel.addActionListener(e -> onCancel());
-
-        // call onCancel() when cross is clicked
-        setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
-        addWindowListener(new WindowAdapter() {
-            public void windowClosing(WindowEvent e) {
-                onCancel();
-            }
-        });
-
-        // call onCancel() on ESCAPE
-        contentPane.registerKeyboardAction(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                onCancel();
-            }
-        }, KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT);
     }
 
-    private void onOK() {
-        response = Pair.of(token.getText(), radioButtonPersonalToken.isSelected() ? TokenType.PERSONAL : TokenType.PROJECT);
-        dispose();
-    }
+    public static class Wrapper extends DialogWrapper {
 
-    private void onCancel() {
-        dispose();
-    }
+        private final TokenDialog tokenDialog;
+        private final Consumer<Pair<String, TokenType>> responseConsumer;
 
-    public Optional<Pair<String, TokenType>> showDialog() {
-        this.setLocationRelativeTo(null);
-        pack();
-        setTitle("Gitlab Pipeline Viewer - Enter access token");
-        setVisible(true);
-        setModalityType(ModalityType.DOCUMENT_MODAL);
-        return Optional.ofNullable(response);
+        public Wrapper(Project project, String message, String oldToken, TokenType tokenType, Consumer<Pair<String, TokenType>> responseConsumer) {
+            super(project, false, IdeModalityType.PROJECT);
+            this.tokenDialog = new TokenDialog(message, oldToken, tokenType);
+            this.responseConsumer = responseConsumer;
+            setTitle("Gitlab Pipeline Viewer - Access Token");
+            init();
+        }
+
+        @Override
+        protected void doOKAction() {
+            responseConsumer.accept(
+                    Pair.of(tokenDialog.token.getText(), tokenDialog.radioButtonPersonalToken.isSelected() ? TokenType.PERSONAL : TokenType.PROJECT));
+            super.doOKAction();
+        }
+
+        @Override
+        protected @Nullable JComponent createCenterPanel() {
+            return (JComponent) tokenDialog.getContentPane();
+        }
     }
 
 

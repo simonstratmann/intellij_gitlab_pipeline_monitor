@@ -5,7 +5,7 @@ import org.jetbrains.changelog.markdownToHTML
 fun properties(key: String) = project.findProperty(key).toString()
 
 plugins {
-    id("org.jetbrains.intellij") version "1.13.3"
+    id("org.jetbrains.intellij") version "1.17.1"
     id("org.jetbrains.changelog") version "2.0.0"
     id("idea")
     id("java")
@@ -28,7 +28,7 @@ repositories {
 }
 
 dependencies {
-    implementation("com.fasterxml.jackson.core:jackson-databind:2.13.3")
+    implementation("com.fasterxml.jackson.core:jackson-databind:2.16.1")
     implementation("dev.failsafe:failsafe:3.3.1")
 }
 
@@ -42,7 +42,7 @@ intellij {
 
     plugins.set(
         listOf(
-            "git4idea"
+            "Git4Idea"
         )
     )
 }

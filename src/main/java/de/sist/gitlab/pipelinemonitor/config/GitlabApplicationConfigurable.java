@@ -18,6 +18,7 @@ public class GitlabApplicationConfigurable implements Configurable {
         return "GitLab Pipeline Viewer";
     }
 
+
     @Nullable
     @Override
     public JComponent createComponent() {
@@ -26,6 +27,7 @@ public class GitlabApplicationConfigurable implements Configurable {
         configForm.init();
         return configForm.getMainPanel();
     }
+
 
     @Override
     public boolean isModified() {
@@ -45,6 +47,7 @@ public class GitlabApplicationConfigurable implements Configurable {
     @Override
     public void disposeUIResources() {
         ConfigProvider.getInstance().setConfigClosed();
+        configForm.disposable.dispose();
         configForm = null;
     }
 
