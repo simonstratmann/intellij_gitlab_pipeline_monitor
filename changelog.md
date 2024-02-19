@@ -8,6 +8,12 @@
 
 ### Fixed
 
+## 2.15.1
+
+### Fixed
+
+- Updated all occurrences of deprecated code usage
+
 ## 2.15.0
 
 ### Changed
