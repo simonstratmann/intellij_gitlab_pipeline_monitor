@@ -1,6 +1,7 @@
 // (C) 2022 PPI AG
 package de.sist.gitlab.pipelinemonitor.debug;
 
+import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import de.sist.gitlab.pipelinemonitor.PipelineJobStatus;
@@ -16,6 +17,11 @@ public class ShowTestNotificationAction extends AnAction {
     @Override
     public void actionPerformed(@NotNull AnActionEvent e) {
         e.getProject().getService(NotifierService.class).showBalloonForStatus(new PipelineJobStatus(1, "123", "123", ZonedDateTime.now(), ZonedDateTime.now(), "failed", "http://www.google.de", "source"), 0);
+    }
+
+    @Override
+    public @NotNull ActionUpdateThread getActionUpdateThread() {
+        return ActionUpdateThread.BGT;
     }
 
     @Override

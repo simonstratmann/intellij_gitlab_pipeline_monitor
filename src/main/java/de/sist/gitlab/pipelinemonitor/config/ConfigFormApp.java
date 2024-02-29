@@ -2,6 +2,7 @@ package de.sist.gitlab.pipelinemonitor.config;
 
 import com.google.common.base.Strings;
 import com.intellij.openapi.Disposable;
+import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.application.ApplicationManager;
@@ -66,6 +67,7 @@ public class ConfigFormApp {
     public ConfigFormApp() {
         appConfigPanel.setBorder(IdeBorderFactory.createTitledBorder("GitLab Settings (Application Scope)"));
     }
+
 
     public void init() {
         config = PipelineViewerConfigApp.getInstance();
@@ -276,6 +278,11 @@ public class ConfigFormApp {
                             response -> ConfigProvider.saveToken(mapping, response.getLeft(), response.getRight()))
                             .show();
                 }
+            }
+
+            @Override
+            public @NotNull ActionUpdateThread getActionUpdateThread() {
+                return ActionUpdateThread.BGT;
             }
 
             @Override

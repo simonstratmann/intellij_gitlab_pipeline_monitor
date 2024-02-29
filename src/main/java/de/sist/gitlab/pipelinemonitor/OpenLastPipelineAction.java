@@ -1,6 +1,7 @@
 
 package de.sist.gitlab.pipelinemonitor;
 
+import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.diagnostic.Logger;
@@ -12,6 +13,11 @@ import org.jetbrains.annotations.NotNull;
 public class OpenLastPipelineAction extends AnAction {
 
     Logger logger = Logger.getInstance(OpenLastPipelineAction.class);
+
+    @Override
+    public @NotNull ActionUpdateThread getActionUpdateThread() {
+        return ActionUpdateThread.BGT;
+    }
 
     @Override
     public void actionPerformed(@NotNull AnActionEvent e) {

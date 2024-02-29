@@ -120,6 +120,11 @@ tasks {
         //Allows building the plugin while a sandbox is running
         enabled = false
     }
+
+    runPluginVerifier {
+        ideVersions.set(arrayListOf("2023.1", "2023.3", "2024.1"))
+    }
+
 }
 
 
