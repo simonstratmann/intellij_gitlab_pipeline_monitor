@@ -8,10 +8,15 @@
 
 ### Fixed
 
-## 2.15.2
+## 2.15.3
 
 ### Fixed
 
+- Fix "Slow operations are prohibited on EDT" warning when reading token from password safe introduced with 2024.1
+
+## 2.15.2
+
+### Fixed
 - Fix "OLD_EDT" warning introduced with 2024.1 EAP
 
 ## 2.15.1

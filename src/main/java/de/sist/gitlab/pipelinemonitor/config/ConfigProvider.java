@@ -5,6 +5,7 @@ import com.google.common.base.Strings;
 import com.intellij.credentialStore.CredentialAttributes;
 import com.intellij.ide.passwordSafe.PasswordSafe;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import de.sist.gitlab.pipelinemonitor.gitlab.GitlabService;
@@ -146,7 +147,7 @@ public class ConfigProvider {
         saveLock.lock();
         TokenType tokenType;
         final CredentialAttributes tokenCA = new CredentialAttributes(GitlabService.ACCESS_TOKEN_CREDENTIALS_ATTRIBUTE + remote, remote);
-        String token = PasswordSafe.getInstance().getPassword(tokenCA);
+        String token = ReadAction.nonBlocking(() -> PasswordSafe.getInstance().getPassword(tokenCA)).executeSynchronously();
 
         if (!Strings.isNullOrEmpty(token)) {
             tokenType = TokenType.PROJECT;
