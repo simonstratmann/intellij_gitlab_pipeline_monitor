@@ -5,8 +5,9 @@ import com.google.common.base.Strings;
 import com.intellij.credentialStore.CredentialAttributes;
 import com.intellij.ide.passwordSafe.PasswordSafe;
 import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.progress.ProgressIndicator;
+import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import de.sist.gitlab.pipelinemonitor.gitlab.GitlabService;
 import org.apache.commons.lang3.tuple.Pair;
@@ -122,17 +123,22 @@ public class ConfigProvider {
         return ApplicationManager.getApplication().getService(ConfigProvider.class);
     }
 
-    public static void saveToken(Mapping mapping, String token, TokenType tokenType) {
-        saveLock.lock();
-        final String passwordKey = tokenType == TokenType.PERSONAL ? mapping.getHost() : mapping.getRemote();
-        logger.debug("Saving token with length ", (token == null ? 0 : token.length()), (tokenType == TokenType.PERSONAL ? " for host " : " for remote "), passwordKey);
-        final CredentialAttributes credentialAttributes = new CredentialAttributes(GitlabService.ACCESS_TOKEN_CREDENTIALS_ATTRIBUTE + passwordKey, passwordKey);
-        PasswordSafe.getInstance().setPassword(credentialAttributes, token == null ? null : Strings.emptyToNull(token));
-        if (tokenType == TokenType.PERSONAL) {
-            //Delete token saved for this remote as it's now superseded by the personal access token
-            PasswordSafe.getInstance().setPassword(new CredentialAttributes(GitlabService.ACCESS_TOKEN_CREDENTIALS_ATTRIBUTE + mapping.getRemote(), mapping.getRemote()), null);
-        }
-        saveLock.unlock();
+    public static void saveToken(Mapping mapping, String token, TokenType tokenType, Project project) {
+        new Task.Backgroundable(project, "Saving token") {
+            @Override
+            public void run(@NotNull ProgressIndicator indicator) {
+                saveLock.lock();
+                final String passwordKey = tokenType == TokenType.PERSONAL ? mapping.getHost() : mapping.getRemote();
+                logger.debug("Saving token with length ", (token == null ? 0 : token.length()), (tokenType == TokenType.PERSONAL ? " for host " : " for remote "), passwordKey);
+                final CredentialAttributes credentialAttributes = new CredentialAttributes(GitlabService.ACCESS_TOKEN_CREDENTIALS_ATTRIBUTE + passwordKey, passwordKey);
+                PasswordSafe.getInstance().setPassword(credentialAttributes, token == null ? null : Strings.emptyToNull(token));
+                if (tokenType == TokenType.PERSONAL) {
+                    //Delete token saved for this remote as it's now superseded by the personal access token
+                    PasswordSafe.getInstance().setPassword(new CredentialAttributes(GitlabService.ACCESS_TOKEN_CREDENTIALS_ATTRIBUTE + mapping.getRemote(), mapping.getRemote()), null);
+                }
+                saveLock.unlock();
+            }
+        }.queue();
     }
 
     public static String getToken(Mapping mapping) {
@@ -147,7 +153,7 @@ public class ConfigProvider {
         saveLock.lock();
         TokenType tokenType;
         final CredentialAttributes tokenCA = new CredentialAttributes(GitlabService.ACCESS_TOKEN_CREDENTIALS_ATTRIBUTE + remote, remote);
-        String token = ReadAction.nonBlocking(() -> PasswordSafe.getInstance().getPassword(tokenCA)).executeSynchronously();
+        String token = PasswordSafe.getInstance().getPassword(tokenCA);
 
         if (!Strings.isNullOrEmpty(token)) {
             tokenType = TokenType.PROJECT;

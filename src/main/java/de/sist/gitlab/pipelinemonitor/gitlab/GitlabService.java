@@ -7,14 +7,27 @@ import com.intellij.notification.NotificationGroup;
 import com.intellij.notification.NotificationGroupManager;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.Disposable;
+import com.intellij.openapi.actionSystem.ex.ActionUtil;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.util.io.HttpRequests;
-import de.sist.gitlab.pipelinemonitor.*;
-import de.sist.gitlab.pipelinemonitor.config.*;
+import de.sist.gitlab.pipelinemonitor.BackgroundUpdateService;
+import de.sist.gitlab.pipelinemonitor.HostAndProjectPath;
+import de.sist.gitlab.pipelinemonitor.Jackson;
+import de.sist.gitlab.pipelinemonitor.PipelineJobStatus;
+import de.sist.gitlab.pipelinemonitor.PipelineTo;
+import de.sist.gitlab.pipelinemonitor.config.ConfigProvider;
+import de.sist.gitlab.pipelinemonitor.config.Mapping;
+import de.sist.gitlab.pipelinemonitor.config.PipelineViewerConfigApp;
+import de.sist.gitlab.pipelinemonitor.config.PipelineViewerConfigProject;
+import de.sist.gitlab.pipelinemonitor.config.TokenType;
 import de.sist.gitlab.pipelinemonitor.git.GitService;
-import de.sist.gitlab.pipelinemonitor.gitlab.mapping.*;
+import de.sist.gitlab.pipelinemonitor.gitlab.mapping.Data;
+import de.sist.gitlab.pipelinemonitor.gitlab.mapping.DetailedStatus;
+import de.sist.gitlab.pipelinemonitor.gitlab.mapping.Edge;
+import de.sist.gitlab.pipelinemonitor.gitlab.mapping.MergeRequest;
+import de.sist.gitlab.pipelinemonitor.gitlab.mapping.PipelineNode;
 import de.sist.gitlab.pipelinemonitor.notifier.NotifierService;
 import de.sist.gitlab.pipelinemonitor.ui.TokenDialog;
 import de.sist.gitlab.pipelinemonitor.ui.UntrackedRemoteNotification;
@@ -32,7 +45,16 @@ import org.jetbrains.annotations.NotNull;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.time.Duration;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -181,7 +203,7 @@ public class GitlabService implements Disposable {
                                 if (PipelineViewerConfigApp.getInstance().getAlwaysMonitorHosts().contains(host)) {
                                     logger.debug("Host ", host, " is in the list of hosts for which to always monitor projects");
                                     final String token = ConfigProvider.getToken(host, projectPath);
-                                    final Optional<Mapping> optionalMapping = createMappingWithProjectNameAndId(url, host, projectPath, token, TokenType.PERSONAL);
+                                    final Optional<Mapping> optionalMapping = createMappingWithProjectNameAndId(url, host, projectPath, token, TokenType.PERSONAL, this.project);
                                     if (project.isDisposed()) {
                                         return;
                                     }
@@ -240,7 +262,7 @@ public class GitlabService implements Disposable {
         return true;
     }
 
-    public static Optional<Mapping> createMappingWithProjectNameAndId(String remoteUrl, String host, String projectPath, String token, TokenType tokenType) {
+    public static Optional<Mapping> createMappingWithProjectNameAndId(String remoteUrl, String host, String projectPath, String token, TokenType tokenType, Project intellijProject) {
         final Optional<Data> data = GraphQl.makeCall(host, token, projectPath, Collections.emptyList(), false);
         if (data.isEmpty()) {
             return Optional.empty();
@@ -254,7 +276,7 @@ public class GitlabService implements Disposable {
         mapping.setProjectName(project.getName());
         mapping.setHost(host);
         mapping.setProjectPath(projectPath);
-        ConfigProvider.saveToken(mapping, token, tokenType);
+        ConfigProvider.saveToken(mapping, token, tokenType, intellijProject);
         return Optional.of(mapping);
     }
 
@@ -311,7 +333,7 @@ public class GitlabService implements Disposable {
                     //Just to make sure
                     return;
                 }
-                final Pair<String, TokenType> tokenAndType = ConfigProvider.getTokenAndType(mapping.getRemote(), mapping.getHost());
+                Pair<String, TokenType> tokenAndType = ActionUtil.underModalProgress(project, "Reading token", () -> ConfigProvider.getTokenAndType(mapping.getRemote(), mapping.getHost()));
                 final String oldToken = Strings.isNullOrEmpty(tokenAndType.getLeft()) ? "<empty>" : tokenAndType.getLeft();
                 final String oldTokenForLog = Strings.isNullOrEmpty(tokenAndType.getLeft()) ? "<empty>" : "with length " + tokenAndType.getLeft().length();
                 final TokenType tokenType = tokenAndType.getRight();
@@ -323,10 +345,10 @@ public class GitlabService implements Disposable {
                         response -> {
                             if (Strings.isNullOrEmpty(response.getLeft())) {
                                 logger.info("No token entered, setting token to null for remote " + mapping.getRemote());
-                                ConfigProvider.saveToken(mapping, null, response.getRight());
+                                ConfigProvider.saveToken(mapping, null, response.getRight(), project);
                             } else {
                                 logger.info("New token entered for remote " + mapping.getRemote());
-                                ConfigProvider.saveToken(mapping, response.getLeft(), response.getRight());
+                                ConfigProvider.saveToken(mapping, response.getLeft(), response.getRight(), project);
                             }
                         })
                         .showAndGet();
@@ -337,9 +359,7 @@ public class GitlabService implements Disposable {
                     logger.info("Token dialog cancelled, not changing anything. Will not load pipelines until next plugin load or triggered manually");
                     PipelineViewerConfigApp.getInstance().getRemotesAskAgainNextTime().add(mapping.getRemote());
                     return;
-
                 }
-
 
                 PipelineViewerConfigApp.getInstance().getRemotesAskAgainNextTime().remove(mapping.getRemote());
                 if (project.isDisposed()) {
@@ -347,7 +367,6 @@ public class GitlabService implements Disposable {
                 }
                 project.getService(BackgroundUpdateService.class).update(project, false);
                 //Token has changed, user probably wants to retry
-
             });
             return Collections.emptyList();
         }

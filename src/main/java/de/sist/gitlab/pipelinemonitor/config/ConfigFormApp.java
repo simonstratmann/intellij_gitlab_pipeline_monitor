@@ -275,7 +275,7 @@ public class ConfigFormApp {
                             "Please enter the access token for " + mapping.getRemote(),
                             token,
                             preselectedTokenType,
-                            response -> ConfigProvider.saveToken(mapping, response.getLeft(), response.getRight()))
+                            response -> ConfigProvider.saveToken(mapping, response.getLeft(), response.getRight(), e.getProject()))
                             .show();
                 }
             }

@@ -86,9 +86,9 @@ public class UntrackedRemoteNotification extends Notification {
         final Disposable disposable = Disposer.newDisposable();
         try {
             if (hostProjectPathFromRemote != null) {
-                response = new UnmappedRemoteDialog(url, hostProjectPathFromRemote.getHost(), hostProjectPathFromRemote.getProjectPath(), disposable).showDialog();
+                response = new UnmappedRemoteDialog(url, hostProjectPathFromRemote.getHost(), hostProjectPathFromRemote.getProjectPath(), disposable, project).showDialog();
             } else {
-                response = new UnmappedRemoteDialog(url, disposable).showDialog();
+                response = new UnmappedRemoteDialog(url, disposable, project).showDialog();
             }
 
             if (response.getCancel() != UnmappedRemoteDialog.Cancel.ASK_AGAIN) {

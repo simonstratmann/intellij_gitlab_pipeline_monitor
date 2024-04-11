@@ -4,6 +4,7 @@ import com.google.common.base.Strings;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProgressManager;
+import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.ComponentValidator;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.ui.ValidationInfo;
@@ -28,6 +29,7 @@ public class UnmappedRemoteDialog extends JDialog {
 
     private static final Logger logger = Logger.getInstance(UnmappedRemoteDialog.class);
 
+    private Project project;
     private JPanel contentPane;
     private JButton buttonOK;
     private JTextField accessTokenInput;
@@ -47,8 +49,9 @@ public class UnmappedRemoteDialog extends JDialog {
     private Response response;
     private final Disposable disposable;
 
-    public UnmappedRemoteDialog(String remoteUrl, Disposable disposable) {
+    public UnmappedRemoteDialog(String remoteUrl, Disposable disposable, Project project) {
         this.disposable = disposable;
+        this.project = project;
         logger.debug(String.format("Showing dialog for remote %s and unknown host and project", remoteUrl));
         createCommonUiComponents(remoteUrl);
         label.setText("<html>The unknown remote <b>" + remoteUrl + "</b> was detected<br>but the gitlab host and project path could not be be determined.<br>" +
@@ -57,8 +60,9 @@ public class UnmappedRemoteDialog extends JDialog {
                 "</html>");
     }
 
-    public UnmappedRemoteDialog(String remoteUrl, String host, String projectPath, Disposable disposable) {
+    public UnmappedRemoteDialog(String remoteUrl, String host, String projectPath, Disposable disposable, Project project) {
         this.disposable = disposable;
+        this.project = project;
         logger.debug(String.format("Showing dialog for remote %s, host %s and project path %s", remoteUrl, host, projectPath));
 
         projectPathInput.setText(projectPath);
@@ -195,7 +199,7 @@ public class UnmappedRemoteDialog extends JDialog {
             AtomicReference<Optional<Mapping>> mappingOptional = new AtomicReference<>();
             ProgressManager.getInstance().runProcessWithProgressSynchronously(() -> {
                 final TokenType tokenType = radioButtonTokenPersonal.isSelected() ? TokenType.PERSONAL : TokenType.PROJECT;
-                mappingOptional.set(GitlabService.createMappingWithProjectNameAndId(remoteUrl, hostInput.getText(), projectPathInput.getText(), Strings.emptyToNull(accessTokenInput.getText()), tokenType));
+                mappingOptional.set(GitlabService.createMappingWithProjectNameAndId(remoteUrl, hostInput.getText(), projectPathInput.getText(), Strings.emptyToNull(accessTokenInput.getText()), tokenType, project));
             }, "Checking mapping...", false, null, rootPane);
             if (mappingOptional.get().isEmpty()) {
                 Messages.showWarningDialog("The connection to gitlab failed or the project could not be found.", "Gitlab Connection Error");
@@ -204,7 +208,7 @@ public class UnmappedRemoteDialog extends JDialog {
             if (checkBoxForRemote.isSelected() && checkBoxForRemote.isEnabled()) {
                 PipelineViewerConfigApp.getInstance().getAlwaysMonitorHosts().add(mappingOptional.get().get().getHost());
             }
-            response = new Response(null, mappingOptional.get().get(), accessTokenInput.getText());
+            response = new Response(null, mappingOptional.get().get());
             dispose();
         } catch (Exception e) {
             logger.error(e);
@@ -238,18 +242,15 @@ public class UnmappedRemoteDialog extends JDialog {
 
         private final Cancel cancel;
         private final Mapping mapping;
-        private final String accessToken;
 
         public Response(Cancel cancel) {
             this.cancel = cancel;
             this.mapping = null;
-            this.accessToken = null;
         }
 
-        public Response(Cancel cancel, Mapping mapping, String accessToken) {
+        public Response(Cancel cancel, Mapping mapping) {
             this.cancel = cancel;
             this.mapping = mapping;
-            this.accessToken = accessToken;
         }
 
         public Cancel getCancel() {
@@ -259,11 +260,6 @@ public class UnmappedRemoteDialog extends JDialog {
         public Mapping getMapping() {
             return mapping;
         }
-
-        public String getAccessToken() {
-            return accessToken;
-        }
-
 
     }
 }
