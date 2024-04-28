@@ -2,20 +2,13 @@ package de.sist.gitlab.pipelinemonitor.config;
 
 import com.google.common.base.Strings;
 import com.intellij.openapi.Disposable;
-import com.intellij.openapi.actionSystem.ActionUpdateThread;
-import com.intellij.openapi.actionSystem.AnAction;
-import com.intellij.openapi.actionSystem.AnActionEvent;
+import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
-import com.intellij.openapi.ui.ComponentValidator;
-import com.intellij.openapi.ui.Messages;
-import com.intellij.openapi.ui.ValidationInfo;
+import com.intellij.openapi.ui.*;
 import com.intellij.openapi.util.Disposer;
-import com.intellij.ui.CollectionListModel;
-import com.intellij.ui.DocumentAdapter;
-import com.intellij.ui.IdeBorderFactory;
-import com.intellij.ui.ToolbarDecorator;
+import com.intellij.ui.*;
 import com.intellij.ui.components.JBList;
 import de.sist.gitlab.pipelinemonitor.BackgroundUpdateService;
 import de.sist.gitlab.pipelinemonitor.lights.LightsControl;
@@ -25,10 +18,7 @@ import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @SuppressWarnings("unused")
@@ -130,13 +120,13 @@ public class ConfigFormApp {
         config.setShowNotificationForWatchedBranches(watchedBranchesNotificationCheckbox.isSelected());
         config.setShowConnectionErrors(showConnectionErrorsCheckbox.isSelected());
         config.setShowForTags(showForTagsCheckBox.isSelected());
-        config.setMaxLatestTags(Strings.isNullOrEmpty(maxTags.getText()) ? null : Integer.parseInt(maxTags.getText()));
-        config.getMappings().clear();
-        config.getMappings().addAll(mappingsModel.getItems().stream().map(Mapping::toMapping).toList());
-        config.getIgnoredRemotes().clear();
-        config.getIgnoredRemotes().addAll(ignoredRemotesModel.getItems());
-        config.setUrlOpenerCommand(urlOpenerTextbox.getText());
-        config.setConnectTimeout(Integer.parseInt(connectTimeout.getText()));
+        config.maxLatestTags = Strings.isNullOrEmpty(maxTags.getText()) ? null : Integer.parseInt(maxTags.getText());
+        config.mappings.clear();
+        config.mappings.addAll(mappingsModel.getItems().stream().map(Mapping::toMapping).toList());
+        config.ignoredRemotes.clear();
+        config.ignoredRemotes.addAll(ignoredRemotesModel.getItems());
+        config.urlOpenerCommand = urlOpenerTextbox.getText();
+        config.connectTimeout = Integer.parseInt(connectTimeout.getText());
         if (radioDisplayTypeIds.isSelected()) {
             config.setDisplayType(PipelineViewerConfigApp.DisplayType.ID);
         } else if (radioDisplayTypeIcons.isSelected()) {
@@ -145,8 +135,8 @@ public class ConfigFormApp {
             config.setDisplayType(PipelineViewerConfigApp.DisplayType.LINK);
         }
         config.setMrPipelineDisplayType(radioMRPipelineTitle.isSelected() ? PipelineViewerConfigApp.MrPipelineDisplayType.TITLE : PipelineViewerConfigApp.MrPipelineDisplayType.SOURCE_BRANCH);
-        config.setMrPipelinePrefix(mrPipelinePrefixTextbox.getText());
-        config.setMaxAgeDays(Strings.isNullOrEmpty(maxAgeDays.getText()) ? null : Integer.parseInt(maxAgeDays.getText()));
+        config.mrPipelinePrefix = mrPipelinePrefixTextbox.getText();
+        config.maxAgeDays = Strings.isNullOrEmpty(maxAgeDays.getText()) ? null : Integer.parseInt(maxAgeDays.getText());
         config.setOnlyForRemoteBranchesExist(checkBoxForBranchesWhichExist.isSelected());
         config.setAlwaysMonitorHostsFromString(textFieldAlwaysMonitor.getText());
         config.setShowProgressBar(checkBoxShowProgressBar.isSelected());
@@ -169,21 +159,21 @@ public class ConfigFormApp {
         showConnectionErrorsCheckbox.setSelected(config.isShowConnectionErrorNotifications());
         mergeRequestTargetBranch.setText(config.getMergeRequestTargetBranch());
         showForTagsCheckBox.setSelected(config.isShowForTags());
-        maxTags.setText(config.getMaxLatestTags() == null ? null : String.valueOf(config.getMaxLatestTags()));
-        urlOpenerTextbox.setText(config.getUrlOpenerCommand());
+        maxTags.setText(config.maxLatestTags == null ? null : String.valueOf(config.maxLatestTags));
+        urlOpenerTextbox.setText(config.urlOpenerCommand);
         radioDisplayTypeIcons.setSelected(config.getDisplayType() == PipelineViewerConfigApp.DisplayType.ICON);
         radioDisplayTypeIds.setSelected(config.getDisplayType() == PipelineViewerConfigApp.DisplayType.ID);
         radioDisplayTypeLinks.setSelected(config.getDisplayType() == PipelineViewerConfigApp.DisplayType.LINK);
-        connectTimeout.setText(String.valueOf(config.getConnectTimeout()));
+        connectTimeout.setText(String.valueOf(config.connectTimeout));
         radioMRPipelineTitle.setSelected(config.getMrPipelineDisplayType() == PipelineViewerConfigApp.MrPipelineDisplayType.TITLE);
         radioMrPipelineBranchName.setSelected(config.getMrPipelineDisplayType() == PipelineViewerConfigApp.MrPipelineDisplayType.SOURCE_BRANCH);
-        mrPipelinePrefixTextbox.setText(config.getMrPipelinePrefix());
-        maxAgeDays.setText(config.getMaxAgeDays() == null ? null : String.valueOf(config.getMaxAgeDays()));
+        mrPipelinePrefixTextbox.setText(config.mrPipelinePrefix);
+        maxAgeDays.setText(config.maxAgeDays == null ? null : String.valueOf(config.maxAgeDays));
         checkBoxForBranchesWhichExist.setSelected(config.isOnlyForRemoteBranchesExist());
         textFieldAlwaysMonitor.setText(config.getAlwaysMonitorHostsAsString());
         checkBoxShowProgressBar.setSelected(config.isShowProgressBar());
 
-        mappingsModel.replaceAll(config.getMappings().stream()
+        mappingsModel.replaceAll(config.mappings.stream()
                 .map(Mapping::toSerializable)
                 .sorted()
                 .collect(Collectors.toList()));
@@ -193,22 +183,22 @@ public class ConfigFormApp {
     }
 
     public boolean isModified() {
-        return !mappingsModel.getItems().stream().map(Mapping::toMapping).toList().equals(config.getMappings())
+        return !mappingsModel.getItems().stream().map(Mapping::toMapping).toList().equals(config.mappings)
                || ConfigProvider.isNotEqualIgnoringEmptyOrNull(config.getMergeRequestTargetBranch(), mergeRequestTargetBranch.getText())
                || !Objects.equals(config.isShowNotificationForWatchedBranches(), watchedBranchesNotificationCheckbox.isSelected())
                || !Objects.equals(config.isShowConnectionErrorNotifications(), showConnectionErrorsCheckbox.isSelected())
                || !Objects.equals(config.isShowForTags(), showForTagsCheckBox.isSelected())
-               || isDifferentNumber(maxTags.getText(), config.getMaxLatestTags())
-               || ConfigProvider.isNotEqualIgnoringEmptyOrNull(config.getUrlOpenerCommand(), urlOpenerTextbox.getText())
+               || isDifferentNumber(maxTags.getText(), config.maxLatestTags)
+               || ConfigProvider.isNotEqualIgnoringEmptyOrNull(config.urlOpenerCommand, urlOpenerTextbox.getText())
                || !Objects.equals(new HashSet<>(ConfigProvider.getInstance().getIgnoredRemotes()), new HashSet<>(ignoredRemotesModel.getItems()))
-               || isDifferentNumber(connectTimeout.getText(), config.getConnectTimeout())
+               || isDifferentNumber(connectTimeout.getText(), config.connectTimeout)
                || radioDisplayTypeIcons.isSelected() && config.getDisplayType() != PipelineViewerConfigApp.DisplayType.ICON
                || radioDisplayTypeIds.isSelected() && config.getDisplayType() != PipelineViewerConfigApp.DisplayType.ID
                || radioDisplayTypeLinks.isSelected() && config.getDisplayType() != PipelineViewerConfigApp.DisplayType.LINK
                || radioMrPipelineBranchName.isSelected() && config.getMrPipelineDisplayType() != PipelineViewerConfigApp.MrPipelineDisplayType.SOURCE_BRANCH
-               || !Objects.equals(config.getMrPipelinePrefix(), mrPipelinePrefixTextbox.getText())
+               || !Objects.equals(config.mrPipelinePrefix, mrPipelinePrefixTextbox.getText())
                || !Objects.equals(config.isOnlyForRemoteBranchesExist(), checkBoxForBranchesWhichExist.isSelected())
-               || isDifferentNumber(maxAgeDays.getText(), config.getMaxAgeDays())
+               || isDifferentNumber(maxAgeDays.getText(), config.maxAgeDays)
                || !Objects.equals(config.getAlwaysMonitorHostsAsString(), textFieldAlwaysMonitor.getText())
                || config.isShowProgressBar() != checkBoxShowProgressBar.isSelected()
                 ;
@@ -245,7 +235,7 @@ public class ConfigFormApp {
         decorator.setRemoveAction(anActionButton -> {
             for (String s : mappingList.getSelectedValuesList()) {
                 mappingsModel.remove(s);
-                PipelineViewerConfigApp.getInstance().getRemotesAskAgainNextTime().remove(Mapping.toMapping(s).getRemote());
+                PipelineViewerConfigApp.getInstance().remotesAskAgainNextTime.remove(Mapping.toMapping(s).getRemote());
             }
         });
         decorator.setEditAction(anActionButton -> {
@@ -303,7 +293,7 @@ public class ConfigFormApp {
         decorator.setRemoveAction(anActionButton -> {
             for (String s : ignoredRemotesList.getSelectedValuesList()) {
                 ignoredRemotesModel.remove(s);
-                PipelineViewerConfigApp.getInstance().getRemotesAskAgainNextTime().remove(s);
+                PipelineViewerConfigApp.getInstance().remotesAskAgainNextTime.remove(s);
             }
         });
 

@@ -14,11 +14,7 @@ import de.sist.gitlab.pipelinemonitor.config.Mapping;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 
 public class LightsControl {
 
@@ -58,7 +54,7 @@ public class LightsControl {
         String lightsForBranch = ConfigProvider.getInstance().getShowLightsForBranch(project);
         if (!Strings.isNullOrEmpty(lightsForBranch)) {
             //Only subscribe if a branch should be watched
-            project.getMessageBus().connect().subscribe(ReloadListener.RELOAD, map -> ApplicationManager.getApplication().invokeLater(() -> showState(map)));
+            project.getMessageBus().connect().subscribe(ReloadListener.RELOAD, (ReloadListener) pipelineInfos -> ApplicationManager.getApplication().invokeLater(() -> showState(pipelineInfos)));
         }
     }
 

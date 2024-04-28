@@ -1,10 +1,7 @@
 // (C) 2021 PPI AG
 package de.sist.gitlab.pipelinemonitor.ui;
 
-import com.intellij.notification.Notification;
-import com.intellij.notification.NotificationGroupManager;
-import com.intellij.notification.NotificationType;
-import com.intellij.notification.NotificationsManager;
+import com.intellij.notification.*;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
@@ -14,11 +11,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Disposer;
 import de.sist.gitlab.pipelinemonitor.BackgroundUpdateService;
 import de.sist.gitlab.pipelinemonitor.HostAndProjectPath;
-import de.sist.gitlab.pipelinemonitor.config.ConfigChangedListener;
-import de.sist.gitlab.pipelinemonitor.config.ConfigProvider;
-import de.sist.gitlab.pipelinemonitor.config.Mapping;
-import de.sist.gitlab.pipelinemonitor.config.PipelineViewerConfigApp;
-import de.sist.gitlab.pipelinemonitor.config.PipelineViewerConfigProject;
+import de.sist.gitlab.pipelinemonitor.config.*;
 import de.sist.gitlab.pipelinemonitor.gitlab.GitlabService;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -92,7 +85,7 @@ public class UntrackedRemoteNotification extends Notification {
             }
 
             if (response.getCancel() != UnmappedRemoteDialog.Cancel.ASK_AGAIN) {
-                PipelineViewerConfigApp.getInstance().getRemotesAskAgainNextTime().remove(url);
+                PipelineViewerConfigApp.getInstance().remotesAskAgainNextTime.remove(url);
             }
             if (response.getCancel() == UnmappedRemoteDialog.Cancel.IGNORE_REMOTE) {
                 ConfigProvider.getInstance().getIgnoredRemotes().add(url);
@@ -105,7 +98,7 @@ public class UntrackedRemoteNotification extends Notification {
                 return;
             } else if (response.getCancel() == UnmappedRemoteDialog.Cancel.ASK_AGAIN) {
                 logger.debug("User chose to be asked again about url ", url);
-                PipelineViewerConfigApp.getInstance().getRemotesAskAgainNextTime().add(url);
+                PipelineViewerConfigApp.getInstance().remotesAskAgainNextTime.add(url);
                 return;
             }
 

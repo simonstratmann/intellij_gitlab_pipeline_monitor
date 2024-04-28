@@ -5,23 +5,16 @@ import com.intellij.openapi.Disposable;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.ui.ComponentValidator;
-import com.intellij.openapi.ui.Messages;
-import com.intellij.openapi.ui.ValidationInfo;
+import com.intellij.openapi.ui.*;
 import com.intellij.ui.DocumentAdapter;
-import de.sist.gitlab.pipelinemonitor.config.ConfigProvider;
-import de.sist.gitlab.pipelinemonitor.config.Mapping;
-import de.sist.gitlab.pipelinemonitor.config.PipelineViewerConfigApp;
-import de.sist.gitlab.pipelinemonitor.config.TokenType;
+import de.sist.gitlab.pipelinemonitor.config.*;
 import de.sist.gitlab.pipelinemonitor.gitlab.GitlabService;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
-import java.awt.event.KeyEvent;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
+import java.awt.event.*;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -206,7 +199,7 @@ public class UnmappedRemoteDialog extends JDialog {
                 return;
             }
             if (checkBoxForRemote.isSelected() && checkBoxForRemote.isEnabled()) {
-                PipelineViewerConfigApp.getInstance().getAlwaysMonitorHosts().add(mappingOptional.get().get().getHost());
+                PipelineViewerConfigApp.getInstance().alwaysMonitorHosts.add(mappingOptional.get().get().getHost());
             }
             response = new Response(null, mappingOptional.get().get());
             dispose();

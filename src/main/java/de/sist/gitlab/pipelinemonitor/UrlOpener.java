@@ -16,7 +16,7 @@ public class UrlOpener {
 
 
     public static void openUrl(String url) {
-        final String openerCommand = PipelineViewerConfigApp.getInstance().getUrlOpenerCommand();
+        final String openerCommand = PipelineViewerConfigApp.getInstance().urlOpenerCommand;
         if (!Strings.isNullOrEmpty(openerCommand)) {
             final String fullCommand = openerCommand.replace("%url", url);
             logger.debug("Starting command ", fullCommand);

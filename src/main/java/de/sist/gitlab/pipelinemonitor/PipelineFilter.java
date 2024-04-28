@@ -4,9 +4,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
-import de.sist.gitlab.pipelinemonitor.config.ConfigProvider;
-import de.sist.gitlab.pipelinemonitor.config.Mapping;
-import de.sist.gitlab.pipelinemonitor.config.PipelineViewerConfigApp;
+import de.sist.gitlab.pipelinemonitor.config.*;
 import de.sist.gitlab.pipelinemonitor.git.GitService;
 import de.sist.gitlab.pipelinemonitor.gitlab.GitlabService;
 import de.sist.gitlab.pipelinemonitor.gitlab.mapping.MergeRequest;
@@ -14,14 +12,7 @@ import git4idea.repo.GitRepository;
 
 import java.time.Instant;
 import java.time.ZonedDateTime;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -61,9 +52,9 @@ public class PipelineFilter {
                 lastTagUpdate.put(gitRepository, Instant.now());
             }
             final List<String> cachedTags = repoToTags.get(gitRepository);
-            if (appConfig.getMaxLatestTags() != null) {
-                tags.addAll(cachedTags.subList(0, Math.min(appConfig.getMaxLatestTags(), cachedTags.size())));
-                logger.debug("Using the latest ", appConfig.getMaxLatestTags(), " tags: ", tags);
+            if (appConfig.maxLatestTags != null) {
+                tags.addAll(cachedTags.subList(0, Math.min(appConfig.maxLatestTags, cachedTags.size())));
+                logger.debug("Using the latest ", appConfig.maxLatestTags, " tags: ", tags);
             } else {
                 tags.addAll(cachedTags);
                 logger.debug("Using all ", tags.size(), " tags");
@@ -86,8 +77,8 @@ public class PipelineFilter {
                 logger.debug("Pipeline for branch ", x.branchName, " is for a remote branch that doesn't exist and will be filtered out");
                 return false;
             }
-                    if (appConfig.getMaxAgeDays() != null && x.creationTime.isBefore(ZonedDateTime.now().minusDays(appConfig.getMaxAgeDays()))) {
-                        logger.debug("Pipeline for branch ", x.branchName, " is older than ", appConfig.getMaxAgeDays(), " days and will be removed. Creation time: ", x.creationTime);
+            if (appConfig.maxAgeDays != null && x.creationTime.isBefore(ZonedDateTime.now().minusDays(appConfig.maxAgeDays))) {
+                logger.debug("Pipeline for branch ", x.branchName, " is older than ", appConfig.maxAgeDays, " days and will be removed. Creation time: ", x.creationTime);
                         return false;
                     }
                     if (trackedBranches.contains(x.branchName)) {
@@ -107,7 +98,7 @@ public class PipelineFilter {
                             .findFirst();
                     if (matchingMergeRequest.isPresent()) {
                         logger.debug("Branch with ref ", x.branchName, " matches MR ", matchingMergeRequest.get());
-                        final String prefix = Strings.nullToEmpty(appConfig.getMrPipelinePrefix());
+                        final String prefix = Strings.nullToEmpty(appConfig.mrPipelinePrefix);
                         if (appConfig.getMrPipelineDisplayType() == PipelineViewerConfigApp.MrPipelineDisplayType.SOURCE_BRANCH) {
                             x.setBranchNameDisplay(prefix + matchingMergeRequest.get().getSourceBranch());
                         } else {

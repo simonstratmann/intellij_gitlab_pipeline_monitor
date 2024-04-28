@@ -1,181 +1,182 @@
+package de.sist.gitlab.pipelinemonitor.config
 
-package de.sist.gitlab.pipelinemonitor.config;
-
-import com.google.common.base.Strings;
-import com.intellij.credentialStore.CredentialAttributes;
-import com.intellij.ide.passwordSafe.PasswordSafe;
-import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.progress.ProgressIndicator;
-import com.intellij.openapi.progress.Task;
-import com.intellij.openapi.project.Project;
-import de.sist.gitlab.pipelinemonitor.gitlab.GitlabService;
-import org.apache.commons.lang3.tuple.Pair;
-import org.jetbrains.annotations.NotNull;
-
-import java.util.List;
-import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
+import com.google.common.base.Strings
+import com.intellij.credentialStore.CredentialAttributes
+import com.intellij.ide.passwordSafe.PasswordSafe
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.components.Service
+import com.intellij.openapi.diagnostic.Logger
+import com.intellij.openapi.progress.ProgressIndicator
+import com.intellij.openapi.progress.Task
+import com.intellij.openapi.project.Project
+import de.sist.gitlab.pipelinemonitor.gitlab.GitlabService
+import org.apache.commons.lang3.tuple.Pair
+import java.util.concurrent.locks.Condition
+import java.util.concurrent.locks.Lock
+import java.util.concurrent.locks.ReentrantLock
 
 /**
  *
  */
-public class ConfigProvider {
-
-    private static final com.intellij.openapi.diagnostic.Logger logger = Logger.getInstance(ConfigProvider.class);
-
-    private boolean isConfigOpen;
-    private final Lock lock = new ReentrantLock();
-    private static final Lock saveLock = new ReentrantLock();
-    private final Condition configOpenCondition = lock.newCondition();
+@Service
+class ConfigProvider {
+    var isConfigOpen: Boolean = false
+        private set
+    private val lock: Lock = ReentrantLock()
+    private val configOpenCondition: Condition = lock.newCondition()
 
     /**
      * It may happen that with the config open the dialog for untracked remotes is opened. The user chooses to monitor something but the open log dialog is not updated.
      * The user applies the config and the list of tracked remotes is reset, resulting in a loop. Therefore we use this class to track if the config is open, not allowing
      * any dialogs to be opened for that time.
      */
-    public void aquireLock() {
-        lock.lock();
+    fun aquireLock() {
+        lock.lock()
         try {
             if (isConfigOpen) {
-                logger.debug("Config open, waiting");
+                logger.debug("Config open, waiting")
                 try {
-                    configOpenCondition.await();
-                    logger.debug("Config closed now, continuing");
-                } catch (InterruptedException e) {
-                    logger.error("Error while aquiring config lock", e);
+                    configOpenCondition.await()
+                    logger.debug("Config closed now, continuing")
+                } catch (e: InterruptedException) {
+                    logger.error("Error while aquiring config lock", e)
                 }
             } else {
-                logger.debug("Config not open, not waiting");
+                logger.debug("Config not open, not waiting")
             }
         } finally {
-            lock.unlock();
+            lock.unlock()
         }
     }
 
-    public boolean isConfigOpen() {
-        return isConfigOpen;
+    fun setConfigOpen() {
+        logger.debug("Setting config open")
+        lock.lock()
+        isConfigOpen = true
+        lock.unlock()
     }
 
-    public void setConfigOpen() {
-        logger.debug("Setting config open");
-        lock.lock();
-        isConfigOpen = true;
-        lock.unlock();
+    @Synchronized
+    fun setConfigClosed() {
+        logger.debug("Setting config closed, signalling waiting threads")
+        lock.lock()
+        isConfigOpen = false
+        configOpenCondition.signalAll()
+        lock.unlock()
     }
 
-    public synchronized void setConfigClosed() {
-        logger.debug("Setting config closed, signalling waiting threads");
-        lock.lock();
-        isConfigOpen = false;
-        configOpenCondition.signalAll();
-        lock.unlock();
+    fun getMappings(): List<Mapping> {
+        return PipelineViewerConfigApp.instance.mappings
     }
 
-    public List<Mapping> getMappings() {
-        return PipelineViewerConfigApp.getInstance().getMappings();
+    fun getMappingByRemoteUrl(remote: String): Mapping? {
+        return getMappings().stream().filter { x: Mapping? -> x!!.remote == remote }.findFirst().orElse(null)
     }
 
-    public Mapping getMappingByRemoteUrl(String remote) {
-        return getMappings().stream().filter(x -> x.getRemote().equals(remote)).findFirst().orElse(null);
+    fun getMappingByProjectId(projectId: String): Mapping? {
+        return getMappings().stream().filter { x: Mapping? -> x!!.gitlabProjectId == projectId }.findFirst().orElse(null)
     }
 
-    public Mapping getMappingByProjectId(String projectId) {
-        return getMappings().stream().filter(x -> x.getGitlabProjectId().equals(projectId)).findFirst().orElse(null);
+    fun getBranchesToIgnore(project: Project?): List<String> {
+        return PipelineViewerConfigProject.getInstance(project).branchesToIgnore
     }
 
-    public List<String> getBranchesToIgnore(Project project) {
-        return PipelineViewerConfigProject.getInstance(project).getBranchesToIgnore();
+    fun getIgnoredRemotes(): List<String> {
+        return PipelineViewerConfigApp.instance.ignoredRemotes
     }
 
-    public List<String> getIgnoredRemotes() {
-        return PipelineViewerConfigApp.getInstance().getIgnoredRemotes();
+    fun getBranchesToWatch(project: Project?): List<String> {
+        return PipelineViewerConfigProject.getInstance(project).branchesToWatch
     }
 
-    @NotNull
-    public List<String> getBranchesToWatch(Project project) {
-        return PipelineViewerConfigProject.getInstance(project).getBranchesToWatch();
+    fun getShowLightsForBranch(project: Project?): String? {
+        return PipelineViewerConfigProject.getInstance(project).showLightsForBranch
     }
 
-    public String getShowLightsForBranch(Project project) {
-        return PipelineViewerConfigProject.getInstance(project).getShowLightsForBranch();
+    val connectTimeoutSeconds: Int
+        get() = PipelineViewerConfigApp.instance.connectTimeout
+
+    fun getMergeRequestTargetBranch(project: Project?): String {
+        val value = PipelineViewerConfigProject.getInstance(project).mergeRequestTargetBranch
+        return if (!Strings.isNullOrEmpty(value)) value else PipelineViewerConfigApp.instance.mergeRequestTargetBranch!!
     }
 
-    public int getConnectTimeoutSeconds() {
-        return PipelineViewerConfigApp.getInstance().getConnectTimeout();
-    }
+    val isShowNotificationForWatchedBranches: Boolean
+        get() = PipelineViewerConfigApp.instance.isShowNotificationForWatchedBranches
 
-    public String getMergeRequestTargetBranch(Project project) {
-        final String value = PipelineViewerConfigProject.getInstance(project).getMergeRequestTargetBranch();
-        return !Strings.isNullOrEmpty(value) ? value : PipelineViewerConfigApp.getInstance().getMergeRequestTargetBranch();
-    }
+    val isShowConnectionErrorNotifications: Boolean
+        get() = PipelineViewerConfigApp.instance.isShowConnectionErrorNotifications
 
-    public boolean isShowNotificationForWatchedBranches() {
-        return PipelineViewerConfigApp.getInstance().isShowNotificationForWatchedBranches();
-    }
+    companion object {
+        private val logger = Logger.getInstance(ConfigProvider::class.java)
 
-    public boolean isShowConnectionErrorNotifications() {
-        return PipelineViewerConfigApp.getInstance().isShowConnectionErrorNotifications();
-    }
+        private val saveLock: Lock = ReentrantLock()
 
-    public static ConfigProvider getInstance() {
-        return ApplicationManager.getApplication().getService(ConfigProvider.class);
-    }
+        @JvmStatic
+        val instance: ConfigProvider
+            get() = ApplicationManager.getApplication().getService(ConfigProvider::class.java)
 
-    public static void saveToken(Mapping mapping, String token, TokenType tokenType, Project project) {
-        new Task.Backgroundable(project, "Saving token") {
-            @Override
-            public void run(@NotNull ProgressIndicator indicator) {
-                saveLock.lock();
-                final String passwordKey = tokenType == TokenType.PERSONAL ? mapping.getHost() : mapping.getRemote();
-                logger.debug("Saving token with length ", (token == null ? 0 : token.length()), (tokenType == TokenType.PERSONAL ? " for host " : " for remote "), passwordKey);
-                final CredentialAttributes credentialAttributes = new CredentialAttributes(GitlabService.ACCESS_TOKEN_CREDENTIALS_ATTRIBUTE + passwordKey, passwordKey);
-                PasswordSafe.getInstance().setPassword(credentialAttributes, token == null ? null : Strings.emptyToNull(token));
-                if (tokenType == TokenType.PERSONAL) {
-                    //Delete token saved for this remote as it's now superseded by the personal access token
-                    PasswordSafe.getInstance().setPassword(new CredentialAttributes(GitlabService.ACCESS_TOKEN_CREDENTIALS_ATTRIBUTE + mapping.getRemote(), mapping.getRemote()), null);
+        @JvmStatic
+        fun saveToken(mapping: Mapping, token: String?, tokenType: TokenType, project: Project?) {
+            object : Task.Backgroundable(project, "Saving token") {
+                override fun run(indicator: ProgressIndicator) {
+                    saveLock.lock()
+                    val passwordKey = if (tokenType == TokenType.PERSONAL) mapping.host else mapping.remote
+                    logger.debug(
+                        "Saving token with length ",
+                        (token?.length ?: 0),
+                        (if (tokenType == TokenType.PERSONAL) " for host " else " for remote "),
+                        passwordKey
+                    )
+                    val credentialAttributes = CredentialAttributes(GitlabService.ACCESS_TOKEN_CREDENTIALS_ATTRIBUTE + passwordKey, passwordKey)
+                    PasswordSafe.instance.setPassword(credentialAttributes, if (token == null) null else Strings.emptyToNull(token))
+                    if (tokenType == TokenType.PERSONAL) {
+                        //Delete token saved for this remote as it's now superseded by the personal access token
+                        PasswordSafe.instance
+                            .setPassword(CredentialAttributes(GitlabService.ACCESS_TOKEN_CREDENTIALS_ATTRIBUTE + mapping.remote, mapping.remote), null)
+                    }
+                    saveLock.unlock()
                 }
-                saveLock.unlock();
+            }.queue()
+        }
+
+        fun getToken(mapping: Mapping): String? {
+            return getToken(mapping.remote, mapping.host)
+        }
+
+        @JvmStatic
+        fun getToken(remote: String, host: String?): String? {
+            return getTokenAndType(remote, host).left
+        }
+
+        @JvmStatic
+        fun getTokenAndType(remote: String, host: String?): Pair<String, TokenType?> {
+            saveLock.lock()
+            var tokenType: TokenType?
+            val tokenCA = CredentialAttributes(GitlabService.ACCESS_TOKEN_CREDENTIALS_ATTRIBUTE + remote, remote)
+            var token = PasswordSafe.instance.getPassword(tokenCA)
+
+            if (!Strings.isNullOrEmpty(token)) {
+                tokenType = TokenType.PROJECT
+            } else {
+                //Didn't find a remote on token level, try host
+                val hostCA = CredentialAttributes(GitlabService.ACCESS_TOKEN_CREDENTIALS_ATTRIBUTE + host, host)
+                token = PasswordSafe.instance.getPassword(hostCA)
+                tokenType = TokenType.PERSONAL
             }
-        }.queue();
-    }
-
-    public static String getToken(Mapping mapping) {
-        return getToken(mapping.getRemote(), mapping.getHost());
-    }
-
-    public static String getToken(String remote, String host) {
-        return getTokenAndType(remote, host).getLeft();
-    }
-
-    public static Pair<String, TokenType> getTokenAndType(String remote, String host) {
-        saveLock.lock();
-        TokenType tokenType;
-        final CredentialAttributes tokenCA = new CredentialAttributes(GitlabService.ACCESS_TOKEN_CREDENTIALS_ATTRIBUTE + remote, remote);
-        String token = PasswordSafe.getInstance().getPassword(tokenCA);
-
-        if (!Strings.isNullOrEmpty(token)) {
-            tokenType = TokenType.PROJECT;
-        } else {
-            //Didn't find a remote on token level, try host
-            final CredentialAttributes hostCA = new CredentialAttributes(GitlabService.ACCESS_TOKEN_CREDENTIALS_ATTRIBUTE + host, host);
-            token = PasswordSafe.getInstance().getPassword(hostCA);
-            tokenType = TokenType.PERSONAL;
+            if (Strings.isNullOrEmpty(token)) {
+                logger.debug("Found no token for remote ", remote, (if (host == null) ":" else " and host $host"))
+                tokenType = null
+            } else {
+                logger.debug("Found token with length ", token?.length, " for remote ", remote, (if (host == null) ":" else " and host $host"))
+            }
+            saveLock.unlock()
+            return Pair.of(token, tokenType)
         }
-        if (Strings.isNullOrEmpty(token)) {
-            logger.debug("Found no token for remote ", remote, (host == null ? ":" : " and host " + host));
-            tokenType = null;
-        } else {
-            logger.debug("Found token with length ", token.length(), " for remote ", remote, (host == null ? ":" : " and host " + host));
+
+        @JvmStatic
+        fun isNotEqualIgnoringEmptyOrNull(a: String?, b: String?): Boolean {
+            return Strings.nullToEmpty(a) != Strings.nullToEmpty(b)
         }
-        saveLock.unlock();
-        return Pair.of(token, tokenType);
     }
-
-    public static boolean isNotEqualIgnoringEmptyOrNull(String a, String b) {
-        return !Strings.nullToEmpty(a).equals(Strings.nullToEmpty(b));
-    }
-
-
 }

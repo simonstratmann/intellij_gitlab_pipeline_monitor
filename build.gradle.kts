@@ -9,6 +9,7 @@ plugins {
     id("org.jetbrains.changelog") version "2.0.0"
     id("idea")
     id("java")
+    kotlin("jvm")
 }
 
 group = properties("pluginGroup")
@@ -30,6 +31,7 @@ repositories {
 dependencies {
     implementation("com.fasterxml.jackson.core:jackson-databind:2.16.1")
     implementation("dev.failsafe:failsafe:3.3.1")
+    implementation(kotlin("stdlib-jdk8"))
 }
 
 
@@ -64,8 +66,6 @@ tasks {
     // Set the JVM compatibility versions
     properties("javaVersion").let {
         withType<JavaCompile> {
-            sourceCompatibility = it
-            targetCompatibility = it
         }
     }
 
@@ -128,3 +128,6 @@ tasks {
 }
 
 
+kotlin {
+    jvmToolchain(17)
+}
