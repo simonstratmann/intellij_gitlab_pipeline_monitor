@@ -8,6 +8,12 @@
 
 ### Fixed
 
+## 2.16.0
+
+### Fixed
+
+- Ensure compatibility with IntelliJ 2024.2 EAP
+
 ## 2.15.4
 
 ### Fixed
