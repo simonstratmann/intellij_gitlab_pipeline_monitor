@@ -219,7 +219,10 @@ public class UnmappedRemoteDialog extends JDialog {
         this.setLocationRelativeTo(null);
         pack();
         setTitle("Gitlab Pipeline Viewer - Unknown remote found");
-        setVisible(true);
+        //noinspection UnstableApiUsage
+        try (var token = com.intellij.concurrency.ThreadContext.resetThreadContext()) {
+            setVisible(true);
+        }
         setModalityType(ModalityType.DOCUMENT_MODAL);
         return response;
     }

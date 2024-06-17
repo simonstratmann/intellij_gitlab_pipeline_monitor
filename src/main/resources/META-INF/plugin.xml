@@ -20,7 +20,7 @@
     <depends>com.intellij.modules.vcs</depends>
     <depends>Git4Idea</depends>
 
-    <idea-version since-build="231.8770.65"/>
+    <!--    <idea-version since-build="231.8770.65" until-build=".*"/>-->
 
     <extensions defaultExtensionNs="com.intellij">
         <toolWindow id="Gitlab pipeline viewer" secondary="true" icon="/toolWindow/gitlab-icon.png" anchor="bottom" factoryClass="de.sist.gitlab.pipelinemonitor.ui.GitlabToolWindowFactory"/>
