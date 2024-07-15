@@ -28,6 +28,7 @@ class BackgroundUpdateService(private val project: Project) {
     private val gitService: GitService
     private val notifierService: NotifierService
 
+
     @get:Synchronized
     var isActive: Boolean = false
         private set
@@ -39,6 +40,7 @@ class BackgroundUpdateService(private val project: Project) {
     private var connectionFailureReported = false
 
     init {
+
         backgroundTask = Runnable {
             if (project.isDisposed) {
                 return@Runnable

@@ -1,14 +1,13 @@
 import org.jetbrains.changelog.Changelog
 import org.jetbrains.changelog.ChangelogSectionUrlBuilder
 import org.jetbrains.changelog.markdownToHTML
-import org.jetbrains.intellij.platform.gradle.IntelliJPlatformType
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
 
 fun properties(key: String) = project.findProperty(key).toString()
 
 plugins {
-    id("org.jetbrains.intellij.platform") version "2.0.0-beta7"
-//    id("org.jetbrains.intellij.platform.migration") version "2.0.0-beta4"
+    id("org.jetbrains.intellij.platform") version "2.0.0-beta9"
+//    id("org.jetbrains.intellij.platform.migration") version "2.0.0-beta7"
     id("org.jetbrains.changelog") version "2.0.0"
     id("idea")
     id("java")
@@ -19,8 +18,8 @@ group = properties("pluginGroup")
 version = properties("pluginVersion")
 
 repositories {
-
     mavenCentral()
+    mavenLocal()
     maven(
         url = "https://oss.sonatype.org/content/repositories/snapshots/"
     )
@@ -35,7 +34,7 @@ dependencies {
     implementation(kotlin("stdlib-jdk8"))
 
     intellijPlatform {
-        intellijIdeaUltimate("241.14494.240")
+        intellijIdeaUltimate("242.19533.56")
         bundledPlugin("Git4Idea")
         bundledPlugin("com.intellij.java")
         pluginVerifier()
@@ -70,7 +69,7 @@ intellijPlatform {
         patchPluginXml {
             version = properties("pluginVersion")
             sinceBuild = properties("pluginSinceBuild")
-            untilBuild = properties("pluginUntilBuild")
+//            untilBuild = properties("pluginUntilBuild")
 
             // Extract the <!-- Plugin description --> section from README.md and provide for the plugin's manifest
             pluginDescription.set(
@@ -101,15 +100,13 @@ intellijPlatform {
         }
     }
 
-
-
     verifyPlugin {
         ides {
             recommended()
-            ide(IntelliJPlatformType.IntellijIdeaUltimate, "2023.1")
-            ide(IntelliJPlatformType.IntellijIdeaUltimate, "2023.3")
-            ide(IntelliJPlatformType.IntellijIdeaUltimate, "2024.1")
-            ide(IntelliJPlatformType.IntellijIdeaUltimate, "2024.2")
+//            ide(IntelliJPlatformType.IntellijIdeaUltimate, "2023.1")
+//            ide(IntelliJPlatformType.IntellijIdeaUltimate, "2023.3")
+//            ide(IntelliJPlatformType.IntellijIdeaUltimate, "2024.1")
+//            ide(IntelliJPlatformType.IntellijIdeaUltimate, "2024.2")
         }
     }
 }
