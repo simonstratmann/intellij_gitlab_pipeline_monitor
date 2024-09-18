@@ -34,7 +34,7 @@ dependencies {
     implementation(kotlin("stdlib-jdk8"))
 
     intellijPlatform {
-        intellijIdeaUltimate("242.19533.56")
+        create(providers.gradleProperty("platformType"), providers.gradleProperty("platformVersion"))
         bundledPlugin("Git4Idea")
         bundledPlugin("com.intellij.java")
         pluginVerifier()

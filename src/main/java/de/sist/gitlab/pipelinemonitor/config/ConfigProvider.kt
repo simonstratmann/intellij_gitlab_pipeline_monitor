@@ -96,9 +96,9 @@ class ConfigProvider {
     val connectTimeoutSeconds: Int
         get() = PipelineViewerConfigApp.instance.connectTimeout
 
-    fun getMergeRequestTargetBranch(project: Project?): String {
+    fun getMergeRequestTargetBranch(project: Project?): String? {
         val value = PipelineViewerConfigProject.getInstance(project).mergeRequestTargetBranch
-        return if (!Strings.isNullOrEmpty(value)) value else PipelineViewerConfigApp.instance.mergeRequestTargetBranch!!
+        return if (!Strings.isNullOrEmpty(value)) value else PipelineViewerConfigApp.instance.mergeRequestTargetBranch
     }
 
     val isShowNotificationForWatchedBranches: Boolean

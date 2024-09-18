@@ -282,8 +282,9 @@ public class GitlabToolWindow {
                 .replace(GITLAB_URL_PLACEHOLDER, gitlabService.getGitlabHtmlBaseUrl(pipelineJobStatus.getProjectId()))
                 .replace(PROJECT_ID_PLACEHOLDER, pipelineJobStatus.getProjectId())
                 .replace(SOURCE_BRANCH_PLACEHOLDER, pipelineJobStatus.getBranchName());
-        if (config.getMergeRequestTargetBranch(project) != null) {
-            url += NEW_MERGE_REQUEST_URL_TARGET_BRANCH_POSTFIX.replace(TARGET_BRANCH_PLACEHOLDER, config.getMergeRequestTargetBranch(project));
+        String mergeRequestTargetBranch = config.getMergeRequestTargetBranch(project);
+        if (mergeRequestTargetBranch != null) {
+            url += NEW_MERGE_REQUEST_URL_TARGET_BRANCH_POSTFIX.replace(TARGET_BRANCH_PLACEHOLDER, mergeRequestTargetBranch);
         }
         return url;
     }

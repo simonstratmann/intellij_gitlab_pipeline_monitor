@@ -8,6 +8,12 @@
 
 ### Fixed
 
+## 2.16.1
+
+### Fixed
+
+- Possible NPE when trying to create a new MR with no specific target branch configured
+
 ## 2.16.0
 
 ### Fixed
