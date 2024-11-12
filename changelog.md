@@ -8,6 +8,16 @@
 
 ### Fixed
 
+## 2.17.0
+
+### Added
+
+- Make refresh rate configurable
+
+### Fixed
+
+- Better validation of numeric values in the config
+
 ## 2.16.1
 
 ### Fixed

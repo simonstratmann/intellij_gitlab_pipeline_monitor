@@ -6,8 +6,7 @@ import org.jetbrains.intellij.platform.gradle.TestFrameworkType
 fun properties(key: String) = project.findProperty(key).toString()
 
 plugins {
-    id("org.jetbrains.intellij.platform") version "2.0.0-beta9"
-//    id("org.jetbrains.intellij.platform.migration") version "2.0.0-beta7"
+    id("org.jetbrains.intellij.platform") version "2.0.0"
     id("org.jetbrains.changelog") version "2.0.0"
     id("idea")
     id("java")

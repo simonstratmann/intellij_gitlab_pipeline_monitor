@@ -65,7 +65,12 @@ class BackgroundUpdateService(private val project: Project) {
             }
             logger.debug("Starting background task")
             scheduledFuture =
-                AppExecutorUtil.getAppScheduledExecutorService().scheduleWithFixedDelay(backgroundTask, 5, UPDATE_DELAY.toLong(), TimeUnit.SECONDS)
+                AppExecutorUtil.getAppScheduledExecutorService().scheduleWithFixedDelay(
+                    backgroundTask,
+                    5,
+                    PipelineViewerConfigApp.instance.refreshDelay.toLong(),
+                    TimeUnit.SECONDS
+                )
             isActive = true
         })
         messageBusConnection.subscribe(ConfigChangedListener.CONFIG_CHANGED, ConfigChangedListener {
@@ -166,7 +171,12 @@ class BackgroundUpdateService(private val project: Project) {
         }
         logger.debug("Starting background task")
         scheduledFuture = AppExecutorUtil.getAppScheduledExecutorService()
-            .scheduleWithFixedDelay(backgroundTask, INITIAL_DELAY.toLong(), UPDATE_DELAY.toLong(), TimeUnit.SECONDS)
+            .scheduleWithFixedDelay(
+                backgroundTask,
+                INITIAL_DELAY.toLong(),
+                PipelineViewerConfigApp.instance.refreshDelay.toLong(),
+                TimeUnit.SECONDS
+            )
         isActive = true
         return true
     }
@@ -195,7 +205,12 @@ class BackgroundUpdateService(private val project: Project) {
             logger.debug("Background task cancelled: ", cancelled)
         }
         scheduledFuture = AppExecutorUtil.getAppScheduledExecutorService()
-            .scheduleWithFixedDelay(backgroundTask, INITIAL_DELAY.toLong(), UPDATE_DELAY.toLong(), TimeUnit.SECONDS)
+            .scheduleWithFixedDelay(
+                backgroundTask,
+                INITIAL_DELAY.toLong(),
+                PipelineViewerConfigApp.instance.refreshDelay.toLong(),
+                TimeUnit.SECONDS
+            )
         isActive = true
     }
 
@@ -203,6 +218,5 @@ class BackgroundUpdateService(private val project: Project) {
         private val logger = Logger.getInstance(BackgroundUpdateService::class.java)
 
         private const val INITIAL_DELAY = 0
-        private const val UPDATE_DELAY = 30
     }
 }

@@ -2,13 +2,20 @@ package de.sist.gitlab.pipelinemonitor.config;
 
 import com.google.common.base.Strings;
 import com.intellij.openapi.Disposable;
-import com.intellij.openapi.actionSystem.*;
+import com.intellij.openapi.actionSystem.ActionUpdateThread;
+import com.intellij.openapi.actionSystem.AnAction;
+import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
-import com.intellij.openapi.ui.*;
+import com.intellij.openapi.ui.ComponentValidator;
+import com.intellij.openapi.ui.Messages;
+import com.intellij.openapi.ui.ValidationInfo;
 import com.intellij.openapi.util.Disposer;
-import com.intellij.ui.*;
+import com.intellij.ui.CollectionListModel;
+import com.intellij.ui.DocumentAdapter;
+import com.intellij.ui.IdeBorderFactory;
+import com.intellij.ui.ToolbarDecorator;
 import com.intellij.ui.components.JBList;
 import de.sist.gitlab.pipelinemonitor.BackgroundUpdateService;
 import de.sist.gitlab.pipelinemonitor.lights.LightsControl;
@@ -18,7 +25,10 @@ import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @SuppressWarnings("unused")
@@ -49,6 +59,7 @@ public class ConfigFormApp {
     private JTextField maxAgeDays;
     private JTextField textFieldAlwaysMonitor;
     private JCheckBox checkBoxShowProgressBar;
+    private JTextField refreshDelay;
     private final CollectionListModel<String> mappingsModel = new CollectionListModel<>();
     private final CollectionListModel<String> ignoredRemotesModel = new CollectionListModel<>();
 
@@ -75,42 +86,43 @@ public class ConfigFormApp {
         mrPipelineBttonGroup.add(radioMrPipelineBranchName);
 
         disposable = Disposer.newDisposable();
-        new ComponentValidator(disposable)
-                .withValidator(() -> {
-                    try {
-                        Integer.parseInt(connectTimeout.getText());
-                        return null;
-                    } catch (NumberFormatException nex) {
-                        return new ValidationInfo("Please enter a numeric value", connectTimeout);
-                    }
-                })
-                .installOn(connectTimeout)
-                .installOn(maxAgeDays);
-        new ComponentValidator(disposable).withValidator(() -> {
-            if (maxTags.getText() == null) {
-                return null;
-            }
-            try {
-                if (Integer.parseInt(connectTimeout.getText()) == 0) {
-                    return new ValidationInfo("Please enter a positive value", connectTimeout);
-                }
-            } catch (NumberFormatException e) {
-                return new ValidationInfo("Please enter a numeric value", connectTimeout);
-            }
-            return null;
 
-        }).installOn(maxTags);
+        addPositiveNumberValidator(maxAgeDays, true);
+        addPositiveNumberValidator(connectTimeout, false);
+        addPositiveNumberValidator(maxTags, true);
+        addPositiveNumberValidator(refreshDelay, false);
 
 
-        connectTimeout.getDocument().addDocumentListener(new DocumentAdapter() {
-            @Override
-            protected void textChanged(@NotNull DocumentEvent e) {
-                ComponentValidator.getInstance(connectTimeout).ifPresent(ComponentValidator::revalidate);
-            }
-        });
         showForTagsCheckBox.addChangeListener(e -> {
             maxTags.setVisible(showForTagsCheckBox.isSelected());
             maxTagsLabel.setVisible(showForTagsCheckBox.isSelected());
+        });
+    }
+
+    private void addPositiveNumberValidator(JTextField field, boolean isNullAllowed) {
+        new ComponentValidator(disposable).withValidator(() -> {
+            if (field.getText() == null || field.getText().isBlank()) {
+                if (isNullAllowed) {
+                    return null;
+                } else {
+                    return new ValidationInfo("Please enter a positive value", field);
+                }
+            }
+            try {
+                if (Integer.parseInt(field.getText()) <= 0) {
+                    return new ValidationInfo("Please enter a positive value", field);
+                }
+            } catch (NumberFormatException e) {
+                return new ValidationInfo("Please enter a numeric value", field);
+            }
+            return null;
+
+        }).installOn(field);
+        field.getDocument().addDocumentListener(new DocumentAdapter() {
+            @Override
+            protected void textChanged(@NotNull DocumentEvent e) {
+                ComponentValidator.getInstance(field).ifPresent(ComponentValidator::revalidate);
+            }
         });
     }
 
@@ -137,6 +149,7 @@ public class ConfigFormApp {
         config.setMrPipelineDisplayType(radioMRPipelineTitle.isSelected() ? PipelineViewerConfigApp.MrPipelineDisplayType.TITLE : PipelineViewerConfigApp.MrPipelineDisplayType.SOURCE_BRANCH);
         config.mrPipelinePrefix = mrPipelinePrefixTextbox.getText();
         config.maxAgeDays = Strings.isNullOrEmpty(maxAgeDays.getText()) ? null : Integer.parseInt(maxAgeDays.getText());
+        config.refreshDelay = Strings.isNullOrEmpty(refreshDelay.getText()) ? 30 : Integer.parseInt(refreshDelay.getText());
         config.setOnlyForRemoteBranchesExist(checkBoxForBranchesWhichExist.isSelected());
         config.setAlwaysMonitorHostsFromString(textFieldAlwaysMonitor.getText());
         config.setShowProgressBar(checkBoxShowProgressBar.isSelected());
@@ -169,6 +182,7 @@ public class ConfigFormApp {
         radioMrPipelineBranchName.setSelected(config.getMrPipelineDisplayType() == PipelineViewerConfigApp.MrPipelineDisplayType.SOURCE_BRANCH);
         mrPipelinePrefixTextbox.setText(config.mrPipelinePrefix);
         maxAgeDays.setText(config.maxAgeDays == null ? null : String.valueOf(config.maxAgeDays));
+        refreshDelay.setText(String.valueOf(config.refreshDelay));
         checkBoxForBranchesWhichExist.setSelected(config.isOnlyForRemoteBranchesExist());
         textFieldAlwaysMonitor.setText(config.getAlwaysMonitorHostsAsString());
         checkBoxShowProgressBar.setSelected(config.isShowProgressBar());
@@ -199,6 +213,7 @@ public class ConfigFormApp {
                || !Objects.equals(config.mrPipelinePrefix, mrPipelinePrefixTextbox.getText())
                || !Objects.equals(config.isOnlyForRemoteBranchesExist(), checkBoxForBranchesWhichExist.isSelected())
                || isDifferentNumber(maxAgeDays.getText(), config.maxAgeDays)
+               || isDifferentNumber(refreshDelay.getText(), config.refreshDelay)
                || !Objects.equals(config.getAlwaysMonitorHostsAsString(), textFieldAlwaysMonitor.getText())
                || config.isShowProgressBar() != checkBoxShowProgressBar.isSelected()
                 ;

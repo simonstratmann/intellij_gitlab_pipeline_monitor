@@ -70,6 +70,9 @@ class PipelineViewerConfigApp : PersistentStateComponent<PipelineViewerConfigApp
     var alwaysMonitorHosts: Set<String> = HashSet()
     var isShowProgressBar: Boolean = true
 
+    @JvmField
+    var refreshDelay: Int = 30
+
     val alwaysMonitorHostsAsString: String
         get() = listToString(alwaysMonitorHosts)
 
