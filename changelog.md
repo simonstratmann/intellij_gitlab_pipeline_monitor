@@ -8,6 +8,12 @@
 
 ### Fixed
 
+## 2.18.0
+
+### Changed
+
+- Removed "Gitlab" from the name of the plugin after contact from the Gitlab Intellectual Property Team
+
 ## 2.17.0
 
 ### Added
