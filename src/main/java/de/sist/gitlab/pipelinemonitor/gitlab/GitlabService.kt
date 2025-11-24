@@ -92,7 +92,9 @@ class GitlabService(private val project: Project) : Disposable {
                     )
                     val pipelinesByIid = data.get().project.pipelines.nodes.stream()
                         .collect(
-                            Collectors.groupingBy { x: PipelineNode -> x.id.substring(x.id.lastIndexOf("/") + 1).toInt() }
+                            Collectors.groupingBy { x: PipelineNode ->
+                                x.id.substring(x.id.lastIndexOf("/") + 1).toLong()
+                            }
                         )
                     for (pipelineJobStatus in localPipelineInfos[mapping]!!) {
                         val mergeRequestsForPipeline = mergeRequestsBySourceBranch[pipelineJobStatus.branchName]

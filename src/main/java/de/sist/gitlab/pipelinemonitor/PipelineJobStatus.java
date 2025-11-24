@@ -7,7 +7,7 @@ import java.util.StringJoiner;
 
 public class PipelineJobStatus {
 
-    private final Integer id;
+    private final Long id;
     public String branchName;
     public final String projectId;
     public final ZonedDateTime creationTime;
@@ -19,7 +19,7 @@ public class PipelineJobStatus {
     public final String source;
     private String branchNameDisplay;
 
-    public PipelineJobStatus(Integer id, String ref, String projectId, ZonedDateTime creationTime, ZonedDateTime updatedAt, String result, String webUrl, String source) {
+    public PipelineJobStatus(Long id, String ref, String projectId, ZonedDateTime creationTime, ZonedDateTime updatedAt, String result, String webUrl, String source) {
         this.id = id;
         this.branchName = ref;
         this.projectId = projectId;
@@ -35,10 +35,9 @@ public class PipelineJobStatus {
         if (this == o) {
             return true;
         }
-        if (!(o instanceof PipelineJobStatus)) {
+        if (!(o instanceof PipelineJobStatus that)) {
             return false;
         }
-        PipelineJobStatus that = (PipelineJobStatus) o;
         return Objects.equal(branchName, that.branchName) &&
                 Objects.equal(projectId, that.projectId) &&
                 Objects.equal(creationTime, that.creationTime) &&
@@ -48,7 +47,7 @@ public class PipelineJobStatus {
                 ;
     }
 
-    public Integer getId() {
+    public Long getId() {
         return id;
     }
 

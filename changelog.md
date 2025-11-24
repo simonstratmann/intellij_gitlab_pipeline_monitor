@@ -8,6 +8,12 @@
 
 ### Fixed
 
+## 2.18.1
+
+### Fixed
+
+- Fix deserialization error caused by pipeline IDs on gitlab.com now exceeding INT range
+
 ## 2.18.0
 
 ### Changed
