@@ -8,6 +8,13 @@
 
 ### Fixed
 
+## 2.18.2
+
+### Fixed
+
+- Remove "untilBuild" restriction to allow installation with IntelliJ 2025.* and newer. I actually thought I'd already
+  done that but the patch didn't work
+
 ## 2.18.1
 
 ### Fixed
