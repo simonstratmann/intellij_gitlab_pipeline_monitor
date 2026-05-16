@@ -1,15 +1,17 @@
 import org.jetbrains.changelog.Changelog
 import org.jetbrains.changelog.ChangelogSectionUrlBuilder
 import org.jetbrains.changelog.markdownToHTML
+import org.jetbrains.intellij.platform.gradle.IntelliJPlatformType
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
 
 fun properties(key: String) = project.findProperty(key).toString()
 
 plugins {
-    id("org.jetbrains.intellij.platform") version "2.0.0"
-    id("org.jetbrains.changelog") version "2.0.0"
-    id("idea")
     id("java")
+    id("idea")
+    id("org.jetbrains.intellij.platform") version "2.13.1"
+    id("org.jetbrains.changelog") version "2.2.0"
+    kotlin("plugin.serialization") version "2.2.0"
     kotlin("jvm")
 }
 
@@ -33,17 +35,18 @@ dependencies {
     implementation(kotlin("stdlib-jdk8"))
 
     intellijPlatform {
-        create(providers.gradleProperty("platformType"), providers.gradleProperty("platformVersion"))
+        intellijIdea("2026.1")
         bundledPlugin("Git4Idea")
         bundledPlugin("com.intellij.java")
         pluginVerifier()
-        instrumentationTools()
         testFramework(TestFrameworkType.Platform)
     }
 }
 
 
 intellijPlatform {
+
+
     pluginConfiguration {
         name = properties("pluginName")
         version = properties("pluginVersion")
@@ -99,7 +102,7 @@ intellijPlatform {
         }
     }
 
-    verifyPlugin {
+    pluginVerification {
         ides {
             recommended()
 //            ide(IntelliJPlatformType.IntellijIdeaUltimate, "2023.1")

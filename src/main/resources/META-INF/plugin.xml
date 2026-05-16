@@ -64,6 +64,9 @@
         <action id="de.sist.gitlab.pipelinemonitor.debug.ShowTestNotificationAction" class="de.sist.gitlab.pipelinemonitor.debug.ShowTestNotificationAction" text="Show gitlab test notification">
             <add-to-group group-id="ToolsMenu" anchor="first"/>
         </action>
+        <action id="de.sist.gitlab.pipelinemonitor.debug.ShowLightsAction" class="de.sist.gitlab.pipelinemonitor.debug.ShowLightsAction" text="Show linux lights">
+            <add-to-group group-id="ToolsMenu" anchor="first"/>
+        </action>
     </actions>
 
 
